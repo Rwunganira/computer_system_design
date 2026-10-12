@@ -74,9 +74,38 @@ def style_readme(text):
     return "\n".join(out)
 
 
+def split_key_ideas(folder):
+    """Return (overview, check_yourself) from key_ideas.md, or ("", "") if absent."""
+    path = folder / "key_ideas.md"
+    if not path.exists():
+        return "", ""
+    text = path.read_text()
+    overview, _, check = text.partition("## Check yourself")
+    overview = overview.replace("## In one minute", '<div class="one-minute" markdown>\n\n## In one minute', 1)
+    overview = overview.replace("## The picture", "</div>\n\n## The picture", 1)
+    if check:
+        # Style the questions as question callouts; <summary> is HTML, so render `code` by hand.
+        check = check.replace('<details markdown="1">', '<details class="question" markdown="1">')
+        check = re.sub(r"<summary>(.*?)</summary>",
+                       lambda m: "<summary>" + re.sub(r"`([^`]+)`", r"<code>\1</code>", m.group(1)) + "</summary>",
+                       check)
+    return overview.strip(), ("## Check yourself" + check).strip() if check else ""
+
+
+def insert_after_intro(readme, block):
+    """Put ``block`` after the title and opening callouts, before the README's first section."""
+    match = re.search(r"^## ", readme, flags=re.M)
+    if not match or not block:
+        return readme + "\n\n" + block
+    return readme[:match.start()] + block + "\n\n" + readme[match.start():]
+
+
 def module_page(folder):
-    readme = (folder / "README.md").read_text()
-    parts = [style_readme(readme).rstrip(), ""]
+    readme = style_readme((folder / "README.md").read_text()).rstrip()
+    overview, check = split_key_ideas(folder)
+    parts = [insert_after_intro(readme, overview), ""]
+    if check:
+        parts += [check, ""]
     source = f"{REPO}/tree/main/lessons/{folder.name}"
     parts.append(f'[:material-github: View this module on GitHub]({source}){{ .md-button }}\n')
 
@@ -125,6 +154,7 @@ with exercises you check yourself.</p>
 
 [Start the course](lessons/00_setup.md){{ .md-button .md-button--primary }}
 [Read the outline](outline.md){{ .md-button }}
+[Glossary](glossary.md){{ .md-button }}
 
 </div>
 
@@ -161,10 +191,11 @@ All data is synthetic, generated from a fixed seed. No real patients, clinics or
 
 ## How each module works
 
-1. **Read** the chapter alongside the module page, which explains its ideas in plain language.
-2. **Predict** what the examples will do, then **run** them and see if you were right.
-3. **Complete** the exercises in `exercises.py` until `pytest` passes.
-4. **Compare** with the worked solution.
+1. **Skim** the module's *In one minute* summary and *The picture* diagram.
+2. **Read** the chapter alongside the rest of the module page.
+3. **Predict** what the examples will do, then **run** them and see if you were right.
+4. **Answer** the *Check yourself* questions before opening the answers.
+5. **Complete** the exercises in `exercises.py` until `pytest` passes, then compare with the worked solution.
 
 ```bash
 git clone {REPO}
@@ -176,6 +207,29 @@ pytest lessons/00_setup
 """
 
 
+# Everyday words that would put a tooltip on half the course; they stay on the glossary page.
+NO_TOOLTIP = {"Context", "Error", "Failure", "Fault", "Lock", "Thread", "Binding", "Interpreter",
+              "Hierarchy", "Abstraction", "Caching", "Batching", "Acknowledgement", "Retransmission",
+              "Layering", "Modularity", "Authentication", "Authorization", "Availability", "Checksum"}
+
+
+def glossary_terms():
+    text = (ROOT / "GLOSSARY.md").read_text()
+    return re.findall(r"^- \*\*(.+?)\*\*: (.+)$", text, flags=re.M)
+
+
+def tooltip_definitions():
+    """Abbreviation lines that make every glossary term show its definition on hover."""
+    lines = []
+    for term, definition in glossary_terms():
+        if term in NO_TOOLTIP:
+            continue
+        definition = definition.replace('"', "'")
+        for variant in {term, term[0].lower() + term[1:]}:
+            lines.append(f"*[{variant}]: {definition}")
+    return "\n".join(lines) + "\n"
+
+
 def build_sources():
     if SRC.exists():
         shutil.rmtree(SRC)
@@ -185,7 +239,11 @@ def build_sources():
     (SRC / "outline.md").write_text(outline)
     for folder in lessons():
         (SRC / "lessons" / f"{folder.name}.md").write_text(module_page(folder))
-    shutil.copytree(ROOT / "docs_theme", SRC / "assets")
+    (SRC / "glossary.md").write_text((ROOT / "GLOSSARY.md").read_text())
+    (SRC / "assets").mkdir()
+    shutil.copytree(ROOT / "docs_theme", SRC / "assets", dirs_exist_ok=True)
+    (ROOT / "site_includes").mkdir(exist_ok=True)
+    (ROOT / "site_includes" / "glossary_tooltips.md").write_text(tooltip_definitions())
 
 
 if __name__ == "__main__":

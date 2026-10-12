@@ -8,3 +8,4 @@ data/generated/
 *.log
 site/
 site_src/
+site_includes/

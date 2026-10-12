@@ -102,3 +102,32 @@
 /* Headings in full ink, links readable in both themes. */
 .md-typeset h1 { color: var(--md-default-fg-color); }
 [data-md-color-scheme="slate"] { --md-typeset-a-color: #6cc7c3; }
+
+/* "In one minute" summary card at the top of each module. */
+.md-typeset .one-minute {
+  background: var(--md-accent-fg-color--transparent);
+  border-left: 4px solid var(--md-accent-fg-color);
+  border-radius: 10px;
+  padding: 0.2rem 1.4rem 0.6rem;
+  margin: 1.5rem 0;
+}
+.md-typeset .one-minute h2 {
+  border: none;
+  margin-top: 0.9rem;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--md-accent-fg-color);
+}
+.md-typeset .one-minute li { margin-bottom: 0.4em; }
+
+/* Diagrams sit on a soft panel. */
+.md-typeset .mermaid {
+  background: var(--md-code-bg-color);
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+}
+
+/* Glossary terms with hover definitions get a dotted underline. */
+.md-typeset abbr { text-decoration: underline dotted var(--md-primary-fg-color--light); cursor: help; }

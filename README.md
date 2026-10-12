@@ -37,11 +37,11 @@ Then open [`lessons/00_setup/README.md`](lessons/00_setup/README.md).
 | [11. Security](lessons/11_security) | 11 | Authentication, authorization and a tamper-evident audit log |
 | [Capstone](lessons/12_capstone) | 1 to 11 | A surveillance service that survives a scripted bad week |
 
-The full plan, with learning goals per module, is in [`COURSE_OUTLINE.md`](COURSE_OUTLINE.md).
+The full plan, with learning goals per module, is in [`COURSE_OUTLINE.md`](COURSE_OUTLINE.md). Key terms are explained in [`GLOSSARY.md`](GLOSSARY.md).
 
 ## How a module works
 
-Each folder has a `README.md` with the chapter's ideas, runnable examples, `predict.md` questions to
+Each folder has a `key_ideas.md` (a one-minute summary, a diagram and self-check questions), a `README.md` with the chapter's ideas, runnable examples, `predict.md` questions to
 answer before running them, and `exercises.py` with `TODO`s. Check your work with:
 
 ```bash

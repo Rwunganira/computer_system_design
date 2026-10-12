@@ -44,6 +44,7 @@ theme:
     - search.highlight
     - content.code.copy
     - content.code.annotate
+    - content.tooltips
 
 extra_css:
   - assets/course.css
@@ -51,6 +52,7 @@ extra_css:
 nav:
   - Home: index.md
   - Course outline: outline.md
+  - Glossary: glossary.md
   - Modules:
       - Setup: lessons/00_setup.md
       - 1. Complexity: lessons/01_complexity.md
@@ -74,7 +76,15 @@ markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.details
-  - pymdownx.superfences
+  - abbr
+  - pymdownx.snippets:
+      base_path: [site_includes]
+      auto_append: [glossary_tooltips.md]
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
