@@ -6,6 +6,5 @@ __pycache__/
 data/generated/
 *.db
 *.log
-site/
-site_src/
-site_includes/
+web/node_modules/
+web/tools/shot-*.png

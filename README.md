@@ -51,14 +51,13 @@ COURSE_SOLUTIONS=1 pytest lessons/01_complexity   # the worked answers in soluti
 
 Try the exercises before opening `solutions.py`.
 
-## Building the website
+## The website
 
-The website is generated from the lessons, so each module's README, examples, exercises and
-solutions stay the single source. To preview it locally:
+`web/` holds the interactive version of the course: one page per module with live diagrams,
+step-through widgets, Python that runs in your browser, self-checking exercises, quick checks,
+flashcards and review dates. It uses the same engine and design as the
+[Computational Thinking and Data Science](https://github.com/Rwunganira/intro_computation_data_science)
+course. To preview it, run `python3 -m http.server -d web` and open http://localhost:8000.
 
-```bash
-pip install -r requirements-site.txt
-python scripts/build_site.py --serve   # http://127.0.0.1:8000
-```
-
-Every push to `main` publishes it to GitHub Pages.
+Every push to `main` publishes it to GitHub Pages. `web/AUTHORING.md` describes how a module page is written
+and tested.
