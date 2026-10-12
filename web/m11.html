@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Information Security, Module 11</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+/* hero: the guard as a request pipeline */
+.gd-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.gd-row .btn-ghost.on { background: var(--tok-fn); border-color: var(--tok-fn); color: var(--code-bg); font-weight: 600; }
+.gd-row .btn-ghost.on.bad { background: var(--tok-kw); border-color: var(--tok-kw); }
+.gd-lbl { font-family: var(--mono); font-size: 0.72rem; color: var(--code-muted); text-transform: uppercase; letter-spacing: .06em; margin-right: 2px; }
+.gd-url { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.9rem; background: color-mix(in srgb, var(--code-fg) 7%, var(--code-bg)); border: 1.5px solid color-mix(in srgb, var(--code-muted) 45%, transparent); border-radius: 8px; padding: 6px 8px; }
+.gd-url .verb { color: var(--tok-kw); font-weight: 600; }
+.gd-url input { font: inherit; width: 7.2ch; background: transparent; color: var(--tok-num); border: 0; border-bottom: 1.5px dashed var(--tok-num); padding: 0; }
+.gd-url .path { color: var(--code-fg); white-space: nowrap; }
+.gd-url .sp { flex: 1; }
+.gd-pipe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 620px) { .gd-pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.gd-stage { border: 1.5px solid color-mix(in srgb, var(--code-muted) 40%, transparent); border-radius: 9px; padding: 8px 9px; display: grid; gap: 3px; align-content: start; min-width: 0; transition: border-color .25s, background .25s, opacity .25s; }
+.gd-stage small { font-family: var(--mono); font-size: 0.66rem; color: var(--code-muted); text-transform: uppercase; letter-spacing: .06em; }
+.gd-stage b { font-family: var(--display); font-size: 0.98rem; color: var(--code-fg); }
+.gd-stage span { font-family: var(--mono); font-size: 0.72rem; color: var(--code-muted); line-height: 1.4; overflow-wrap: anywhere; min-height: 2.8em; }
+.gd-stage.idle { opacity: .45; }
+.gd-stage.ok { border-color: var(--tok-str); background: color-mix(in srgb, var(--tok-str) 10%, transparent); }
+.gd-stage.ok span { color: var(--tok-str); }
+.gd-stage.fail { border-color: var(--tok-kw); background: color-mix(in srgb, var(--tok-kw) 12%, transparent); }
+.gd-stage.fail span { color: var(--tok-kw); }
+.gd-stage.warn { border-color: var(--tok-num); border-style: dashed; }
+.gd-stage.warn span { color: var(--tok-num); }
+.gd-stage.skip { border-style: dashed; opacity: .6; }
+.gd-resp { font-family: var(--mono); font-size: 0.8rem; color: var(--code-fg); background: color-mix(in srgb, var(--code-fg) 5%, var(--code-bg)); border-radius: 8px; padding: 8px 10px; min-height: 3.2em; overflow-wrap: anywhere; line-height: 1.5; }
+.gd-resp .code { font-weight: 600; }
+.gd-resp .code.c200 { color: var(--tok-str); }
+.gd-resp .code.c4 { color: var(--tok-kw); }
+.gd-leak { display: inline-block; margin-left: 6px; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--code-bg); background: var(--tok-kw); border-radius: 99px; padding: 0 7px; }
+.gd-log { font-family: var(--mono); font-size: 0.72rem; color: var(--code-muted); display: grid; gap: 2px; min-height: 4.5em; }
+.gd-log div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gd-log b { color: var(--code-fg); font-weight: 600; }
+.gd-log .den { color: var(--tok-kw); }
+.gd-log .h { color: var(--tok-fn); }
+
+/* password storage */
+.pw-modes { display: flex; flex-wrap: wrap; gap: 6px; }
+.pw-modes .btn.alt.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+table.data td.cracked { color: var(--bad); font-weight: 700; }
+table.data td.safe { color: var(--ok); font-weight: 700; }
+table.data td.mono { font-family: var(--mono); font-size: 0.8rem; overflow-wrap: anywhere; }
+
+/* hash chain */
+.ch-list { display: grid; gap: 8px; }
+.ch-item { display: grid; gap: 4px; padding: 10px 12px; background: var(--paper); border: 1.5px solid var(--rule); border-left-width: 4px; border-radius: 10px; min-width: 0; }
+.ch-item.ok { border-left-color: var(--ok); }
+.ch-item.bad { border-left-color: var(--bad); background: var(--bad-soft); }
+.ch-top { display: flex; gap: 8px; align-items: center; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+.ch-top b { color: var(--ink); }
+.ch-top input { flex: 1; min-width: 0; font: inherit; color: var(--ink); background: var(--sheet); border: 1.5px solid var(--rule); border-radius: 6px; padding: 4px 6px; }
+.ch-hash { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 2px 14px; }
+.ch-hash .x { color: var(--bad); font-weight: 700; }
+.ch-head { font-family: var(--mono); font-size: 0.8rem; padding: 8px 10px; border-radius: 8px; border: 1.5px dashed var(--rule); overflow-wrap: anywhere; }
+
+/* MAC lab */
+.mac-req { font-family: var(--mono); font-size: 0.8rem; background: var(--code-bg); color: var(--code-fg); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; }
+.mac-req .hl2 { color: var(--tok-kw); }
+.mac-req .dim { color: var(--code-muted); }
+.mac-checks { display: grid; gap: 6px; }
+.verdict-line { font-family: var(--mono); font-size: 0.85rem; padding: 8px 10px; border-radius: 6px; background: var(--paper); border-left: 3px solid var(--rule); overflow-wrap: anywhere; }
+.verdict-line.bad { border-left-color: var(--bad); }
+.verdict-line.ok { border-left-color: var(--ok); }
+</style>
+</head>
+<body data-lesson="m11">
+<div class="shell">
+  <aside class="rail" aria-label="Lesson progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 11</div>
+      <h1>Being logged in is not being <em>allowed</em>. Check every request, and write it down.</h1>
+      <p class="lede">Until now every failure was an accident. Security is different: someone is trying. This module puts every VaxRecords request through a guard that asks who is asking, whether they may see this record, and keeps a log that cannot be quietly rewritten.</p>
+
+      <div class="tape-card" aria-label="A request to VaxRecords passing through the guard: authenticate, authorize, audit">
+        <div class="tape-top"><span>Every request passes the guard</span><span>sent <b id="gd-sent">0</b> · leaked <b id="gd-leaked">0</b> · refused <b id="gd-refused">0</b></span></div>
+        <div class="gd-row"><span class="gd-lbl">version</span><button class="btn-ghost on bad" id="gd-v-in" type="button">vax_api_insecure</button><button class="btn-ghost" id="gd-v-se" type="button">secure_vax_api</button></div>
+        <div class="gd-row" id="gd-users"><span class="gd-lbl">as</span></div>
+        <div class="gd-url">
+          <span class="verb">GET</span><span class="path">/patients/P</span><input id="gd-id" value="000001" maxlength="6" inputmode="numeric" aria-label="patient number">
+          <span class="sp"></span>
+          <button class="btn-ghost" id="gd-prev" type="button" aria-label="previous ID">&#9664;</button><button class="btn-ghost" id="gd-next" type="button" aria-label="next ID">&#9654;</button><button class="btn-ghost" id="gd-send" type="button">Send</button>
+        </div>
+        <div class="gd-pipe">
+          <div class="gd-stage idle" id="gd-s0"><small>1 · guard</small><b>Authenticate</b><span>who is asking?</span></div>
+          <div class="gd-stage idle" id="gd-s1"><small>2 · guard</small><b>Authorize</b><span>may they read this record?</span></div>
+          <div class="gd-stage idle" id="gd-s2"><small>3 · guard</small><b>Audit</b><span>write it down</span></div>
+          <div class="gd-stage idle" id="gd-s3"><small>4</small><b>Response</b><span>what comes back</span></div>
+        </div>
+        <div class="gd-resp" id="gd-resp" aria-live="polite">Edit the ID or press Send.</div>
+        <div class="gd-log" id="gd-log"></div>
+        <div class="tape-log"><span class="gd-lbl" id="gd-mode">Amina walks the IDs</span><div style="display:flex;gap:6px"><button class="btn-ghost" id="gd-step" type="button">Step</button><button class="btn-ghost" id="gd-play" type="button">Pause</button></div></div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>The design principles, the guard model, why passwords get a salt and a slow hash, tamper-evident audit logs, and what hashes, MACs and encryption each protect.</div>
+        <div><b>You will build</b>The <code>can_read</code> check that closes the leak above, the verifier for a hash-chained audit log, and a signed-request check that rejects replays.</div>
+        <div><b>How it works</b>Attack the insecure version above, then the secure one. Step through each mechanism, predict, run, and check your code.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="A negative goal">
+      <div class="sec-head"><span class="sec-num">01</span><h2>Security is a negative goal</h2></div>
+      <p>Most of this course has asked "does the system do X?". Security asks "can <em>anyone</em> make the system do something it should not, ever?". That is much harder. A test shows that one attack fails; it cannot show that every attack, by every adversary, fails. So the book leans on a few design principles and a simple structure small enough to check.</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Principle</th><th>In plain language</th><th>In VaxRecords</th></tr></thead>
+        <tbody>
+          <tr><td><b>Open design</b></td><td>security must not depend on attackers not knowing the design</td><td>scrypt and HMAC are public; only keys and passwords are secret</td></tr>
+          <tr><td><b>Fail-safe defaults</b></td><td>deny unless explicitly allowed</td><td>an unknown role reads nothing</td></tr>
+          <tr><td><b>Least privilege</b></td><td>the least access the job needs</td><td>a district officer sees one district</td></tr>
+          <tr><td><b>Complete mediation</b></td><td>check every access, every time</td><td>every request is authenticated, every read authorized</td></tr>
+          <tr><td><b>Economy of mechanism</b></td><td>keep the guard small enough to review</td><td>one <code>can_read</code> function decides record access</td></tr>
+          <tr><td><b>Psychological acceptability</b></td><td>if security is painful, people work around it</td><td>nurses who find login slow share one account</td></tr>
+        </tbody>
+      </table></div>
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Match each VaxRecords control to the principle it applies.</span></div>
+        <div class="sorter" id="sorter"></div>
+      </div>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2" data-short="The guard model">
+      <div class="sec-head"><span class="sec-num">02</span><h2>The guard model</h2></div>
+      <p>Every request to a protected resource passes a <b>guard</b> that does three things, in order:</p>
+      <ol>
+        <li><b>Authenticate:</b> who is asking? VaxRecords checks a password once, then issues a random token for later requests.</li>
+        <li><b>Authorize:</b> may <em>this</em> principal do <em>this</em> to <em>this</em> object?</li>
+        <li><b>Audit:</b> record who asked for what, and the answer, in a log the people being audited cannot rewrite.</li>
+      </ol>
+      <p>The first version of VaxRecords, <code>vax_api_insecure.py</code>, has a login, tokens and a <code>401</code> for strangers, so it <em>feels</em> secure. But its access check is <code>logged_in_is_enough</code>, which always returns <code>True</code>. Amina, a North-Central district officer, can change the ID in <code>/patients/&lt;id&gt;</code> and read any child in the country. This bug has a name, an <b>insecure direct object reference</b> (IDOR), and it is one of the most common real web bugs.</p>
+      <p>The real lab runs both versions as Flask servers and attacks them with <code>requests</code>. Here the server is a function and the network is a function call, with the same 30 synthetic children. Amina tries P000001 to P000030. About one child in five lives in North-Central. Predict the last line.</p>
+      <div class="cell" data-predict="leaked 23 records from 6 other districts, 0 refused">
+        <div class="predict"><label for="p-s2">Predict the last line:</label><input id="p-s2" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s2" spellcheck="false" aria-label="Python code">HOME = ("N-CEN S-COA N-LAK N-CEN S-CEN S-CEN S-CEN N-CEN S-CEN S-CEN "
+        "S-CEN S-COA S-CEN N-HIL N-CEN N-CEN N-HIL N-CEN N-CEN N-RIV "
+        "N-HIL N-RIV N-LAK N-LAK S-COA S-HIG N-RIV N-RIV S-CEN N-LAK").split()
+PATIENTS = {f"P{i:06d}": {"person_id": f"P{i:06d}", "district_id": d}
+            for i, d in enumerate(HOME, 1)}
+USERS = {"amina": {"role": "district_officer", "district": "N-CEN"}}
+TOKENS = {"tok-7f3a": "amina"}            # issued at login
+
+def logged_in_is_enough(user, patient):
+    return True                           # the bug
+
+def get_patient(token, person_id, access_check=logged_in_is_enough):
+    username = TOKENS.get(token)
+    if username is None:
+        return 401, None                  # authenticated? yes, this part works
+    patient = PATIENTS.get(person_id)
+    if patient is None:
+        return 404, None
+    if not access_check(USERS[username], patient):
+        return 403, None
+    return 200, patient
+
+leaked, refused = {}, 0
+for i in range(1, 31):
+    status, body = get_patient("tok-7f3a", f"P{i:06d}")
+    refused += status == 403
+    if status == 200 and body["district_id"] != "N-CEN":
+        leaked[body["person_id"]] = body["district_id"]
+print("no token:", get_patient("stolen?", "P000001")[0])
+print("leaked", len(leaked), "records from", len(set(leaked.values())),
+      "other districts,", refused, "refused")</textarea></div>
+      </div>
+      <p>Authentication worked perfectly: a request without a valid token gets <code>401</code>. The leak is entirely in the second step. An audit log would not have stopped it either; it only makes the misuse <em>discoverable</em>, which also deters it.</p>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3" data-short="Authorization">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Authorization: check every read</h2></div>
+      <p>The fix is <b>complete mediation</b>: compare the record's district with the user's on every read, not once at login. The secure version puts that decision in one small function, <code>can_read</code>, so a reviewer can see all of it at a glance (economy of mechanism), and makes anything it does not explicitly allow a denial (fail-safe defaults).</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Exercise 1 from the repository's <code>exercises.py</code>.</span></div>
+        <p>Write <code>can_read(user, patient)</code>. <code>user</code> is a dict like <code>{"role": "district_officer", "district": "N-CEN"}</code> or <code>{"role": "national"}</code>; <code>patient</code> has a <code>"district_id"</code>. National staff read everything; a district officer reads only their own district. Everything else, including an unknown role or an officer with no district, is denied.</p>
+        <div class="cell" id="ex-canread">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-canread" spellcheck="false" aria-label="Python code">def can_read(user, patient):
+    # Your code here. Use user.get("role") so a missing key is not an error.
+    return True
+
+amina = {"role": "district_officer", "district": "N-CEN"}
+print(can_read(amina, {"district_id": "S-COA"}))   # should be False
+</textarea></div>
+        </div>
+      </div>
+      <p>Here is the guard with a correct <code>can_read</code> plugged in, plus an audit entry for every read. The secure version answers <code>403</code> both for a record Amina may not see and for one that does not exist. If the two answers differed, she could probe IDs to learn which children exist in other districts.</p>
+      <div class="cell" data-predict="leaked 0, refused 24, audit entries 31">
+        <div class="predict"><label for="p-s3">Predict the last line:</label><input id="p-s3" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s3" spellcheck="false" aria-label="Python code">HOME = ("N-CEN S-COA N-LAK N-CEN S-CEN S-CEN S-CEN N-CEN S-CEN S-CEN "
+        "S-CEN S-COA S-CEN N-HIL N-CEN N-CEN N-HIL N-CEN N-CEN N-RIV "
+        "N-HIL N-RIV N-LAK N-LAK S-COA S-HIG N-RIV N-RIV S-CEN N-LAK").split()
+PATIENTS = {f"P{i:06d}": {"person_id": f"P{i:06d}", "district_id": d}
+            for i, d in enumerate(HOME, 1)}
+USERS = {"amina": {"role": "district_officer", "district": "N-CEN"}}
+TOKENS = {"tok-7f3a": "amina"}
+AUDIT = []
+
+def can_read(user, patient):
+    if user.get("role") == "national":
+        return True
+    if user.get("role") == "district_officer" and user.get("district"):
+        return user["district"] == patient.get("district_id")
+    return False                          # fail-safe default
+
+def get_patient(token, person_id):
+    username = TOKENS.get(token)
+    if username is None:
+        return 401, None
+    patient = PATIENTS.get(person_id)
+    allowed = patient is not None and can_read(USERS[username], patient)
+    AUDIT.append((username, "read", person_id, "ok" if allowed else "denied"))
+    if not allowed:
+        return 403, None                  # same answer for missing and forbidden
+    return 200, patient
+
+leaked, refused = 0, 0
+for i in range(1, 32):                    # one ID past the end this time
+    status, body = get_patient("tok-7f3a", f"P{i:06d}")
+    refused += status == 403
+    leaked += status == 200 and body["district_id"] != "N-CEN"
+print(AUDIT[-1])
+print(f"leaked {leaked}, refused {refused}, audit entries {len(AUDIT)}")</textarea></div>
+      </div>
+      <p class="note"><b>Notice:</b> P000031 does not exist, and it is refused exactly like the 23 children in other districts. The attempt still lands in the audit log, where someone can notice an officer walking through IDs.</p>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4" data-short="Passwords">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Authentication: salt and a slow hash</h2></div>
+      <p>The insecure version stores passwords in plain text, another flaw. The secure version never stores a password at all. For each user it keeps a random <b>salt</b> and a <b>slow hash</b> of salt plus password (<code>hashlib.scrypt</code> in the lab). At login it hashes what the user typed with the same salt and compares. If the user table leaks, the salt stops one precomputed table from cracking everyone at once, and the slowness makes every single guess expensive.</p>
+      <p><code>hashlib</code> is not available in the browser, so the cells on this page use <code>h64</code>, a small hand-written 64-bit hash, as a <b>stand-in for SHA-256</b>. It shows the shape of the idea: same input, same output; change one character and the output changes completely. It is not secure, and the real lab uses the real library.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><span class="note">The user table has leaked. What does the attacker see?</span></div>
+        <div class="pw-modes" id="pw-modes"></div>
+        <div class="scroll-x"><table class="data" id="pw-table"></table></div>
+        <div class="verdict-line" id="pw-note"></div>
+      </div>
+      <p>Two clinic nurses, Grace and Paul, chose the same weak password. Under a plain hash their stored values are identical, which tells the attacker they share a password before any cracking starts. Predict what the salted version prints.</p>
+      <div class="cell" data-predict="False">
+        <div class="predict"><label for="p-s4">Predict the last line:</label><input id="p-s4" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s4" spellcheck="false" aria-label="Python code">P = 2**61 - 1
+def h64(text):
+    """A 64-bit polynomial hash: a classroom stand-in for SHA-256."""
+    h = 1469598103934665603
+    for ch in text:
+        h = (h * 1099511628211 + ord(ch)) % P
+    h = (h * h + 1442695040888963407) % P
+    h = (h * 6364136223846793005 + 1) % P
+    return format(h, "016x")
+
+def slow_hash(password, salt, rounds=1000):
+    """Hash again and again, so each guess costs `rounds` hashes (scrypt does this, harder)."""
+    d = salt + password
+    for _ in range(rounds):
+        d = h64(salt + d)
+    return d
+
+print("grace, fast:", h64("clinic123"))
+print("paul,  fast:", h64("clinic123"))
+grace_salt, paul_salt = "9f2c71", "41ab0e"     # random per user, stored beside the hash
+print("grace, salted:", slow_hash("clinic123", grace_salt))
+print("paul,  salted:", slow_hash("clinic123", paul_salt))
+print(slow_hash("clinic123", grace_salt) == slow_hash("clinic123", paul_salt))</textarea></div>
+      </div>
+      <p>Slowness is a feature at login, where one person waits a fraction of a second once. It becomes a problem if every request re-checked the password, or if an attacker floods the login endpoint to burn the server's CPU. That is why VaxRecords checks the password once and then issues a token.</p>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="Audit log">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Audit: a tamper-evident log</h2></div>
+      <p>An audit log is only useful if the people being audited cannot rewrite it. Exercise 2 makes the log <b>tamper-evident</b> by chaining hashes: each entry stores the hash of the one before, and its own hash covers that previous hash plus its contents. Editing, deleting or reordering any entry breaks every link after it.</p>
+      <p>Try it. Edit any entry's text, delete one, or cut the last one off. Then play the attacker properly: rewrite every hash after your edit so the chain looks whole again. Only the head published elsewhere catches that.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls"><button class="btn alt" id="ch-rehash" type="button">Attacker re-hashes the chain</button><button class="btn alt" id="ch-cut" type="button">Cut the last entry</button><button class="btn alt" id="ch-reset" type="button">Start over</button></div>
+        </div>
+        <div class="ch-list" id="ch-list"></div>
+        <div class="ch-head" id="ch-head"></div>
+        <div class="verdict-line" id="ch-out" aria-live="polite"></div>
+      </div>
+      <div class="callout">Keep the latest hash somewhere the attacker cannot reach: another server, or a printed daily report. Otherwise an attacker can rewrite the tail, or cut entries off the end, unnoticed.</div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: <code>append_entry</code> is done; finish the verifier.</span></div>
+        <p>Complete <code>verify_chain(log, head=None)</code>. Walk the log from <code>GENESIS</code>: each item's <code>"prev"</code> must equal the previous item's hash, and each <code>"hash"</code> must really be <code>entry_hash(prev, entry)</code>. If <code>head</code> is given, the last hash must equal it. The checker edits, deletes, reorders, truncates and re-hashes the log.</p>
+        <div class="cell" id="ex-chain">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-chain" spellcheck="false" aria-label="Python code">P = 2**61 - 1
+def h64(text):
+    h = 1469598103934665603
+    for ch in text:
+        h = (h * 1099511628211 + ord(ch)) % P
+    h = (h * h + 1442695040888963407) % P
+    h = (h * 6364136223846793005 + 1) % P
+    return format(h, "016x")
+
+GENESIS = "0" * 16
+
+def entry_hash(prev, entry):
+    text = "|".join(k + "=" + str(entry[k]) for k in sorted(entry))
+    return h64(prev + text)
+
+def append_entry(log, entry):
+    prev = log[-1]["hash"] if log else GENESIS
+    h = entry_hash(prev, entry)
+    log.append({"entry": entry, "prev": prev, "hash": h})
+    return h
+
+def verify_chain(log, head=None):
+    prev = GENESIS
+    for item in log:
+        # TODO: return False if item["prev"] != prev
+        #       or item["hash"] != entry_hash(prev, item["entry"])
+        prev = item["hash"]
+    # TODO: if head is given, the last hash must equal it
+    return True
+
+ENTRIES = [{"user": "amina", "action": "login", "outcome": "ok"},
+           {"user": "amina", "action": "read", "record": "P000002", "outcome": "denied"},
+           {"user": "ruth", "action": "read", "record": "P000002", "outcome": "ok"},
+           {"user": "amina", "action": "read", "record": "P000003", "outcome": "denied"}]
+log = []
+for e in ENTRIES:
+    append_entry(log, e)
+log[1]["entry"] = dict(log[1]["entry"], outcome="ok")   # someone edits history
+print(verify_chain(log))                                # should be False
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6" data-short="MACs and replay">
+      <div class="sec-head"><span class="sec-num">06</span><h2>MACs, replay and encryption</h2></div>
+      <p>SurveilLite asks VaxRecords for coverage figures, machine to machine, with no password. Instead both services share a secret key, and SurveilLite signs each request with a <b>message authentication code</b>: a hash keyed with that secret (HMAC-SHA256 in the lab), over the method, path, timestamp and body. VaxRecords recomputes the MAC and compares. An altered body or a guessed key fails. The timestamp limits <b>replay</b> to a short window. Here the MAC is <code>h64(key + h64(key + message))</code>, the nested shape of HMAC, standing in for the real thing.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><span class="note">The four requests from <code>secure_vax_api.py</code>.</span></div>
+        <div class="controls" id="mac-btns"></div>
+        <div class="mac-req" id="mac-req"></div>
+        <div class="mac-checks" id="mac-checks"></div>
+      </div>
+      <p>The comparison itself must not leak. A plain <code>==</code> on strings stops at the first differing character, so the time it takes tells an attacker how many leading characters of a forged signature were right. <code>hmac.compare_digest</code> always looks at every character. The function <code>same</code> below does the same thing by hand.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: signing is done; finish the check.</span></div>
+        <p>Complete <code>verify</code>. A request passes only if its timestamp is within <code>max_skew</code> seconds of <code>now</code> (either direction) <b>and</b> its signature matches, compared with <code>same</code>.</p>
+        <div class="cell" id="ex-verify">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-verify" spellcheck="false" aria-label="Python code">P = 2**61 - 1
+def h64(text):
+    h = 1469598103934665603
+    for ch in text:
+        h = (h * 1099511628211 + ord(ch)) % P
+    h = (h * h + 1442695040888963407) % P
+    h = (h * 6364136223846793005 + 1) % P
+    return format(h, "016x")
+
+def mac(key, message):                 # stand-in for HMAC-SHA256
+    return h64(key + h64(key + message))
+
+def sign(key, method, path, timestamp, body):
+    return mac(key, method + "\n" + path + "\n" + str(timestamp) + "\n" + body)
+
+def same(a, b):                        # constant time, like hmac.compare_digest
+    if len(a) != len(b):
+        return False
+    diff = 0
+    for x, y in zip(a, b):
+        diff += ord(x) != ord(y)
+    return diff == 0
+
+def verify(key, method, path, timestamp, body, signature, now, max_skew=60):
+    expected = sign(key, method, path, timestamp, body)
+    fresh = True                       # TODO: within max_skew seconds of now
+    return fresh and expected == signature   # TODO: compare with same()
+
+KEY = "svc-key-synthetic"
+body = '{"district": "S-COA"}'
+sig = sign(KEY, "POST", "/internal/coverage", 1000, body)
+print(verify(KEY, "POST", "/internal/coverage", 1000, body, sig, now=1600))  # replay: False
+</textarea></div>
+        </div>
+      </div>
+      <h3>What each tool protects</h3>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Tool</th><th>Protects</th><th>Does not</th></tr></thead>
+        <tbody>
+          <tr><td><b>Hash</b> (SHA-256)</td><td>detects change, if the hash itself is kept safe (the head of the audit chain)</td><td>stop anyone recomputing it after an edit</td></tr>
+          <tr><td><b>MAC</b> (HMAC)</td><td>proves the sender knew the key and nothing was altered</td><td>hide the message, or stop a replay without a timestamp or nonce</td></tr>
+          <tr><td><b>Encryption</b></td><td>confidentiality: who can read the data</td><td>stop tampering on its own</td></tr>
+        </tbody>
+      </table></div>
+      <p>In production VaxRecords would run behind TLS, which provides both confidentiality and integrity on the wire; the lab runs on plain localhost HTTP to keep the code short. All users, passwords and keys in this module are synthetic test values. Real keys never belong in source code: load them from the environment or a secrets manager.</p>
+      <div class="callout"><b>Run the full lab.</b> <code>secure_vax_api.py</code> starts both versions of VaxRecords as real Flask servers, runs Amina's attack against each, and sends SurveilLite's four signed requests with real <code>hmac</code> and <code>hashlib.scrypt</code>. Exercise 3 asks for a one-page threat model as data. Run <code>pytest lessons/11_security</code>. See <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/11_security" target="_blank" rel="noopener">lessons/11_security on GitHub</a>.</div>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Recall and review</h2></div>
+      <p>Reading something again feels productive but fades fast. Pulling it out of memory is what makes it last. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix ideas from every section. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s7"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through the flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Up next · Module 12</span>
+        <h3>Capstone: a bad week</h3>
+        <p>Everything at once: lost SMS reports, a crashed write, offline tablets and a curious officer, all in one week of SurveilLite and VaxRecords. You will find the three checks that still hold when every failure from the course arrives together.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module of <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">Computer System Design</a>. Follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009), Chapter 11. Not affiliated with the authors or MIT. All data is synthetic.</span>
+      <span>Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript. The repository's labs use the real <code>hashlib</code> and <code>hmac</code>.</span>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc } = CT;
+const reduced = CT.reduced;
+
+/* ---------- h64: the same stand-in hash as the Python cells ---------- */
+const P61 = (1n << 61n) - 1n;
+function h64(text) {
+  let h = 1469598103934665603n;
+  for (let i = 0; i < text.length; i++) h = (h * 1099511628211n + BigInt(text.charCodeAt(i))) % P61;
+  h = (h * h + 1442695040888963407n) % P61;
+  h = (h * 6364136223846793005n + 1n) % P61;
+  return h.toString(16).padStart(16, "0");
+}
+const GENESIS = "0".repeat(16);
+const canon = e => Object.keys(e).sort().map(k => k + "=" + e[k]).join("|");
+
+/* ---------- synthetic patients P000001..P000030 (course.data population) ---------- */
+const PATS = [["Aline Uwimana","2022-10-26","N-CEN",7],["Eric Mugisha","2024-01-03","S-COA",6],["Jean Habimana","2022-03-16","N-LAK",5],["Grace Iradukunda","2022-05-08","N-CEN",6],["Eric Niyonzima","2024-03-04","S-CEN",6],["Jean Niyonzima","2023-03-24","S-CEN",7],["Moses Uwimana","2021-09-30","S-CEN",6],["Moses Iradukunda","2024-03-15","N-CEN",5],["Diane Mugisha","2024-03-15","S-CEN",5],["Jean Hakizimana","2021-05-09","S-CEN",6],["Joseph Mugisha","2023-12-25","S-CEN",5],["David Ingabire","2023-07-18","S-COA",6],["Yves Habimana","2024-12-02","S-CEN",4],["Ruth Kamanzi","2025-11-28","N-HIL",5],["Eric Iradukunda","2021-05-30","N-CEN",7],["Aline Nshimiyimana","2022-12-02","N-CEN",5],["Grace Iradukunda","2024-09-30","N-HIL",6],["Paul Hakizimana","2022-12-19","N-CEN",6],["Clarisse Nshimiyimana","2021-07-11","N-CEN",6],["Moses Mutesi","2024-12-07","N-RIV",7],["David Uwase","2023-03-02","N-HIL",5],["Eric Nshimiyimana","2024-06-05","N-RIV",7],["Aline Kamanzi","2022-08-12","N-LAK",6],["Paul Habimana","2025-11-20","N-LAK",6],["Clarisse Mukamana","2024-01-31","S-COA",6],["Joseph Mugisha","2022-07-25","S-HIG",7],["Grace Mukamana","2021-11-06","N-RIV",6],["Amina Nshimiyimana","2022-04-23","N-RIV",5],["Aline Uwimana","2021-01-09","S-CEN",5],["Aline Kamanzi","2022-10-15","N-LAK",7]];
+const USERS = { amina: { role: "district_officer", district: "N-CEN", label: "amina · N-CEN officer" }, eric: { role: "district_officer", district: "S-COA", label: "eric · S-COA officer" }, ruth: { role: "national", label: "ruth · national" }, none: { label: "no token" } };
+const pid = n => "P" + String(n).padStart(6, "0");
+
+/* ---------- hero: guard pipeline ---------- */
+const gd = { ver: "in", user: "amina", n: 1, sent: 0, leaked: 0, refused: 0, audit: [], timer: null, playing: !reduced, touched: false, busy: [] };
+$("#gd-users").insertAdjacentHTML("beforeend", Object.keys(USERS).map(u => `<button class="btn-ghost" type="button" data-u="${u}">${USERS[u].label}</button>`).join(""));
+function canRead(u, p) {
+  if (u.role === "national") return true;
+  if (u.role === "district_officer" && u.district) return u.district === p.district;
+  return false;
+}
+function gdRequest() {
+  const n = gd.n, id = pid(n), u = USERS[gd.user], row = PATS[n - 1];
+  const p = row ? { name: row[0], birth: row[1], district: row[2], doses: row[3] } : null;
+  const st = [];
+  let code, body = "", leak = false;
+  if (gd.user === "none") {
+    st.push(["fail", "no valid token: stop"]); st.push(["idle", "never reached"]); st.push(["skip", gd.ver === "se" ? "before_request aborted" : "no audit log"]);
+    code = 401;
+  } else {
+    st.push(["ok", `token belongs to ${gd.user}`]);
+    if (gd.ver === "in") {
+      if (!p) { st.push(["warn", "logged_in_is_enough"]); st.push(["skip", "no audit log"]); code = 404; body = "Not Found"; }
+      else {
+        st.push(["warn", "logged_in_is_enough() → True"]);
+        st.push(["skip", "no audit log"]);
+        code = 200; leak = u.role !== "national" && p.district !== u.district;
+      }
+    } else {
+      const ok = !!p && canRead(u, p);
+      st.push([ok ? "ok" : "fail", !p ? "no such record → deny" : u.role === "national" ? "national role → True" : `can_read: ${p.district} ${ok ? "=" : "≠"} ${u.district} → ${ok ? "True" : "False"}`]);
+      const entry = { user: gd.user, action: "read", record: id, outcome: ok ? "ok" : "denied" };
+      const prev = gd.audit.length ? gd.audit[gd.audit.length - 1].hash : GENESIS;
+      const hash = h64(prev + canon(entry));
+      gd.audit.push({ entry, prev, hash });
+      st.push(["ok", `entry #${gd.audit.length}, hash ${hash.slice(0, 8)}…`]);
+      code = ok ? 200 : 403; if (!ok) body = "Forbidden";
+    }
+  }
+  if (code === 200) body = `{"person_id": "${id}", "name": "${p.name}", "birth_date": "${p.birth}", "district_id": "${p.district}", "doses": ${p.doses}}`;
+  st.push([code === 200 ? (leak ? "fail" : "ok") : "fail", `HTTP ${code}`]);
+  gd.sent++; if (leak) gd.leaked++; if (code === 403) gd.refused++;
+  return { st, code, body, leak, id };
+}
+function gdShow(r) {
+  gd.busy.forEach(clearTimeout); gd.busy = [];
+  for (let i = 0; i < 4; i++) { const el = $("#gd-s" + i); el.className = "gd-stage idle"; }
+  const apply = i => { const el = $("#gd-s" + i), [cls, txt] = r.st[i]; el.className = "gd-stage " + cls; $("span", el).textContent = txt; };
+  const finish = () => {
+    $("#gd-resp").innerHTML = `<span class="code ${r.code === 200 ? "c200" : "c4"}">HTTP ${r.code}</span>${r.leak ? `<span class="gd-leak">leak: another district</span>` : ""} ${esc(r.body)}`;
+    $("#gd-sent").textContent = gd.sent; $("#gd-leaked").textContent = gd.leaked; $("#gd-refused").textContent = gd.refused;
+    gdLog();
+  };
+  if (reduced) { for (let i = 0; i < 4; i++) apply(i); finish(); return; }
+  $("#gd-resp").innerHTML = `<span style="color:var(--code-muted)">GET /patients/${r.id} …</span>`;
+  for (let i = 0; i < 4; i++) gd.busy.push(setTimeout(() => { apply(i); if (i === 3) finish(); }, 180 + i * 260));
+}
+function gdLog() {
+  if (gd.ver === "in") { $("#gd-log").innerHTML = `<div>audit log: <b>none</b>. Nothing records who read what.</div>`; return; }
+  const last = gd.audit.slice(-3);
+  $("#gd-log").innerHTML = (last.length ? "" : "<div>audit log: empty</div>") + last.map((a, i) => {
+    const k = gd.audit.length - last.length + i + 1;
+    return `<div>#${k} <b>${a.entry.user}</b> read ${a.entry.record} <span class="${a.entry.outcome === "denied" ? "den" : ""}">${a.entry.outcome}</span> · prev <span class="h">${a.prev.slice(0, 6)}…</span> hash <span class="h">${a.hash.slice(0, 6)}…</span></div>`;
+  }).join("");
+}
+function gdSync() {
+  $("#gd-id").value = String(gd.n).padStart(6, "0");
+  $("#gd-v-in").classList.toggle("on", gd.ver === "in"); $("#gd-v-se").classList.toggle("on", gd.ver === "se");
+  $$("#gd-users .btn-ghost").forEach(b => b.classList.toggle("on", b.dataset.u === gd.user));
+  $("#gd-mode").textContent = gd.playing ? `${gd.user === "none" ? "a stranger" : gd.user} walks the IDs` : "manual: edit the ID and Send";
+}
+function gdSend() { gdSync(); gdShow(gdRequest()); }
+function gdReset() { gd.sent = gd.leaked = gd.refused = 0; gd.audit = []; ["#gd-sent", "#gd-leaked", "#gd-refused"].forEach(s => $(s).textContent = "0"); gdLog(); }
+function gdTick() {
+  gd.n++;
+  if (gd.n > 30) { gd.n = 1; if (!gd.touched) gd.ver = gd.ver === "in" ? "se" : "in"; gdReset(); }
+  gdSend();
+}
+function gdLoop() { clearInterval(gd.timer); if (gd.playing) gd.timer = setInterval(gdTick, 1700); $("#gd-play").textContent = gd.playing ? "Pause" : "Play"; gdSync(); }
+function gdManual() { gd.playing = false; gd.touched = true; gdLoop(); }
+$("#gd-v-in").addEventListener("click", () => { gd.ver = "in"; gd.touched = true; gdReset(); gdSend(); });
+$("#gd-v-se").addEventListener("click", () => { gd.ver = "se"; gd.touched = true; gdReset(); gdSend(); });
+$$("#gd-users .btn-ghost").forEach(b => b.addEventListener("click", () => { gd.user = b.dataset.u; gd.touched = true; gdReset(); gdSend(); }));
+$("#gd-prev").addEventListener("click", () => { gdManual(); gd.n = Math.max(1, gd.n - 1); gdSend(); });
+$("#gd-next").addEventListener("click", () => { gdManual(); gd.n = Math.min(999999, gd.n + 1); gdSend(); });
+$("#gd-send").addEventListener("click", () => { gdManual(); const v = parseInt($("#gd-id").value, 10); gd.n = Math.max(1, Math.min(999999, isNaN(v) ? 1 : v)); gdSend(); });
+$("#gd-id").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("#gd-send").click(); } });
+$("#gd-id").addEventListener("focus", gdManual);
+$("#gd-step").addEventListener("click", () => { gd.playing = false; gdLoop(); gdTick(); });
+$("#gd-play").addEventListener("click", () => { gd.playing = !gd.playing; gdLoop(); });
+gdLog(); gdSend(); gdLoop();
+
+/* ---------- s1: principle sorter ---------- */
+const PR = ["Open design", "Fail-safe defaults", "Least privilege", "Complete mediation", "Economy of mechanism", "Psychological acceptability"];
+const sortItems = [
+  { code: "Every read of /patients/<id> compares the record's district with the user's, not just the first one after login.", ans: 3, why: "Checking every access, every time, is complete mediation. The IDOR bug is a failure of exactly this." },
+  { code: "A new role, \"trainee\", is added and nobody writes a rule for it. Trainees can read nothing.", ans: 1, why: "Anything not explicitly allowed is denied: fail-safe defaults. A forgotten rule fails closed, not open." },
+  { code: "A stolen district officer account exposes one district, not the whole country.", ans: 2, why: "Least privilege limits the damage of any one compromised account to what that job needed." },
+  { code: "Passwords use scrypt and service requests use HMAC, both published algorithms. Only the keys and passwords are secret.", ans: 0, why: "Open design: the system stays secure even when the attacker has read the code." },
+  { code: "One short can_read function decides every record access, so a reviewer can read all of it in a minute.", ans: 4, why: "Economy of mechanism: a guard small enough to review is a guard you can trust." },
+  { code: "Clinic tablets keep a session for a whole shift, so nurses do not share one login to save time.", ans: 5, why: "Psychological acceptability: security that gets in the way of work gets worked around." }
+];
+$("#sorter").innerHTML = sortItems.map((it, i) => `<div class="sort-item" data-i="${i}"><pre>${esc(it.code)}</pre><div class="opts">${PR.map((k, j) => `<button class="opt" type="button" data-j="${j}">${k}</button>`).join("")}</div></div>`).join("");
+$$(".sort-item").forEach(el => {
+  const it = sortItems[+el.dataset.i];
+  $$(".opt", el).forEach(b => b.addEventListener("click", () => {
+    const ok = +b.dataset.j === it.ans;
+    b.classList.add(ok ? "right" : "wrong");
+    let w = $(".why", el); if (!w) { w = document.createElement("div"); el.appendChild(w); }
+    w.className = "why " + (ok ? "ok" : "no"); w.textContent = ok ? "Right. " + it.why : "Not quite. Try another principle.";
+    if (ok) $$(".opt", el).forEach(x => x.disabled = true);
+  }));
+});
+
+/* ---------- s4: leaked password table ---------- */
+const PWU = [["amina", "amina-test-pw", "3c9e10"], ["eric", "eric-test-pw", "b7d402"], ["ruth", "ruth-test-pw", "05fa6c"], ["grace", "clinic123", "9f2c71"], ["paul", "clinic123", "41ab0e"]];
+const slow = (pw, salt) => { let d = salt + pw; for (let i = 0; i < 1000; i++) d = h64(salt + d); return d; };
+const PWM = [["plain", "Plain text"], ["fast", "Fast hash"], ["salt", "Salt + slow hash"]];
+let pwMode = "plain";
+const pwCache = {};
+function pwRender() {
+  $("#pw-modes").innerHTML = PWM.map(([k, l]) => `<button class="btn alt ${k === pwMode ? "on" : ""}" type="button" data-m="${k}">${l}</button>`).join("");
+  $$("#pw-modes button").forEach(b => b.addEventListener("click", () => { pwMode = b.dataset.m; pwRender(); }));
+  const head = pwMode === "salt" ? "<tr><th>User</th><th>Salt</th><th>Stored hash</th><th>Attacker</th></tr>" : "<tr><th>User</th><th>Stored</th><th>Attacker</th></tr>";
+  const rows = PWU.map(([u, pw, salt]) => {
+    if (pwMode === "plain") return `<tr><td>${u}</td><td class="mono">${pw}</td><td class="cracked">reads it</td></tr>`;
+    if (pwMode === "fast") { const h = h64(pw); const weak = pw === "clinic123"; return `<tr><td>${u}</td><td class="mono">${h}</td><td class="${weak ? "cracked" : ""}">${weak ? "cracked by lookup" : "cheap to brute-force"}</td></tr>`; }
+    const k = u + salt; if (!pwCache[k]) pwCache[k] = slow(pw, salt);
+    return `<tr><td>${u}</td><td class="mono">${salt}</td><td class="mono">${pwCache[k]}</td><td class="safe">1000 hashes per guess</td></tr>`;
+  }).join("");
+  $("#pw-table").innerHTML = `<thead>${head}</thead><tbody>${rows}</tbody>`;
+  const note = $("#pw-note");
+  if (pwMode === "plain") { note.className = "verdict-line bad"; note.textContent = "Every password is exposed the moment the table leaks, including on any other site where the user reused it."; }
+  else if (pwMode === "fast") { note.className = "verdict-line bad"; note.textContent = "grace and paul have identical hashes, so they share a password, and a precomputed table of common passwords cracks both in one lookup. A fast hash lets the attacker try the rest cheaply."; }
+  else { note.className = "verdict-line ok"; note.textContent = "Same password, different salts, different hashes. A precomputed table is useless, and every guess costs 1000 hashes for one user only."; }
+}
+pwRender();
+
+/* ---------- s5: hash chain ---------- */
+const CH0 = [
+  { user: "amina", action: "login", outcome: "ok" },
+  { user: "amina", action: "read", record: "P000001", outcome: "ok" },
+  { user: "amina", action: "read", record: "P000002", outcome: "denied" },
+  { user: "ruth", action: "read", record: "P000002", outcome: "ok" },
+  { user: "amina", action: "read", record: "P000003", outcome: "denied" }
+];
+let chain, chHead;
+function chReset() {
+  chain = []; let prev = GENESIS;
+  CH0.forEach(e => { const text = canon(e), hash = h64(prev + text); chain.push({ text, prev, hash }); prev = hash; });
+  chHead = prev; chRender();
+}
+function chCheck() {
+  let prev = GENESIS, firstBad = -1;
+  const res = chain.map((it, i) => {
+    const prevOk = it.prev === prev, hashOk = it.hash === h64(it.prev + it.text);
+    if ((!prevOk || !hashOk) && firstBad < 0) firstBad = i;
+    prev = it.hash;
+    return { prevOk, hashOk };
+  });
+  return { res, firstBad, last: prev };
+}
+function chRender() {
+  const { res, firstBad, last } = chCheck();
+  $("#ch-list").innerHTML = chain.map((it, i) => {
+    const r = res[i], bad = !r.prevOk || !r.hashOk;
+    return `<div class="ch-item ${bad ? "bad" : "ok"}"><div class="ch-top"><b>#${i + 1}</b><input type="text" value="${esc(it.text)}" data-i="${i}" aria-label="audit entry ${i + 1}" spellcheck="false"></div>
+      <div class="ch-hash"><span>prev <span class="${r.prevOk ? "" : "x"}">${it.prev.slice(0, 10)}…${r.prevOk ? "" : " does not match #" + i}</span></span><span>hash <span class="${r.hashOk ? "" : "x"}">${it.hash.slice(0, 10)}…${r.hashOk ? "" : " ≠ recomputed " + h64(it.prev + it.text).slice(0, 10) + "…"}</span></span></div></div>`;
+  }).join("");
+  $$("#ch-list input").forEach(inp => inp.addEventListener("input", () => { chain[+inp.dataset.i].text = inp.value; chRefresh(); }));
+  chStatus(firstBad, last);
+}
+function chRefresh() {
+  // update classes and hash lines without rebuilding inputs (keeps focus)
+  const { res, firstBad, last } = chCheck();
+  $$("#ch-list .ch-item").forEach((el, i) => {
+    const r = res[i], it = chain[i], bad = !r.prevOk || !r.hashOk;
+    el.className = "ch-item " + (bad ? "bad" : "ok");
+    $(".ch-hash", el).innerHTML = `<span>prev <span class="${r.prevOk ? "" : "x"}">${it.prev.slice(0, 10)}…${r.prevOk ? "" : " does not match #" + i}</span></span><span>hash <span class="${r.hashOk ? "" : "x"}">${it.hash.slice(0, 10)}…${r.hashOk ? "" : " ≠ recomputed " + h64(it.prev + it.text).slice(0, 10) + "…"}</span></span>`;
+  });
+  chStatus(firstBad, last);
+}
+function chStatus(firstBad, last) {
+  $("#ch-head").innerHTML = `Head published to SurveilLite at the end of the day: <b>${chHead.slice(0, 16)}</b>`;
+  const out = $("#ch-out");
+  if (firstBad >= 0) { out.className = "verdict-line bad"; out.textContent = `verify_chain(log) = False. The chain breaks at entry #${firstBad + 1}: tampering detected.`; }
+  else if (last !== chHead) { out.className = "verdict-line bad"; out.textContent = `verify_chain(log) = True, but verify_chain(log, head) = False: the last hash ${last.slice(0, 10)}… is not the published head. Only the head kept elsewhere caught this.`; }
+  else { out.className = "verdict-line ok"; out.textContent = `verify_chain(log, head) = True. ${chain.length} entries, every link intact, and the last hash matches the published head.`; }
+}
+$("#ch-rehash").addEventListener("click", () => { let prev = GENESIS; chain.forEach(it => { it.prev = prev; it.hash = h64(prev + it.text); prev = it.hash; }); chRender(); });
+$("#ch-cut").addEventListener("click", () => { if (chain.length > 1) { chain.pop(); chRender(); } });
+$("#ch-reset").addEventListener("click", chReset);
+chReset();
+
+/* ---------- s6: MAC lab ---------- */
+const KEY = "svc-key-synthetic", NOW = 1791374400, PATH = "/internal/coverage";
+const macf = (k, m) => h64(k + h64(k + m));
+const signf = (k, ts, body) => macf(k, "POST\n" + PATH + "\n" + ts + "\n" + body);
+const GOOD = '{"district": "S-COA"}';
+const MACS = [
+  { k: "genuine", label: "Genuine request", body: GOOD, ts: NOW, sig: () => signf(KEY, NOW, GOOD), note: "SurveilLite signs the request with the shared key, seconds before sending it." },
+  { k: "altered", label: "Body altered in transit", body: '{"district": "N-CEN"}', ts: NOW, sig: () => signf(KEY, NOW, GOOD), note: "Someone on the clinic network changes S-COA to N-CEN after SurveilLite signed it." },
+  { k: "replay", label: "Replayed 10 minutes later", body: GOOD, ts: NOW - 600, sig: () => signf(KEY, NOW - 600, GOOD), note: "An attacker captured a genuine request 10 minutes ago and sends it again, unchanged." },
+  { k: "forged", label: "Signed with a guessed key", body: GOOD, ts: NOW, sig: () => signf("guess", NOW, GOOD), note: "An attacker who does not know the key signs with a guess." }
+];
+let macAt = 0;
+function macRender() {
+  $("#mac-btns").innerHTML = MACS.map((m, i) => `<button class="btn ${i === macAt ? "" : "alt"}" type="button" data-i="${i}">${m.label}</button>`).join("");
+  $$("#mac-btns button").forEach(b => b.addEventListener("click", () => { macAt = +b.dataset.i; macRender(); }));
+  const m = MACS[macAt], sig = m.sig(), expected = signf(KEY, m.ts, m.body);
+  const age = NOW - m.ts, fresh = Math.abs(age) <= 60, match = sig === expected, ok = fresh && match;
+  $("#mac-req").innerHTML = `<span class="dim">${esc(m.note)}</span>\nPOST ${PATH}\nX-Timestamp: <span class="${m.k === "replay" ? "hl2" : ""}">${m.ts}</span>\nX-Signature: <span class="${m.k === "forged" ? "hl2" : ""}">${sig}</span>\n\n<span class="${m.k === "altered" ? "hl2" : ""}">${esc(m.body)}</span>`;
+  $("#mac-checks").innerHTML = `
+    <div class="verdict-line ${fresh ? "ok" : "bad"}">fresh? request is ${age} s old, limit 60 s → ${fresh ? "yes" : "no"}</div>
+    <div class="verdict-line ${match ? "ok" : "bad"}">VaxRecords recomputes ${expected} → ${match ? "matches" : "does not match"}</div>
+    <div class="verdict-line ${ok ? "ok" : "bad"}"><b>${ok ? 'HTTP 200 {"district": "S-COA", "mcv1_coverage_pct": 84.4}' : "HTTP 401, audited as bad signature"}</b></div>`;
+}
+macRender();
+
+const QUIZ = {
+  s1: [
+    { q: "Why does the book call security a <b>negative goal</b>?", o: ["Because it is about stopping bad things rather than adding features", "Because you must show that no adversary can ever make the system misbehave, which no finite set of tests can show", "Because security always slows a system down", "Because attackers are negative people"], a: 1, why: "A positive goal is shown by doing X once. A negative goal must hold against every attack, including ones nobody has thought of, so you rely on principles and a small checkable guard." },
+    { q: "A VaxRecords developer argues: \"Nobody outside the team knows our token format, so it is safe.\" Which principle does this break?", o: ["Least privilege", "Open design", "Complete mediation", "Psychological acceptability"], a: 1, why: "Open design: security must not depend on the design being secret. Assume the attacker has read the code; only keys and passwords stay secret." }
+  ],
+  s2: [
+    { q: "Amina is logged in with a valid token and reads a child in another district from the insecure version. Which guard step failed?", o: ["Authenticate", "Authorize", "Audit", "None: this is how it should work"], a: 1, why: "Authentication correctly identified Amina. Being logged in was treated as being allowed: the authorization step always said yes." },
+    { q: "What does an audit log do?", o: ["Prevents misuse by blocking bad requests", "Makes misuse discoverable afterwards, which also deters it", "Encrypts the requests", "Replaces authorization"], a: 1, why: "The log records who asked for what and the answer. It cannot stop a request; it makes misuse visible and accountable." }
+  ],
+  s3: [
+    { q: "The secure version answers 403 both for \"forbidden\" and for \"no such patient\". Why not 404 for the missing one?", o: ["404 is reserved for national staff", "Different answers would let an officer probe IDs to learn which children exist in other districts", "403 is faster to send", "Flask cannot send 404 after a login"], a: 1, why: "The response itself must not leak information. One answer for both cases reveals nothing, and the attempt still lands in the audit log." },
+    { q: "What does <code>can_read({\"role\": \"nurse\"}, {\"district_id\": \"N-CEN\"})</code> return under fail-safe defaults?", o: ["True", "False", "An error", "It depends on the nurse's district"], a: 1, why: "No rule allows the role nurse, so the answer is no. A forgotten role fails closed." }
+  ],
+  s4: [
+    { q: "Why does each user get a random <b>salt</b>?", o: ["To make login faster", "So identical passwords hash differently and one precomputed table cannot crack everyone at once", "To encrypt the password", "So the server can recover the password if the user forgets it"], a: 1, why: "With a salt, an attacker must attack each user separately; a table of hashes of common passwords no longer matches anything." },
+    { q: "Why use a deliberately <b>slow</b> hash like scrypt for passwords but not for the audit chain?", o: ["Slow hashes are more random", "Slowness makes each password guess expensive; the audit chain is not guessed, it is recomputed by the verifier and should be fast", "The audit log is not important", "scrypt cannot hash text"], a: 1, why: "Passwords are low-entropy secrets an attacker guesses, so each guess should cost. The chain hashes public entries and only needs to detect change." }
+  ],
+  s5: [
+    { q: "An insider edits entry 3 of the chained log and then recomputes the hash of every later entry. What detects it?", o: ["Nothing: the chain verifies again", "Comparing the last hash with the head published elsewhere", "The salt on entry 3", "The timestamp of entry 3"], a: 1, why: "An unkeyed hash can be recomputed by anyone, so the rewritten chain is internally consistent. The head kept out of the insider's reach no longer matches." },
+    { q: "Without a head kept elsewhere, which change goes unnoticed?", o: ["Editing entry 2", "Swapping entries 2 and 3", "Cutting the last two entries off the end", "Deleting entry 2"], a: 2, why: "Truncation leaves every remaining link valid. Edits, swaps and deletions in the middle break the next link; only an external head catches a shortened tail." }
+  ],
+  s6: [
+    { q: "An attacker replays SurveilLite's genuine signed request 10 seconds after it was sent, unchanged. With a 60-second window, what happens?", o: ["Rejected: the signature is wrong", "Accepted: it is fresh and correctly signed; only a nonce would stop it", "Rejected: replays are always detected", "VaxRecords crashes"], a: 1, why: "The timestamp only limits replay to the window. To close it fully, VaxRecords would remember a nonce from each request and reject repeats." },
+    { q: "Which tool protects <b>confidentiality</b>, who can read the data?", o: ["A hash", "A MAC", "Encryption", "An audit log"], a: 2, why: "A hash and a MAC detect change but leave the message readable. Only encryption hides it; TLS provides both on the wire." }
+  ],
+  s7: [
+    { q: "Which pairing of mechanism and guard step is right?", o: ["Salted hash: authorize", "can_read: authenticate", "Token check: authenticate; can_read: authorize; chained log: audit", "HMAC: audit"], a: 2, why: "The token says who is asking, can_read decides whether they may, and the chained log records it so it cannot be quietly rewritten." },
+    { q: "SurveilLite's MAC covers the body but not the timestamp. What can an attacker do?", o: ["Nothing new", "Read the body", "Replay a captured request later with a fresh timestamp header, and it still verifies", "Change the body freely"], a: 2, why: "Anything not covered by the MAC can be changed without breaking it. Signing the timestamp is what makes the freshness check meaningful." },
+    { q: "Nurses complain that logging in on the tablet takes a minute, and start sharing one account. Which principle was neglected, and what is lost?", o: ["Open design; nothing", "Psychological acceptability; the audit log can no longer say which nurse read a record", "Least privilege; encryption", "Fail-safe defaults; the salt"], a: 1, why: "Security that hurts gets worked around. A shared account makes authentication and the audit log meaningless for those users." }
+  ]
+};
+const CARDS = [
+  ["Security as a negative goal", "Show that no one can ever make the system do what it should not. Tests cannot prove it, so rely on principles and a small guard."],
+  ["The guard model", "Every request: authenticate (who?), authorize (may they, on this object?), audit (write it down)."],
+  ["Authentication vs authorization", "Authentication verifies who is asking. Authorization decides whether that principal may do this action to this object."],
+  ["Insecure direct object reference (IDOR)", "Changing an ID in the URL reaches someone else's record because only login was checked."],
+  ["Complete mediation", "Check every access, every time, not just the first."],
+  ["Fail-safe defaults", "Deny unless explicitly allowed. Unknown roles read nothing."],
+  ["Least privilege", "Give each user and program only the access its job needs: a district officer sees one district."],
+  ["Salt and slow hash", "Random salt per user defeats precomputed tables; a slow hash (scrypt) makes each guess expensive."],
+  ["Tamper-evident audit log", "Each entry includes the previous entry's hash; editing, deleting or reordering breaks later links. Keep the head elsewhere."],
+  ["Message authentication code", "A hash keyed with a shared secret. Proves the sender knew the key and the message was not altered. Hides nothing."],
+  ["Stopping replay", "Sign a timestamp and reject old ones (limits replay to a window); a nonce closes it fully."],
+  ["Hash vs MAC vs encryption", "Hash: detects change. MAC: detects change by anyone without the key. Encryption: confidentiality."]
+];
+
+const H64 = "P = 2**61 - 1\ndef h64(text):\n    h = 1469598103934665603\n    for ch in text:\n        h = (h * 1099511628211 + ord(ch)) % P\n    h = (h * h + 1442695040888963407) % P\n    h = (h * 6364136223846793005 + 1) % P\n    return format(h, \"016x\")\n\n";
+const CHAIN_BASE = "GENESIS = \"0\" * 16\n\ndef entry_hash(prev, entry):\n    text = \"|\".join(k + \"=\" + str(entry[k]) for k in sorted(entry))\n    return h64(prev + text)\n\ndef append_entry(log, entry):\n    prev = log[-1][\"hash\"] if log else GENESIS\n    h = entry_hash(prev, entry)\n    log.append({\"entry\": entry, \"prev\": prev, \"hash\": h})\n    return h\n\n";
+const MKLOG = "log = []\nfor e in ENTRIES:\n    append_entry(log, e)\n";
+const MAC_BASE = "def mac(key, message):\n    return h64(key + h64(key + message))\n\ndef sign(key, method, path, timestamp, body):\n    return mac(key, method + \"\\n\" + path + \"\\n\" + str(timestamp) + \"\\n\" + body)\n\ndef same(a, b):\n    if len(a) != len(b):\n        return False\n    diff = 0\n    for x, y in zip(a, b):\n        diff += ord(x) != ord(y)\n    return diff == 0\n\n";
+const VCASE = (args) => "B = '{\"district\": \"S-COA\"}'\nS = sign('svc-key-synthetic', 'POST', '/internal/coverage', 1000, B)\nprint(" + args + ")";
+
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  exercises: {
+    "ex-canread": {
+      cases: [
+        "print(can_read({'role': 'national'}, {'district_id': 'S-HIG'}))",
+        "print(can_read({'role': 'district_officer', 'district': 'N-CEN'}, {'district_id': 'N-CEN'}))",
+        "print(can_read({'role': 'district_officer', 'district': 'N-CEN'}, {'district_id': 'S-COA'}))",
+        "print(can_read({'role': 'nurse', 'district': 'N-CEN'}, {'district_id': 'N-CEN'}), can_read({}, {'district_id': 'N-CEN'}))",
+        "print(can_read({'role': 'district_officer'}, {'district_id': None}), can_read({'role': 'district_officer', 'district': 'S-COA'}, {}))",
+        "print(can_read({'role': 'National'}, {'district_id': 'N-CEN'}))"
+      ],
+      solution: "def can_read(user, patient):\n    role = user.get(\"role\")\n    if role == \"national\":\n        return True\n    if role == \"district_officer\" and user.get(\"district\"):\n        return user[\"district\"] == patient.get(\"district_id\")\n    return False\n\namina = {\"role\": \"district_officer\", \"district\": \"N-CEN\"}\nprint(can_read(amina, {\"district_id\": \"S-COA\"}))",
+      hint: ["Allow two cases explicitly: role \"national\", and role \"district_officer\" whose district equals patient.get(\"district_id\"). End with return False.", "An officer with no district must be denied, or an officer with district None could read a patient with no district. Check user.get(\"district\") is truthy first."]
+    },
+    "ex-chain": {
+      cases: [
+        MKLOG + "print(verify_chain(log), verify_chain(log, log[-1]['hash']), verify_chain([]))",
+        MKLOG + "log[2]['entry'] = dict(log[2]['entry'], user='eric')\nprint(verify_chain(log))",
+        MKLOG + "del log[1]\nprint(verify_chain(log))",
+        MKLOG + "log[1], log[2] = log[2], log[1]\nprint(verify_chain(log))",
+        MKLOG + "head = log[-1]['hash']\nlog.pop()\nprint(verify_chain(log), verify_chain(log, head))",
+        MKLOG + "head = log[-1]['hash']\nentries = [dict(it['entry']) for it in log]\nentries[1]['outcome'] = 'ok'\nforged = []\nfor e in entries:\n    append_entry(forged, e)\nprint(verify_chain(forged), verify_chain(forged, head))"
+      ],
+      solution: H64 + CHAIN_BASE + "def verify_chain(log, head=None):\n    prev = GENESIS\n    for item in log:\n        if item[\"prev\"] != prev or item[\"hash\"] != entry_hash(prev, item[\"entry\"]):\n            return False\n        prev = item[\"hash\"]\n    return head is None or prev == head\n\nENTRIES = [{\"user\": \"amina\", \"action\": \"login\", \"outcome\": \"ok\"},\n           {\"user\": \"amina\", \"action\": \"read\", \"record\": \"P000002\", \"outcome\": \"denied\"},\n           {\"user\": \"ruth\", \"action\": \"read\", \"record\": \"P000002\", \"outcome\": \"ok\"},\n           {\"user\": \"amina\", \"action\": \"read\", \"record\": \"P000003\", \"outcome\": \"denied\"}]\nlog = []\nfor e in ENTRIES:\n    append_entry(log, e)\nlog[1][\"entry\"] = dict(log[1][\"entry\"], outcome=\"ok\")\nprint(verify_chain(log))",
+      hint: ["Inside the loop: if item[\"prev\"] != prev or item[\"hash\"] != entry_hash(prev, item[\"entry\"]): return False.", "After the loop prev holds the last hash. Return head is None or prev == head."]
+    },
+    "ex-verify": {
+      cases: [
+        VCASE("verify('svc-key-synthetic', 'POST', '/internal/coverage', 1000, B, S, now=1005)"),
+        VCASE("verify('svc-key-synthetic', 'POST', '/internal/coverage', 1000, B.replace('S-COA', 'N-CEN'), S, now=1005)"),
+        VCASE("verify('svc-key-synthetic', 'POST', '/internal/coverage', 1000, B, S, now=1600), verify('svc-key-synthetic', 'POST', '/internal/coverage', 1000, B, S, now=1060)"),
+        VCASE("verify('svc-key-synthetic', 'POST', '/internal/coverage', 1000, B, S, now=939), verify('svc-key-synthetic', 'POST', '/internal/coverage', 1000, B, S, now=1061)"),
+        VCASE("verify('svc-key-synthetic', 'POST', '/internal/coverage', 1000, B, sign('guess', 'POST', '/internal/coverage', 1000, B), now=1000)"),
+        VCASE("verify('svc-key-synthetic', 'POST', '/internal/coverage', 1000, B, S[:-1], now=1000), verify('svc-key-synthetic', 'POST', '/internal/coverage', 1000, B, S, now=1010, max_skew=5)")
+      ],
+      solution: H64 + MAC_BASE + "def verify(key, method, path, timestamp, body, signature, now, max_skew=60):\n    expected = sign(key, method, path, timestamp, body)\n    fresh = abs(now - timestamp) <= max_skew\n    return fresh and same(expected, signature)\n\nKEY = \"svc-key-synthetic\"\nbody = '{\"district\": \"S-COA\"}'\nsig = sign(KEY, \"POST\", \"/internal/coverage\", 1000, body)\nprint(verify(KEY, \"POST\", \"/internal/coverage\", 1000, body, sig, now=1600))",
+      hint: ["Fresh means the request is no more than max_skew seconds away from now in either direction: abs(now - timestamp) <= max_skew.", "Return fresh and same(expected, signature)."]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

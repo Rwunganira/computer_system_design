@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Computer System Design, Module 9</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+.cr-card { --edge: color-mix(in srgb, var(--code-fg) 22%, transparent); background: var(--code-bg); color: var(--code-fg); border-radius: 14px; padding: 20px 20px 16px; display: grid; gap: 14px; min-width: 0; }
+.mtabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.mtab { font: inherit; font-family: var(--mono); font-size: 0.8rem; color: var(--code-muted); background: transparent; border: 1px solid var(--edge); border-radius: 99px; padding: 4px 12px; cursor: pointer; transition: all .2s; }
+.mtab.on { color: var(--code-bg); background: var(--tok-fn); border-color: var(--tok-fn); font-weight: 600; }
+.pipe { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-family: var(--mono); font-size: 0.78rem; min-height: 2.2em; }
+.st { padding: 4px 9px; border-radius: 6px; border: 1px solid var(--edge); color: var(--code-muted); transition: all .25s; }
+.st.done { color: var(--code-fg); border-color: var(--tok-str); background: color-mix(in srgb, var(--tok-str) 12%, transparent); }
+.st.commit { border-style: dashed; }
+.st.commit.done { border-style: solid; }
+.bolt { padding: 4px 9px; border-radius: 6px; background: var(--tok-kw); color: var(--code-bg); font-weight: 600; animation: zap .45s ease; }
+@keyframes zap { from { transform: scale(1.25); opacity: .3; } to { transform: none; opacity: 1; } }
+.cr-slider { display: grid; gap: 4px; }
+.cr-slider input { width: 100%; accent-color: var(--tok-kw); }
+.cr-slider label { font-family: var(--mono); font-size: 0.8rem; color: var(--code-muted); }
+.cr-slider label b { color: var(--code-fg); }
+.boxes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+@media (max-width: 600px) { .boxes { grid-template-columns: 1fr; } }
+.box { border: 1px solid var(--edge); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; align-content: start; font-family: var(--mono); font-size: 0.78rem; min-width: 0; }
+.box h4 { margin: 0; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--code-muted); font-weight: 600; }
+.frow { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.frow span { color: var(--code-muted); }
+.frow b { font-weight: 600; text-align: right; }
+.frow b.hot { color: var(--tok-num); }
+.logl { color: var(--tok-num); white-space: pre-wrap; overflow-wrap: anywhere; }
+.logl.dim { color: var(--code-muted); }
+.badge { justify-self: start; padding: 2px 10px; border-radius: 99px; font-weight: 600; font-size: 0.75rem; }
+.badge.ok { background: var(--tok-str); color: var(--code-bg); }
+.badge.no { background: var(--tok-kw); color: var(--code-bg); }
+.box .why2 { color: var(--code-muted); font-family: var(--body); font-size: 0.85rem; line-height: 1.4; }
+
+.files { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 640px) { .files { grid-template-columns: 1fr; } }
+.logbox { font-family: var(--mono); font-size: 0.82rem; background: var(--code-bg); color: var(--code-fg); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; min-height: 8em; align-content: start; }
+.logbox div { white-space: pre-wrap; overflow-wrap: anywhere; padding: 0 4px; border-radius: 4px; }
+.logbox .new { background: color-mix(in srgb, var(--tok-str) 20%, transparent); }
+.logbox .redo { background: color-mix(in srgb, var(--tok-fn) 22%, transparent); }
+.logbox .old { color: var(--code-muted); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 0; border: 1.5px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-size: 0.85rem; background: var(--paper); color: var(--ink); border: 0; padding: 6px 12px; cursor: pointer; }
+.seg button + button { border-left: 1.5px solid var(--rule); }
+.seg button.on { background: var(--ink); color: var(--paper); font-weight: 700; }
+.inv { font-family: var(--mono); font-size: 0.85rem; padding: 8px 10px; border-radius: 6px; }
+.inv.ok { background: var(--ok-soft); color: var(--ok); } .inv.no { background: var(--bad-soft); color: var(--bad); }
+
+.sq { width: 100%; height: auto; display: block; }
+.sq text { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
+.sq .hd rect { fill: var(--sheet); stroke: var(--ink); stroke-width: 1.5; }
+.sq .hd text { font-weight: 600; }
+.sq .life { stroke: var(--rule); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.sq .m line { stroke: var(--ink); stroke-width: 1.6; }
+.sq .m polygon { fill: var(--ink); }
+.sq .m.cur line { stroke: var(--accent); stroke-width: 2.2; }
+.sq .m.cur polygon, .sq .m.cur text { fill: var(--accent); }
+.sq .m.old { opacity: .45; }
+.sq .m.dash line { stroke-dasharray: 5 4; }
+.sq .loc rect { fill: var(--hl); stroke: none; }
+.sq .loc.bad rect { fill: var(--bad-soft); }
+.sq .loc.bad text { fill: var(--bad); font-weight: 600; }
+.pstate { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.pstate div { background: var(--paper); border-radius: 8px; padding: 8px 12px; font-family: var(--mono); font-size: 0.82rem; border: 1.5px solid transparent; transition: border-color .3s; }
+.pstate div b { display: block; font-family: var(--body); font-size: 0.9rem; }
+.pstate div.doubt { border-color: var(--bad); }
+.pstate div.done { border-color: var(--ok); }
+</style>
+</head>
+<body data-lesson="m09">
+<div class="shell">
+  <aside class="rail" aria-label="Lesson progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 9</div>
+      <h1>A dose is recorded <em>completely</em>, or <em>not at all</em>. Never half.</h1>
+      <p class="lede">Recording one dose in VaxRecords writes two things: the child's history and the clinic's stock. Pull the power between them and the books disagree forever. Drag the crash point below and compare three recorders: one that breaks, and two that always recover.</p>
+
+      <div class="cr-card" aria-label="Crash slider over the steps of recording a dose">
+        <div class="tape-top"><span>Recording dose 2 (OPV1, child P000001, clinic C05) · stock received 20</span><span>invariant: stock left + doses given = <b>20</b></span></div>
+        <div class="mtabs" id="cr-tabs" role="group" aria-label="Recorder"></div>
+        <div class="pipe" id="cr-pipe" aria-live="polite"></div>
+        <div class="cr-slider"><label for="cr-k">Power fails <b id="cr-klab"></b></label><input id="cr-k" type="range" min="0" max="2" step="1" value="0"></div>
+        <div class="boxes">
+          <div class="box" id="cr-disk"></div>
+          <div class="box" id="cr-after"></div>
+        </div>
+        <div class="tape-log">
+          <span id="cr-msg" style="color:var(--code-muted)"></span>
+          <div style="display:flex;gap:6px"><button class="btn-ghost" id="cr-step" type="button">Step</button><button class="btn-ghost" id="cr-play" type="button">Pause</button></div>
+        </div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>All-or-nothing and before-or-after atomicity, the commit point, shadow copies, write-ahead logs with recovery, locks, and two-phase commit.</div>
+        <div><b>You will build</b>A shadow-copy recorder, a recovery procedure that survives a torn log record, and the rules for a two-phase commit when a message never arrives.</div>
+        <div><b>How it works</b>Crash recorders on purpose, replay recovery, interleave two nurses, step through two-phase commit, then code each fix and check it.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="Two writes">
+      <div class="sec-head"><span class="sec-num">01</span><h2>One action, two writes</h2></div>
+      <p>VaxRecords keeps each child's vaccination history in one file and each clinic's vaccine stock in another. Recording a dose appends to the history <b>and</b> decrements the stock. The rule that ties them together is an <b>invariant</b>, something that must be true whenever nobody is in the middle of an update:</p>
+      <div class="callout">for every clinic and vaccine: stock left + doses given = stock received</div>
+      <p>The naive recorder writes the history, then the stock. Here it is with the disk simulated as a dict and the power failure simulated as an exception raised before step 1. (The local lab writes real JSON files; Skulpt has no file system, so a dict stands in.) Predict whether the invariant still holds afterwards.</p>
+      <div class="cell" data-predict="False">
+        <div class="predict"><label for="p-s1">Predict the last line:</label><input id="p-s1" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s1" spellcheck="false" aria-label="Python code">RECEIVED = 20
+
+class Crash(Exception):
+    """Stands in for the power going out: the program stops right here."""
+
+def check(crash, step):
+    if crash == step:
+        raise Crash("crash before step " + str(step))
+
+def is_consistent(disk):
+    return disk["stock.json"] + len(disk["history.json"]) == RECEIVED
+
+def record_dose(disk, dose_id, crash=None):
+    """The naive way: write the history, then write the stock."""
+    history = disk["history.json"] + [dose_id]
+    stock = disk["stock.json"] - 1
+    check(crash, 0)
+    disk["history.json"] = history       # write 1
+    check(crash, 1)
+    disk["stock.json"] = stock           # write 2
+
+disk = {"history.json": [], "stock.json": RECEIVED}
+record_dose(disk, 1)
+print("after dose 1:", disk, is_consistent(disk))
+try:
+    record_dose(disk, 2, crash=1)
+except Crash as e:
+    print("recording dose 2...", e)
+print("after the crash:", disk)
+print(is_consistent(disk))</textarea></div>
+      </div>
+      <p>The history says two doses were given; the stock says only one left the fridge. Restarting does not help, because nothing on disk records that an action was half done. Coverage reports and stock reports now disagree, and someone will spend a week reconciling them by hand.</p>
+      <h3>Two kinds of atomicity</h3>
+      <div class="two">
+        <div><span class="eyebrow">Failures</span><h3>All-or-nothing</h3><p>A multi-step action either completes, or has no visible effect, despite crashes. This module's first half.</p></div>
+        <div><span class="eyebrow">Concurrency</span><h3>Before-or-after</h3><p>Concurrent actions behave as if one ran completely before the other. Two nurses dispensing from one stock at once must not lose an update.</p></div>
+      </div>
+      <p>A database transaction gives you both at once, which is why it is such a useful abstraction.</p>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2" data-short="Shadow copy">
+      <div class="sec-head"><span class="sec-num">02</span><h2>The commit point and the shadow copy</h2></div>
+      <p>Every fix needs a <b>commit point</b>: a single step that cannot be half done. Before it, a crash means the action never happened. After it, a crash means the action did happen and must be finished. The design question is always "what is my one indivisible step?"</p>
+      <p>The <b>shadow copy</b> answers it with a file rename. Put history and stock in one file, <code>state.json</code>. To record a dose, write a complete new version to <code>state.json.tmp</code> (the shadow), flush it to disk, then call <code>os.replace</code> to rename it over the old file. On POSIX and Windows that rename is atomic: afterwards the name points at the old file or the new one, never a mix. A crash leaves at worst a stray shadow, which start-up deletes. Pick <b>Shadow copy</b> in the machine at the top and drag the slider: every crash point recovers to a consistent state.</p>
+      <div class="two">
+        <div><span class="eyebrow">Strength</span><h3>Simple and robust</h3><p>Recovery is one line: delete a leftover shadow. There is no log to read and nothing to redo.</p></div>
+        <div><span class="eyebrow">Cost</span><h3>Rewrite everything</h3><p>Every dose rewrites the whole file. Fine for one clinic; far too slow for a national register.</p></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: the helpers are written, the recorder is not.</span></div>
+        <p>Writing a file here takes two steps, and a crash between them leaves the file torn (the stock half is missing). <code>rename</code> is one atomic step. Change <code>record_dose</code> so it writes the new state to <code>"state.json.tmp"</code> (steps 0 and 1), then renames it over <code>"state.json"</code> (step 2, the commit point). Then make <code>recover</code> delete a leftover <code>"state.json.tmp"</code>. Every line of output should end in <code>consistent</code>.</p>
+        <div class="cell" id="ex-shadow">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-shadow" spellcheck="false" aria-label="Python code">class Crash(Exception):
+    pass
+
+def check(crash, step):
+    if crash == step:
+        raise Crash("crash before step " + str(step))
+
+def write(disk, name, state, crash, at):
+    """Writing a file takes two steps. A crash between them leaves it torn."""
+    check(crash, at)
+    disk[name] = {"history": list(state["history"]), "stock": None}   # first half
+    check(crash, at + 1)
+    disk[name] = {"history": list(state["history"]), "stock": state["stock"]}
+
+def rename(disk, src, dst, crash, at):
+    """Like os.replace: one atomic step."""
+    check(crash, at)
+    disk[dst] = disk.pop(src)
+
+def record_dose(disk, dose_id, crash=None):
+    old = disk["state.json"]
+    new = {"history": old["history"] + [dose_id], "stock": old["stock"] - 1}
+    # TODO: write new to "state.json.tmp" (steps 0 and 1),
+    #       then rename it over "state.json" (step 2, the commit point).
+    write(disk, "state.json", new, crash, 0)
+
+def recover(disk):
+    pass  # TODO: a leftover "state.json.tmp" was never committed: delete it
+
+# Helpers the checker uses.
+def setup():
+    return {"state.json": {"history": [1], "stock": 19}}
+def show(disk):
+    s = disk["state.json"]
+    ok = s["stock"] is not None and s["stock"] + len(s["history"]) == 20
+    print(sorted(disk), s["history"], s["stock"], "consistent" if ok else "INCONSISTENT")
+def trial(crash):
+    disk = setup()
+    try:
+        record_dose(disk, 2, crash)
+    except Crash:
+        pass
+    recover(disk)
+    show(disk)
+
+for crash in [0, 1, 2, None]:
+    trial(crash)
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3" data-short="Write-ahead log">
+      <div class="sec-head"><span class="sec-num">03</span><h2>A write-ahead log and a recovery procedure</h2></div>
+      <p>The second fix keeps the two files and adds an append-only <b>log</b>. To record a dose:</p>
+      <ol>
+        <li>Append the intended changes to the log: "add dose 2 to the history", "set the stock to 18".</li>
+        <li>Append a <b>COMMIT</b> record. This is the commit point.</li>
+        <li>Only now <b>install</b> the changes in the real files.</li>
+        <li>Append an <b>END</b> record: the installs are done.</li>
+      </ol>
+      <p>The <b>write-ahead rule</b> is "log before you install". After a crash, a <b>recovery procedure</b> runs on start-up and reads the log. A transaction with COMMIT but no END is <b>redone</b>. A transaction without COMMIT is ignored: by the write-ahead rule, nothing of it was installed. Pick <b>Write-ahead log</b> at the top and drag the slider to "before install stock": the files on disk are inconsistent right after the crash, and consistent after recovery.</p>
+      <p>Recovery can itself crash and run again. So redo must be <b>idempotent</b>: running it twice must have the same effect as once. Try both ways of logging the stock change below.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><span class="note">Dose 2 committed, then the power failed.</span></div>
+        <div class="controls"><span class="note">Power failed</span><div class="seg" id="rv-k"><button type="button" data-k="3">before install history</button><button type="button" data-k="4">before install stock</button><button type="button" data-k="5">before log END</button></div></div>
+        <div class="controls"><span class="note">Stock change logged as</span><div class="seg" id="rv-mode"><button type="button" data-m="set">set stock to 18</button><button type="button" data-m="sub">subtract 1</button></div></div>
+        <div class="files">
+          <div class="logbox" id="rv-log" aria-label="wal.log"></div>
+          <div class="vars">
+            <div class="var-row"><span>history.json</span><b id="rv-h"></b></div>
+            <div class="var-row"><span>stock.json</span><b id="rv-s"></b></div>
+            <div class="var-row"><span>recovery runs</span><b id="rv-n"></b></div>
+            <div class="inv" id="rv-inv"></div>
+          </div>
+        </div>
+        <div class="controls"><button class="btn" id="rv-crash" type="button">Recover, but crash before END</button><button class="btn alt" id="rv-full" type="button">Recover to the end</button><button class="btn alt" id="rv-reset" type="button">Start over</button></div>
+        <p class="note" id="rv-note"></p>
+      </div>
+      <p>"Set the stock to 18" can be redone any number of times. "Subtract 1" takes another dose off the books every time recovery repeats, and if the crash came after the stock was installed, even the first redo is one too many. Logs record new values, not differences.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">From the module's Exercise 1, as a faded example.</span></div>
+        <p>Finish <code>recover(disk)</code>. Redo, in log order, every change record of a transaction that has a <code>commit</code> but no <code>end</code>, then append an <code>end</code> for it, and return the sorted list of tids redone. It must also survive a <b>torn</b> final record: a crash in the middle of appending leaves a last line with no newline. Treat it as never written and rewrite the log without it. Running <code>recover</code> twice in a row must be safe.</p>
+        <div class="cell" id="ex-recover">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-recover" spellcheck="false" aria-label="Python code">class Crash(Exception):
+    pass
+
+def check(crash, step):
+    if crash == step:
+        raise Crash("crash before step " + str(step))
+
+def append_log(disk, record):
+    disk["wal.log"] += record + "\n"
+
+def install(disk, record):
+    """Apply one change record. Idempotent: twice is the same as once."""
+    parts = record.split(" ")
+    if parts[2] == "history":
+        if int(parts[3]) not in disk["history"]:
+            disk["history"].append(int(parts[3]))
+    else:
+        disk["stock"] = int(parts[3])            # a new value, not "minus one"
+
+def record_dose(disk, dose_id, crash=None):
+    t = str(dose_id)
+    changes = [t + " change history " + t, t + " change stock " + str(disk["stock"] - 1)]
+    check(crash, 0); append_log(disk, changes[0])
+    check(crash, 1); append_log(disk, changes[1])
+    check(crash, 2); append_log(disk, t + " commit")     # the commit point
+    check(crash, 3); install(disk, changes[0])
+    check(crash, 4); install(disk, changes[1])
+    check(crash, 5); append_log(disk, t + " end")
+
+def recover(disk):
+    lines = disk["wal.log"].split("\n")
+    tail = lines.pop()          # "" when the log ends cleanly with a newline
+    if tail != "":
+        pass                    # TODO: torn record. Rewrite disk["wal.log"] without it.
+    committed = set()           # TODO: tids (as ints) with a "commit" record
+    ended = set()               # TODO: tids with an "end" record
+    todo = committed - ended
+    for line in lines:
+        pass                    # TODO: install every "change" record whose tid is in todo
+    for tid in sorted(todo):
+        append_log(disk, str(tid) + " end")
+    return sorted(todo)
+
+# Helpers the checker uses.
+def setup():
+    return {"history": [1], "stock": 19,
+            "wal.log": "1 change history 1\n1 change stock 19\n1 commit\n1 end\n"}
+def show(disk, redone):
+    ok = disk["stock"] + len(disk["history"]) == 20
+    print(redone, disk["history"], disk["stock"], "consistent" if ok else "INCONSISTENT",
+          "| clean log end:", disk["wal.log"].endswith("\n"))
+def trial(crash):
+    disk = setup()
+    try:
+        record_dose(disk, 2, crash)
+    except Crash:
+        pass
+    show(disk, recover(disk))
+def torn_trial():
+    disk = setup()
+    try:
+        record_dose(disk, 2, crash=2)
+    except Crash:
+        disk["wal.log"] += "2 com"           # the power failed mid-append
+    show(disk, recover(disk))
+
+for crash in [1, 3, 4]:
+    trial(crash)
+torn_trial()
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4" data-short="Transactions">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Let the database do it</h2></div>
+      <p>The third fix is the one to use in real work: put both writes inside one database <b>transaction</b>. SQLite keeps its own journal and runs its own recovery every time it opens the file. Everything between <code>BEGIN</code> and <code>COMMIT</code> is all-or-nothing, and the lock that <code>BEGIN IMMEDIATE</code> takes also gives before-or-after atomicity between concurrent writers. Shadow copies and logs are how that works inside.</p>
+      <p>The local lab's <code>sqlite_txn.py</code> kills a real child process with <code>os._exit</code> between the INSERT into history and the UPDATE of stock, which skips every <code>except</code>, <code>finally</code> and <code>ROLLBACK</code>, as close to pulling the plug as Python gets. It then reopens the database. Here is what it prints (SQLite does not run in the browser):</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Run</th><th>Reopened database</th></tr></thead>
+        <tbody>
+          <tr><td>autocommit, no transaction</td><td>2 doses, stock 20, <b style="color:var(--bad)">INCONSISTENT</b></td></tr>
+          <tr><td>inside <code>BEGIN ... COMMIT</code></td><td>1 dose, stock 20, <b style="color:var(--ok)">consistent</b>: SQLite's recovery rolled back the half-recorded dose on open</td></tr>
+          <tr><td>stock emptied, <code>CHECK (doses_left &gt;= 0)</code></td><td><code>IntegrityError</code>; the history insert was rolled back too</td></tr>
+        </tbody>
+      </table></div>
+      <p>The last row is fail-fast from Module 8 joined to atomicity: a constraint refuses an impossible stock, and the transaction makes sure the refusal takes the history row with it.</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Mechanism</th><th>Commit point</th><th>Recovery on start-up</th></tr></thead>
+        <tbody>
+          <tr><td>Shadow copy</td><td><code>os.replace</code> of the shadow</td><td>delete a leftover shadow</td></tr>
+          <tr><td>Write-ahead log</td><td>appending the COMMIT record</td><td>redo committed changes with no END</td></tr>
+          <tr><td>SQLite transaction</td><td><code>COMMIT</code></td><td>SQLite's own, when the file is opened</td></tr>
+        </tbody>
+      </table></div>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="Before-or-after">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Before-or-after: lost updates and locks</h2></div>
+      <p>Now the other kind of atomicity. Two nurses at clinic C05 give an OPV1 dose at the same moment. Each one's request does a read-modify-write on the shared stock: read the number left, subtract one, write it back. Step through it with and without a lock.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls"><div class="seg" id="lu-mode"><button type="button" data-m="0">No lock</button><button type="button" data-m="1">With a lock</button></div></div>
+        </div>
+        <div class="scroll-x"><table class="data" id="lu-table"><thead><tr><th>t</th><th>Nurse A</th><th>Stock</th><th>Nurse B</th></tr></thead><tbody></tbody></table></div>
+        <div class="controls"><button class="btn" id="lu-step" type="button">Step</button><button class="btn alt" id="lu-reset" type="button">Start over</button></div>
+        <div class="cond" id="lu-msg" aria-live="polite"></div>
+      </div>
+      <p>Without the lock, both nurses read 20 before either wrote, so one write overwrote the other: a <b>lost update</b>. Two doses were given and the stock fell by one. The fix is to make the read and the write one indivisible step with respect to other workers, by holding a <b>lock</b> across both.</p>
+      <p>Skulpt has no <code>threading</code>, so the cell below simulates the two requests as generators: each <code>yield</code> is a point where the scheduler may switch to the other nurse. (The local lab uses real threads and a <code>threading.Barrier</code> to force the same interleaving.) Predict the final stock.</p>
+      <div class="cell" data-predict="stock = 19">
+        <div class="predict"><label for="p-s5">Predict the last line:</label><input id="p-s5" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s5" spellcheck="false" aria-label="Python code">stock = {"C05 OPV1": 20}
+
+def dispense(nurse):
+    left = stock["C05 OPV1"]               # read
+    print(nurse, "reads", left)
+    yield                                  # the scheduler may switch here
+    stock["C05 OPV1"] = left - 1           # write
+    print(nurse, "writes", left - 1)
+    yield
+
+a, b = dispense("nurse A"), dispense("nurse B")
+for step in [a, b, a, b]:                  # A reads, B reads, A writes, B writes
+    next(step, None)
+print("doses given = 2")
+print("stock =", stock["C05 OPV1"])</textarea></div>
+      </div>
+      <p>In a Flask app with several worker processes, a Python lock is not enough: each process has its own. The lock has to live where the data lives, such as a database row lock, which is what <code>BEGIN IMMEDIATE</code> takes in SQLite.</p>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6" data-short="Two-phase commit">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Across two services: two-phase commit</h2></div>
+      <p>Suppose history and stock belong to two separate services, each with its own storage. No single rename or local transaction covers both. <b>Two-phase commit</b> stretches the commit point across them with a coordinator:</p>
+      <ol>
+        <li><b>Phase 1, prepare.</b> The coordinator asks each participant whether it can do its part. A participant that can records its tentative change durably and votes yes. A yes is a promise: "I can commit this even if I crash."</li>
+        <li><b>Commit point.</b> The coordinator writes its decision to its own log: commit only if every participant voted yes.</li>
+        <li><b>Phase 2.</b> The coordinator tells every participant the outcome, and each commits or aborts.</li>
+      </ol>
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls"><label class="field" for="tp-sc">scenario <select id="tp-sc" style="width:auto"><option value="ok">a normal dose</option><option value="no">stock votes no</option><option value="crash">coordinator crashes</option></select></label></div>
+        </div>
+        <svg class="sq" id="tp-svg" viewBox="0 0 420 120" role="img" aria-label="Message sequence between VaxRecords, the coordinator and the stock service"></svg>
+        <div class="pstate" id="tp-state"></div>
+        <div class="controls"><button class="btn" id="tp-step" type="button">Step</button><button class="btn alt" id="tp-reset" type="button">Start over</button></div>
+        <div class="cond" id="tp-msg" aria-live="polite"></div>
+      </div>
+      <p>The crash scenario shows the price. Once both participants are <b>prepared</b>, they have given up the right to abort on their own, and they cannot learn the outcome without the coordinator. They are <b>blocked</b>, holding the reserved dose, until the coordinator restarts and resends its logged decision. During that time VaxRecords cannot show the dose to a nurse, and the stock service cannot give the reserved dose to another child.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">From the module's Exercise 3.</span></div>
+        <p>Decide what each side does when a message never comes. <code>decide(votes)</code> runs after the prepare deadline: <code>votes</code> maps each participant to <code>"yes"</code>, <code>"no"</code> or <code>None</code> (no answer). Return <code>"commit"</code> or <code>"abort"</code>. <code>participant_on_silence(status)</code> runs when a participant has heard nothing for a long time; <code>status</code> is <code>None</code> (has not voted), <code>"prepared"</code>, <code>"committed"</code> or <code>"aborted"</code>. Return <code>"abort"</code> if it may safely abort on its own, <code>"wait"</code> if it must keep asking the coordinator, or <code>"nothing"</code> if the transaction is already finished for it.</p>
+        <div class="cell" id="ex-2pc">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-2pc" spellcheck="false" aria-label="Python code">def decide(votes):
+    # TODO: think about what silence means
+    return "commit"
+
+def participant_on_silence(status):
+    # TODO: think about what voting "yes" promised
+    return "abort"
+
+print(decide({"VaxRecords": "yes", "Stock": None}))
+print(participant_on_silence("prepared"))
+</textarea></div>
+        </div>
+      </div>
+      <div class="callout"><b>Run the full lab.</b> The repository version writes real JSON files, crashes a real SQLite writer with <code>os._exit</code>, races two real threads, and has tests for all three exercises. Clone the course, then run <code>pytest lessons/09_atomicity</code>. See <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/09_atomicity">lessons/09_atomicity on GitHub</a>.</div>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Recall and review</h2></div>
+      <p>Reading something again feels productive but fades fast. Pulling it out of memory is what makes it last. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix ideas from every section. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s7"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through the flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Up next · Module 10</span>
+        <h3>Consistency: offline tablets and version vectors</h3>
+        <p>Clinic tablets record doses offline and sync later. When two copies change independently, which one wins? You will watch last writer wins lose a dose, then use version vectors to detect the conflict and reconcile it.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module. Follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009), Chapter 9. Not affiliated with the authors or MIT. All data is synthetic.</span>
+      <span>Course repository: <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">github.com/Rwunganira/computer_system_design</a>. Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript.</span>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc } = CT;
+const reduced = CT.reduced;
+
+/* ---------- hero: crash slider over three recorders ---------- */
+const OLD = { h: [1], s: 19 }, NEW = { h: [1, 2], s: 18 };
+const okState = st => st.s !== null && st.s + st.h.length === 20;
+const inv = st => st.s === null ? "stock half written" : `${st.s} left + ${st.h.length} given = ${st.s + st.h.length}`;
+const METHODS = {
+  naive: {
+    label: "Naive", steps: ["write history.json", "write stock.json"], commit: -1,
+    at(k) {
+      const disk = { h: k >= 1 ? NEW.h : OLD.h, s: k >= 2 ? NEW.s : OLD.s };
+      return {
+        disk, rows: [["history.json", disk.h], ["stock.json", disk.s]], extra: [],
+        after: disk, afterRows: [["history.json", disk.h], ["stock.json", disk.s]],
+        rec: k === 1 ? "Restart finds two ordinary files. Nothing records that a dose was half done, so nothing can repair it." : k === 0 ? "Nothing was written. The dose simply did not happen." : "No crash: both writes finished."
+      };
+    }
+  },
+  shadow: {
+    label: "Shadow copy", steps: ["write first half of shadow", "write second half of shadow", "fsync shadow", "os.replace (commit)"], commit: 3,
+    at(k) {
+      const disk = k >= 4 ? NEW : OLD;
+      const tmp = ["empty", "first half only, torn", "complete, maybe only in a cache", "complete and on disk", null][k];
+      return {
+        disk, rows: [["state.json", disk.h, disk.s]], extra: tmp ? [["state.json.tmp", tmp]] : [],
+        after: disk, afterRows: [["state.json", disk.h, disk.s]],
+        rec: tmp ? "Start-up finds state.json.tmp, an update that never committed, and deletes it. The dose did not happen; record it again." : "No crash: the rename installed the new file in one step."
+      };
+    }
+  },
+  wal: {
+    label: "Write-ahead log", steps: ["log history change", "log stock change", "log COMMIT", "install history", "install stock", "log END"], commit: 2,
+    at(k) {
+      const recs = ["2 change history +dose 2", "2 change stock = 18", "2 COMMIT", "2 END"];
+      const log = recs.slice(0, Math.min(k, 3)).concat(k >= 6 ? [recs[3]] : []);
+      const disk = { h: k >= 4 ? NEW.h : OLD.h, s: k >= 5 ? NEW.s : OLD.s };
+      const redo = k >= 3 && k <= 5;
+      const after = redo ? NEW : disk;
+      return {
+        disk, rows: [["history.json", disk.h], ["stock.json", disk.s]], log,
+        after, afterRows: [["history.json", after.h], ["stock.json", after.s]], afterLog: redo ? log.concat([recs[3]]) : log,
+        rec: k <= 2 ? "No COMMIT for tid 2 in the log, so it never happened. Nothing was installed (log first), so recovery ignores it." : redo ? "COMMIT but no END for tid 2: recovery redoes both installs from the log, then appends END." : "No crash: COMMIT and END are both in the log. Nothing to do."
+      };
+    }
+  }
+};
+const ORDER = ["naive", "shadow", "wal"];
+const cr = { m: "naive", k: 1, playing: !reduced, timer: null };
+$("#cr-tabs").innerHTML = ORDER.map(m => `<button class="mtab" type="button" data-m="${m}">${METHODS[m].label}</button>`).join("");
+$$("#cr-tabs .mtab").forEach(b => b.addEventListener("click", () => { cr.playing = false; crLoop(); cr.m = b.dataset.m; cr.k = Math.min(cr.k, METHODS[cr.m].steps.length); crRender(); }));
+const fileRow = (r, hot) => `<div class="frow"><span>${r[0]}</span><b class="${hot ? "hot" : ""}">${typeof r[1] === "string" ? esc(r[1]) : `doses ${r[1].join(", ")}` + (r.length > 2 ? `; stock ${r[2]}` : "")}${r.length === 2 && typeof r[1] === "number" ? "" : ""}</b></div>`;
+function rowsHtml(rows) {
+  return rows.map(r => {
+    if (r[0] === "stock.json") return `<div class="frow"><span>stock.json</span><b>C05 OPV1 = ${r[1]}</b></div>`;
+    if (r[0] === "state.json") return `<div class="frow"><span>state.json</span><b>doses ${r[1].join(", ")}; stock ${r[2]}</b></div>`;
+    return fileRow(r, r[0].endsWith(".tmp"));
+  }).join("");
+}
+function crRender() {
+  const M = METHODS[cr.m], n = M.steps.length, st = M.at(cr.k);
+  $$("#cr-tabs .mtab").forEach(b => b.classList.toggle("on", b.dataset.m === cr.m));
+  const sl = $("#cr-k"); sl.max = n; sl.value = cr.k;
+  $("#cr-klab").textContent = cr.k < n ? `before step ${cr.k + 1}: ${M.steps[cr.k]}` : "never: no crash";
+  let pipe = "";
+  M.steps.forEach((s, i) => { if (i === cr.k) pipe += `<span class="bolt">power fails</span>`; pipe += `<span class="st${i < cr.k ? " done" : ""}${i === M.commit ? " commit" : ""}">${i + 1}. ${esc(s)}</span>`; });
+  if (cr.k >= n) pipe += `<span class="st done" style="border-style:dashed">done</span>`;
+  $("#cr-pipe").innerHTML = pipe;
+  const logHtml = l => l ? `<div class="frow"><span>wal.log</span></div><div class="logl dim">  1 change, 1 change, 1 COMMIT, 1 END</div>` + l.map(x => `<div class="logl">  ${esc(x)}</div>`).join("") : "";
+  const badge = s => `<span class="badge ${okState(s) ? "ok" : "no"}">${okState(s) ? "consistent" : "INCONSISTENT"}</span><div class="frow"><span>invariant</span><b>${inv(s)}</b></div>`;
+  $("#cr-disk").innerHTML = `<h4>On disk right after the crash</h4>${rowsHtml(st.rows)}${(st.extra || []).map(r => fileRow(r, true)).join("")}${logHtml(st.log)}${badge(st.disk)}`;
+  $("#cr-after").innerHTML = `<h4>After restart and recovery</h4>${rowsHtml(st.afterRows)}${logHtml(st.afterLog || st.log)}${badge(st.after)}<div class="why2">${st.rec}</div>`;
+  $("#cr-msg").textContent = cr.m === "naive" ? "Naive: one crash point leaves the books wrong for good." : cr.m === "shadow" ? "Shadow copy: the rename is the commit point." : "Write-ahead log: COMMIT is the commit point; recovery finishes the rest.";
+}
+function crStep() {
+  const n = METHODS[cr.m].steps.length;
+  if (cr.k < n) cr.k++;
+  else { cr.m = ORDER[(ORDER.indexOf(cr.m) + 1) % ORDER.length]; cr.k = 0; }
+  crRender();
+}
+function crLoop() { clearInterval(cr.timer); if (cr.playing) cr.timer = setInterval(crStep, 1800); $("#cr-play").textContent = cr.playing ? "Pause" : "Play"; }
+$("#cr-k").addEventListener("input", e => { cr.playing = false; crLoop(); cr.k = +e.target.value; crRender(); });
+$("#cr-step").addEventListener("click", () => { cr.playing = false; crLoop(); crStep(); });
+$("#cr-play").addEventListener("click", () => { cr.playing = !cr.playing; crLoop(); });
+crRender(); crLoop();
+
+/* ---------- recovery replay and idempotency ---------- */
+const rv = { k: 4, mode: "set" };
+function rvReset() {
+  const d = { h: [1], s: 19, runs: 0, log: [], redone: [] };
+  const stockRec = rv.mode === "set" ? "2 change stock 18" : "2 change stock -1";
+  d.log = [{ t: "1 change history 1", c: "old" }, { t: "1 change stock 19", c: "old" }, { t: "1 commit", c: "old" }, { t: "1 end", c: "old" },
+    { t: "2 change history 2", c: "" }, { t: stockRec, c: "" }, { t: "2 commit", c: "" }];
+  if (rv.k >= 4) d.h = [1, 2];
+  if (rv.k >= 5) d.s = 18;
+  rv.d = d; rv.note = `Dose 2 committed, then the power failed before ${rv.k === 3 ? "installing the history" : rv.k === 4 ? "installing the stock" : "logging END"}. The log is the truth now.`;
+  rvRender();
+}
+function rvRun(full) {
+  const d = rv.d;
+  if (d.log.some(r => r.t === "2 end")) { rv.note = "The log already has END for tid 2. Recovery finds nothing to redo."; d.runs++; return rvRender(); }
+  d.log.forEach(r => { if (r.c === "redo") r.c = ""; });
+  d.log.forEach(r => {
+    if (!r.t.startsWith("2 change")) return;
+    r.c = "redo";
+    if (r.t.includes("history")) { if (!d.h.includes(2)) d.h = d.h.concat([2]); }
+    else if (rv.mode === "set") d.s = 18; else d.s = d.s - 1;
+  });
+  d.runs++;
+  if (full) { d.log.push({ t: "2 end", c: "new" }); rv.note = "Recovery found COMMIT without END, redid both changes, and appended END. Done."; }
+  else rv.note = rv.mode === "set" ? "Recovery redid both changes, then crashed before appending END. Next start-up will redo them again. Setting 18 again is harmless." : "Recovery redid both changes, then crashed before appending END. Each rerun subtracts 1 again.";
+  rvRender();
+}
+function rvRender() {
+  const d = rv.d;
+  $("#rv-log").innerHTML = `<div class="old">wal.log</div>` + d.log.map(r => `<div class="${r.c}">${esc(r.t)}</div>`).join("");
+  $("#rv-h").textContent = "doses " + d.h.join(", ");
+  $("#rv-s").textContent = "C05 OPV1 = " + d.s;
+  $("#rv-n").textContent = d.runs;
+  const ok = d.s + d.h.length === 20;
+  $("#rv-inv").className = "inv " + (ok ? "ok" : "no");
+  $("#rv-inv").textContent = `${d.s} left + ${d.h.length} given = ${d.s + d.h.length} → ${ok ? "consistent" : "INCONSISTENT"}`;
+  $("#rv-note").textContent = rv.note;
+  $$("#rv-k button").forEach(b => b.classList.toggle("on", +b.dataset.k === rv.k));
+  $$("#rv-mode button").forEach(b => b.classList.toggle("on", b.dataset.m === rv.mode));
+}
+$$("#rv-k button").forEach(b => b.addEventListener("click", () => { rv.k = +b.dataset.k; rvReset(); }));
+$$("#rv-mode button").forEach(b => b.addEventListener("click", () => { rv.mode = b.dataset.m; rvReset(); }));
+$("#rv-crash").addEventListener("click", () => rvRun(false));
+$("#rv-full").addEventListener("click", () => rvRun(true));
+$("#rv-reset").addEventListener("click", rvReset);
+rvReset();
+
+/* ---------- lost update step-through ---------- */
+const LU = [
+  [ ["A reads 20", "20", "", "Nurse A reads the stock: 20 left."],
+    ["", "20", "B reads 20", "Before A writes, nurse B reads too. Also 20."],
+    ["A writes 19", "19", "", "A writes 20 − 1 = 19."],
+    ["", "19", "B writes 19", "B writes its own 20 − 1 = 19, overwriting A's write."] ],
+  [ ["A locks", "20", "", "Nurse A takes the lock for C05 OPV1."],
+    ["A reads 20", "20", "", "A reads 20."],
+    ["", "20", "B waits for lock", "B tries to take the lock and has to wait. It cannot read yet."],
+    ["A writes 19", "19", "", "A writes 19."],
+    ["A unlocks", "19", "", "A releases the lock."],
+    ["", "19", "B locks, reads 19", "B gets the lock and reads 19, which already includes A's dose."],
+    ["", "18", "B writes 18, unlocks", "B writes 18 and releases the lock."] ]
+];
+const lu = { m: 0, at: 0 };
+function luRender() {
+  const ev = LU[lu.m];
+  $("#lu-table tbody").innerHTML = ev.slice(0, lu.at).map((e, i) => `<tr class="${i === lu.at - 1 ? "now" : ""}"><td>${i + 1}</td><td>${e[0]}</td><td><b>${e[1]}</b></td><td>${e[2]}</td></tr>`).join("") || `<tr><td colspan="4" class="note">Stock starts at 20. Press Step.</td></tr>`;
+  $("#lu-step").disabled = lu.at >= ev.length;
+  const done = lu.at >= ev.length;
+  $("#lu-msg").textContent = !lu.at ? "Two doses are about to be given, so the stock should end at 18." : done ? (lu.m === 0 ? "Final stock 19 after two doses. One update was lost, and no error was raised." : "Final stock 18 after two doses. The lock made the two read-modify-writes happen one before the other.") : ev[lu.at - 1][3];
+  $$("#lu-mode button").forEach(b => b.classList.toggle("on", +b.dataset.m === lu.m));
+}
+$$("#lu-mode button").forEach(b => b.addEventListener("click", () => { lu.m = +b.dataset.m; lu.at = 0; luRender(); }));
+$("#lu-step").addEventListener("click", () => { lu.at++; luRender(); });
+$("#lu-reset").addEventListener("click", () => { lu.at = 0; luRender(); });
+luRender();
+
+/* ---------- two-phase commit step-through ---------- */
+const X = { V: 70, C: 210, S: 350 };
+const P = (a, b, label, o) => Object.assign({ t: "msg", a, b, label }, o || {});
+const L = (label, bad) => ({ t: "loc", label, bad });
+const SC = {
+  ok: [
+    { rows: [P("C", "V", "prepare t1"), P("C", "S", "prepare t1")], v: ["asked", "0 doses"], s: ["asked", "OPV2 = 20"], c: "", msg: "Phase 1: the coordinator asks both participants whether they can do their part." },
+    { rows: [P("V", "C", "yes"), P("S", "C", "yes")], v: ["prepared", "0 doses, dose held"], s: ["prepared", "OPV2 = 20, 1 reserved"], c: "", msg: "Each records its tentative change durably, then votes yes. From now on neither may abort on its own." },
+    { rows: [L("log: t1 commit")], v: ["prepared", "0 doses, dose held"], s: ["prepared", "OPV2 = 20, 1 reserved"], c: "t1 commit", msg: "The commit point: every vote was yes, so the coordinator writes commit to its own log. The outcome is decided." },
+    { rows: [P("C", "V", "commit"), P("C", "S", "commit")], v: ["committed", "1 dose"], s: ["committed", "OPV2 = 19"], c: "t1 commit", msg: "Phase 2: both participants are told, and both commit. History and stock agree.", end: true }
+  ],
+  no: [
+    { rows: [P("C", "V", "prepare t2"), P("C", "S", "prepare t2")], v: ["asked", "0 doses"], s: ["asked", "OPV2 = 0"], c: "", msg: "The clinic has run out of OPV2. The coordinator does not know that yet." },
+    { rows: [P("V", "C", "yes"), P("S", "C", "no")], v: ["prepared", "0 doses, dose held"], s: ["aborted", "OPV2 = 0"], c: "", msg: "VaxRecords can record the dose and votes yes. The stock service has none left and votes no." },
+    { rows: [L("log: t2 abort")], v: ["prepared", "0 doses, dose held"], s: ["aborted", "OPV2 = 0"], c: "t2 abort", msg: "One no is enough: the coordinator logs abort." },
+    { rows: [P("C", "V", "abort"), P("C", "S", "abort")], v: ["aborted", "0 doses"], s: ["aborted", "OPV2 = 0"], c: "t2 abort", msg: "VaxRecords voted yes, but the dose is not in the history. All or nothing.", end: true }
+  ],
+  crash: [
+    { rows: [P("C", "V", "prepare t3"), P("C", "S", "prepare t3")], v: ["asked", "0 doses"], s: ["asked", "OPV2 = 20"], c: "", msg: "Phase 1 as before." },
+    { rows: [P("V", "C", "yes"), P("S", "C", "yes")], v: ["prepared", "0 doses, dose held"], s: ["prepared", "OPV2 = 20, 1 reserved"], c: "", msg: "Both vote yes and are now prepared." },
+    { rows: [L("log: t3 commit"), L("coordinator crashes", true)], v: ["prepared", "0 doses, dose held"], s: ["prepared", "OPV2 = 20, 1 reserved"], c: "t3 commit", msg: "The coordinator logs commit, then crashes before telling anyone." },
+    { rows: [P("V", "C", "decision?", { dash: true }), P("S", "C", "decision?", { dash: true })], v: ["prepared, in doubt", "blocked"], s: ["prepared, in doubt", "1 dose stuck in reserve"], c: "t3 commit (down)", msg: "Both are in doubt. They promised not to abort, and they cannot commit without the decision. They are blocked, and the reserved dose cannot go to another child.", doubt: true },
+    { rows: [L("restart: read log, resend")], v: ["prepared, in doubt", "blocked"], s: ["prepared, in doubt", "1 dose stuck in reserve"], c: "t3 commit", msg: "The coordinator recovers. Its log says commit, so it resends that decision.", doubt: true },
+    { rows: [P("C", "V", "commit"), P("C", "S", "commit")], v: ["committed", "1 dose"], s: ["committed", "OPV2 = 19"], c: "t3 commit", msg: "Commit and abort are idempotent, so resending is safe. The blocking is over.", end: true }
+  ]
+};
+const tp = { sc: "ok", at: 0 };
+function tpRender() {
+  const steps = SC[tp.sc], shown = steps.slice(0, tp.at);
+  const rows = [];
+  shown.forEach((s, i) => s.rows.forEach(r => rows.push(Object.assign({ cur: i === tp.at - 1 }, r))));
+  const H = 60 + Math.max(rows.length, 1) * 34 + 10;
+  let svg = `<g class="hd">${Object.entries({ V: "VaxRecords", C: "Coordinator", S: "Stock" }).map(([k, n]) => `<line class="life" x1="${X[k]}" x2="${X[k]}" y1="36" y2="${H}"/><rect x="${X[k] - 58}" y="6" width="116" height="30" rx="6"/><text x="${X[k]}" y="26" text-anchor="middle">${n}</text>`).join("")}</g>`;
+  rows.forEach((r, i) => {
+    const y = 66 + i * 34;
+    if (r.t === "msg") {
+      const x1 = X[r.a], x2 = X[r.b], dir = x2 > x1 ? 1 : -1, tip = x2 - dir * 2;
+      svg += `<g class="m${r.cur ? " cur" : " old"}${r.dash ? " dash" : ""}"><line x1="${x1}" x2="${tip - dir * 8}" y1="${y}" y2="${y}"/><polygon points="${tip},${y} ${tip - dir * 9},${y - 5} ${tip - dir * 9},${y + 5}"/><text x="${(x1 + x2) / 2}" y="${y - 6}" text-anchor="middle">${esc(r.label)}</text></g>`;
+    } else {
+      svg += `<g class="loc${r.bad ? " bad" : ""}${r.cur ? "" : " m old"}"><rect x="${X.C - 95}" y="${y - 16}" width="190" height="24" rx="5"/><text x="${X.C}" y="${y}" text-anchor="middle">${esc(r.label)}</text></g>`;
+    }
+  });
+  const svgEl = $("#tp-svg"); svgEl.setAttribute("viewBox", `0 0 420 ${H}`); svgEl.innerHTML = svg;
+  const cur = shown[shown.length - 1];
+  const card = (name, st) => `<div class="${!st ? "" : st[0].includes("doubt") ? "doubt" : st[0] === "committed" || st[0] === "aborted" ? "done" : ""}"><b>${name}</b>${st ? `${esc(st[0])} · ${esc(st[1])}` : "idle"}</div>`;
+  $("#tp-state").innerHTML = card("VaxRecords", cur && cur.v) + `<div><b>Coordinator log</b>${cur && cur.c ? esc(cur.c) : "empty"}</div>` + card("Stock service", cur && cur.s);
+  $("#tp-msg").textContent = cur ? cur.msg : "Press Step to start the transaction.";
+  $("#tp-step").disabled = tp.at >= steps.length;
+}
+$("#tp-sc").addEventListener("change", e => { tp.sc = e.target.value; tp.at = 0; tpRender(); });
+$("#tp-step").addEventListener("click", () => { tp.at++; tpRender(); });
+$("#tp-reset").addEventListener("click", () => { tp.at = 0; tpRender(); });
+tpRender();
+
+const QUIZ = {
+  s1: [
+    { q: "The naive recorder crashes after writing the history but before writing the stock. After a restart, the dashboard's doses-left figure for that clinic is:", o: ["too low", "too high", "correct, because the history is right", "missing"], a: 1, why: "The stock was never decremented, so it shows one more dose in the fridge than there really is." },
+    { q: "Two nurses at the same clinic record doses at the same moment and one update disappears. Which property was violated?", o: ["All-or-nothing atomicity", "Before-or-after atomicity", "Durability of the log", "The commit point"], a: 1, why: "Nothing crashed. The problem is concurrency: the two actions did not behave as if one ran completely before the other." }
+  ],
+  s2: [
+    { q: "In the shadow-copy recorder, what is the commit point?", o: ["Opening state.json.tmp", "Writing the second half of the shadow", "The fsync of the shadow", "The os.replace rename over state.json"], a: 3, why: "Before the rename, state.json is untouched and a crash loses the dose cleanly. After it, the new file is in place. The rename is one indivisible step." },
+    { q: "Start-up finds a leftover state.json.tmp. What should recovery do with it?", o: ["Rename it over state.json, since it holds the newest data", "Delete it: it was never committed", "Merge it with state.json", "Keep both and alert a person"], a: 1, why: "The shadow might be torn or unflushed. Only the rename commits; without it the update never happened." }
+  ],
+  s3: [
+    { q: "The WAL recorder crashes after the COMMIT record but before installing anything. What does recovery do?", o: ["Ignores the transaction", "Redoes both installs from the log and appends END", "Undoes the history change", "Deletes the COMMIT record"], a: 1, why: "COMMIT with no END means the action happened but may not be finished. The log holds everything needed to redo it." },
+    { q: "What would go wrong if the recorder installed the history change <b>before</b> writing COMMIT?", o: ["Nothing, as long as END is written", "A crash before COMMIT would leave a dose in the history that recovery treats as never having happened", "Recovery would redo it twice", "The log would be torn"], a: 1, why: "That breaks the write-ahead rule. Recovery ignores uncommitted transactions on the assumption that nothing of theirs was installed." },
+    { q: "Why does a torn final log record, with no newline, count as never written?", o: ["Because it is always a COMMIT", "Because the crash happened during the append, so that record was never completed and cannot have been acted on", "Because JSON cannot be parsed", "Because recovery runs twice"], a: 1, why: "The recorder acts only after an append finishes. A half-written COMMIT means the commit point was not reached, so the transaction did not commit." }
+  ],
+  s4: [
+    { q: "<code>sqlite_txn.py</code> kills the process between the INSERT and the UPDATE, inside <code>BEGIN ... COMMIT</code>. Who removes the half-recorded dose, and when?", o: ["The Python <code>except</code> block, immediately", "SQLite's recovery, the next time the database file is opened", "Nobody: it stays until a person deletes it", "The CHECK constraint"], a: 1, why: "os._exit skips every except and ROLLBACK. SQLite's own journal lets it roll back the uncommitted transaction when the file is opened again." }
+  ],
+  s5: [
+    { q: "Which change prevents the lost update?", code: "left = stock[key]\n# ... another worker may run here ...\nstock[key] = left - 1", o: ["Hold one shared lock across both the read and the write", "Lock only the write", "Lock only the read", "Read the stock twice"], a: 0, why: "The danger is another worker reading between your read and your write. Only a lock held across both makes the pair indivisible." },
+    { q: "A Flask app runs four worker processes. Why is <code>threading.Lock</code> not enough?", o: ["Locks are too slow", "Each process has its own copy of the lock, so it does not exclude the others", "Flask forbids locks", "Python locks only work for reads"], a: 1, why: "A Python lock coordinates threads inside one process. The lock must live where the data lives, such as a database row lock." }
+  ],
+  s6: [
+    { q: "The coordinator crashes after logging commit, before telling anyone. Can the stock service give the reserved dose to another child?", o: ["Yes, after a timeout", "No: it is prepared and must wait for the decision", "Yes, because it never received commit", "Only if VaxRecords agrees"], a: 1, why: "Voting yes promised it could commit. Until it learns the outcome it must hold the reservation: it is blocked." },
+    { q: "VaxRecords voted yes, the stock service voted no. What ends up in the child's history?", o: ["The dose, because VaxRecords was ready", "Nothing: the coordinator aborts, and VaxRecords discards its tentative change", "The dose, marked as pending", "It depends on which vote arrived first"], a: 1, why: "Commit requires every vote to be yes. One no means abort for everyone: all or nothing." }
+  ],
+  s7: [
+    { q: "Which list names the commit point of each mechanism correctly?", o: ["Shadow copy: fsync; WAL: END record; SQLite: BEGIN", "Shadow copy: rename; WAL: COMMIT record; 2PC: the coordinator logging its decision", "Shadow copy: writing the shadow; WAL: install; 2PC: the last vote", "Shadow copy: delete tmp; WAL: log change; 2PC: phase 2"], a: 1, why: "In each case it is the single step that cannot be half done, after which the action counts as done." },
+    { q: "A log record says <code>stock -1</code> instead of <code>stock = 18</code>. Recovery crashes once and runs again. What happens?", o: ["Nothing different", "The stock is decremented once per recovery run, so the books end up short", "Recovery refuses to run", "The history loses a dose"], a: 1, why: "Redo must be idempotent. A difference applied twice is applied twice; a new value set twice is the same value." },
+    { q: "Which property does a lock give that a write-ahead log alone does not?", o: ["All-or-nothing despite crashes", "Before-or-after atomicity between concurrent workers", "Durability", "Faster recovery"], a: 1, why: "The log handles crashes. A lock handles concurrency. A database transaction gives you both." }
+  ]
+};
+const CARDS = [
+  ["All-or-nothing atomicity", "A multi-step action either completes entirely or leaves no trace, even if the system crashes part-way."],
+  ["Before-or-after atomicity", "Concurrent actions have the same effect as if one ran completely before the other."],
+  ["The VaxRecords invariant", "For every clinic and vaccine: stock left + doses given = stock received."],
+  ["Commit point", "The single step that cannot be half done. Crash before it: the action never happened. After it: it happened and must be finished."],
+  ["Shadow copy", "Write a complete new version beside the old one, then switch to it in one atomic step (os.replace)."],
+  ["The write-ahead rule", "Log the intended changes, and COMMIT, before installing anything in the real files."],
+  ["WAL recovery", "Redo committed transactions that have no END, in log order; ignore transactions with no COMMIT."],
+  ["Why redo must be idempotent", "Recovery can crash and run again. Log new values (set stock to 18), never differences (subtract 1)."],
+  ["Lost update", "Two read-modify-writes interleave and one write overwrites the other. Prevent it with a lock across read and write."],
+  ["Two-phase commit", "Prepare and vote; the coordinator logs its decision (the commit point); then tells everyone to commit or abort."],
+  ["Why 2PC blocks", "A prepared participant has promised to commit if told to, so it may not abort alone. If the coordinator is down, it waits."]
+];
+
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  exercises: {
+    "ex-shadow": {
+      cases: ["trial(0)", "trial(1)", "trial(2)", "trial(None)", "d = setup()\nrecord_dose(d, 2)\nrecord_dose(d, 3)\nrecover(d)\nshow(d)", "d = setup()\nd['state.json.tmp'] = {'history': [1, 9], 'stock': None}\nrecover(d)\nshow(d)"],
+      solution: "class Crash(Exception):\n    pass\n\ndef check(crash, step):\n    if crash == step:\n        raise Crash(\"crash before step \" + str(step))\n\ndef write(disk, name, state, crash, at):\n    check(crash, at)\n    disk[name] = {\"history\": list(state[\"history\"]), \"stock\": None}\n    check(crash, at + 1)\n    disk[name] = {\"history\": list(state[\"history\"]), \"stock\": state[\"stock\"]}\n\ndef rename(disk, src, dst, crash, at):\n    check(crash, at)\n    disk[dst] = disk.pop(src)\n\ndef record_dose(disk, dose_id, crash=None):\n    old = disk[\"state.json\"]\n    new = {\"history\": old[\"history\"] + [dose_id], \"stock\": old[\"stock\"] - 1}\n    write(disk, \"state.json.tmp\", new, crash, 0)\n    rename(disk, \"state.json.tmp\", \"state.json\", crash, 2)\n\ndef recover(disk):\n    if \"state.json.tmp\" in disk:\n        del disk[\"state.json.tmp\"]\n\ndef setup():\n    return {\"state.json\": {\"history\": [1], \"stock\": 19}}\ndef show(disk):\n    s = disk[\"state.json\"]\n    ok = s[\"stock\"] is not None and s[\"stock\"] + len(s[\"history\"]) == 20\n    print(sorted(disk), s[\"history\"], s[\"stock\"], \"consistent\" if ok else \"INCONSISTENT\")\ndef trial(crash):\n    disk = setup()\n    try:\n        record_dose(disk, 2, crash)\n    except Crash:\n        pass\n    recover(disk)\n    show(disk)",
+      hint: ["Two lines replace the in-place write: write(disk, 'state.json.tmp', new, crash, 0) and then rename(disk, 'state.json.tmp', 'state.json', crash, 2).", "In recover: if 'state.json.tmp' in disk: del disk['state.json.tmp']."]
+    },
+    "ex-recover": {
+      cases: ["trial(0)", "trial(3)", "trial(4)", "trial(5)", "trial(None)", "torn_trial()", "d = setup()\ntry:\n    record_dose(d, 2, crash=4)\nexcept Crash:\n    pass\nprint(recover(d), recover(d), d['stock'], d['wal.log'].count('end'))"],
+      solution: "class Crash(Exception):\n    pass\n\ndef check(crash, step):\n    if crash == step:\n        raise Crash(\"crash before step \" + str(step))\n\ndef append_log(disk, record):\n    disk[\"wal.log\"] += record + \"\\n\"\n\ndef install(disk, record):\n    parts = record.split(\" \")\n    if parts[2] == \"history\":\n        if int(parts[3]) not in disk[\"history\"]:\n            disk[\"history\"].append(int(parts[3]))\n    else:\n        disk[\"stock\"] = int(parts[3])\n\ndef record_dose(disk, dose_id, crash=None):\n    t = str(dose_id)\n    changes = [t + \" change history \" + t, t + \" change stock \" + str(disk[\"stock\"] - 1)]\n    check(crash, 0); append_log(disk, changes[0])\n    check(crash, 1); append_log(disk, changes[1])\n    check(crash, 2); append_log(disk, t + \" commit\")\n    check(crash, 3); install(disk, changes[0])\n    check(crash, 4); install(disk, changes[1])\n    check(crash, 5); append_log(disk, t + \" end\")\n\ndef recover(disk):\n    lines = disk[\"wal.log\"].split(\"\\n\")\n    tail = lines.pop()\n    if tail != \"\":\n        disk[\"wal.log\"] = \"\".join(line + \"\\n\" for line in lines)\n    committed = set()\n    ended = set()\n    for line in lines:\n        parts = line.split(\" \")\n        if parts[1] == \"commit\":\n            committed.add(int(parts[0]))\n        if parts[1] == \"end\":\n            ended.add(int(parts[0]))\n    todo = committed - ended\n    for line in lines:\n        parts = line.split(\" \")\n        if parts[1] == \"change\" and int(parts[0]) in todo:\n            install(disk, line)\n    for tid in sorted(todo):\n        append_log(disk, str(tid) + \" end\")\n    return sorted(todo)\n\ndef setup():\n    return {\"history\": [1], \"stock\": 19,\n            \"wal.log\": \"1 change history 1\\n1 change stock 19\\n1 commit\\n1 end\\n\"}\ndef show(disk, redone):\n    ok = disk[\"stock\"] + len(disk[\"history\"]) == 20\n    print(redone, disk[\"history\"], disk[\"stock\"], \"consistent\" if ok else \"INCONSISTENT\",\n          \"| clean log end:\", disk[\"wal.log\"].endswith(\"\\n\"))\ndef trial(crash):\n    disk = setup()\n    try:\n        record_dose(disk, 2, crash)\n    except Crash:\n        pass\n    show(disk, recover(disk))\ndef torn_trial():\n    disk = setup()\n    try:\n        record_dose(disk, 2, crash=2)\n    except Crash:\n        disk[\"wal.log\"] += \"2 com\"\n    show(disk, recover(disk))",
+      hint: ["For the torn tail: disk['wal.log'] = ''.join(line + '\\n' for line in lines). For the sets: split each line; parts[0] is the tid and parts[1] is the kind (change, commit or end).", "Redo loop: parts = line.split(' '); if parts[1] == 'change' and int(parts[0]) in todo: install(disk, line)."]
+    },
+    "ex-2pc": {
+      cases: ["print(decide({'VaxRecords': 'yes', 'Stock': 'yes'}))", "print(decide({'VaxRecords': 'yes', 'Stock': None}))", "print(decide({'VaxRecords': 'no', 'Stock': 'yes'}))", "print(decide({}))", "print([participant_on_silence(s) for s in [None, 'prepared', 'committed', 'aborted']])"],
+      solution: "def decide(votes):\n    # Silence is not consent: only a unanimous, explicit yes may commit.\n    if votes and all(v == \"yes\" for v in votes.values()):\n        return \"commit\"\n    return \"abort\"\n\ndef participant_on_silence(status):\n    if status is None:\n        return \"abort\"      # it has promised nothing\n    if status == \"prepared\":\n        return \"wait\"       # it promised to commit if told to: blocked\n    return \"nothing\"",
+      hint: ["The coordinator may commit only if every participant explicitly said yes. A missing vote is not a yes. An empty set of votes is not a yes either.", "A participant that has not voted has promised nothing, so it may abort. One that is prepared promised to commit if told to, so it must wait. Committed or aborted: nothing left to do."]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Consistency, Module 10</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+/* hero: two offline tablets and a server */
+.sy-modes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sy-modes .btn-ghost.on { background: var(--tok-fn); border-color: var(--tok-fn); color: var(--code-bg); font-weight: 600; }
+.sy-stage { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 46px 14px; }
+.sy-node { position: relative; z-index: 1; background: color-mix(in srgb, var(--code-fg) 6%, var(--code-bg)); border: 1.5px solid color-mix(in srgb, var(--code-muted) 45%, transparent); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; min-width: 0; transition: border-color .3s, box-shadow .3s; }
+.sy-node.server { grid-column: 1 / -1; justify-self: center; width: min(100%, 420px); }
+.sy-node.busy { border-color: var(--tok-fn); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tok-fn) 25%, transparent); }
+.sy-node.flash { border-color: var(--tok-kw); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tok-kw) 25%, transparent); }
+.sy-name { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.8rem; font-weight: 600; color: var(--code-fg); }
+.sy-pill { font-size: 0.66rem; font-weight: 600; padding: 1px 7px; border-radius: 99px; border: 1px solid currentColor; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.sy-pill.on { color: var(--tok-str); }
+.sy-pill.off { color: var(--code-muted); }
+.sy-meta { font-family: var(--mono); font-size: 0.72rem; color: var(--code-muted); line-height: 1.45; overflow-wrap: anywhere; }
+.sy-meta b { color: var(--code-fg); font-weight: 600; }
+.sy-meta .use { color: var(--tok-num); }
+.sy-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.sy-chip { font-family: var(--mono); font-size: 0.72rem; padding: 1px 5px; border-radius: 5px; border: 1px solid color-mix(in srgb, var(--code-muted) 50%, transparent); color: var(--code-fg); transition: all .3s; }
+.sy-chip.new { border-color: var(--tok-str); color: var(--tok-str); }
+.sy-chip.lost { border-color: var(--tok-kw); color: var(--tok-kw); text-decoration: line-through; }
+.sy-wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: visible; }
+.sy-wires line { stroke: var(--code-muted); stroke-width: 1.5; stroke-dasharray: 4 5; opacity: .6; }
+.sy-wires line.live { stroke: var(--tok-fn); stroke-dasharray: none; opacity: 1; stroke-width: 2; }
+.sy-wires circle { fill: var(--tok-fn); }
+.sy-msg { font-family: var(--mono); font-size: 0.82rem; color: var(--code-fg); min-height: 3.2em; line-height: 1.5; }
+.sy-msg .t { color: var(--tok-num); }
+.sy-banner { font-family: var(--mono); font-size: 0.82rem; padding: 8px 10px; border-radius: 8px; border: 1px solid; }
+.sy-banner.bad { color: var(--tok-kw); border-color: var(--tok-kw); }
+.sy-banner.good { color: var(--tok-str); border-color: var(--tok-str); }
+.sy-dots { display: flex; gap: 5px; align-items: center; }
+.sy-dots i { width: 7px; height: 7px; border-radius: 50%; background: color-mix(in srgb, var(--code-muted) 50%, transparent); }
+.sy-dots i.on { background: var(--tok-fn); }
+
+/* replica lag strip */
+.lag-strip { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.lag-strip div { border: 1.5px solid var(--rule); border-radius: 8px; padding: 6px 2px; text-align: center; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); display: grid; gap: 2px; }
+.lag-strip div b { font-size: 1.05rem; color: var(--ink); }
+.lag-strip div.stale { border-color: var(--bad); background: var(--bad-soft); }
+.lag-strip div.stale b { color: var(--bad); }
+.lag-strip div.fresh { border-color: var(--ok); background: var(--ok-soft); }
+.lag-strip div.fresh b { color: var(--ok); }
+.lag-strip div.wait { border-style: dashed; }
+input[type=range] { accent-color: var(--accent); width: 140px; max-width: 100%; }
+.verdict-line { font-family: var(--mono); font-size: 0.88rem; padding: 8px 10px; border-radius: 6px; background: var(--paper); border-left: 3px solid var(--rule); }
+.verdict-line.bad { border-left-color: var(--bad); }
+.verdict-line.ok { border-left-color: var(--ok); }
+
+/* cache table */
+table.data td.stale { color: var(--bad); font-weight: 700; }
+table.data td.fresh { color: var(--ok); font-weight: 700; }
+table.data tr.hide { display: none; }
+
+/* version vector comparator */
+.vv-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 480px) { .vv-grid { grid-template-columns: 1fr; } }
+.vv-col { background: var(--paper); border: 1.5px solid var(--rule); border-radius: 10px; padding: 10px; display: grid; gap: 6px; min-width: 0; }
+.vv-col h4 { margin: 0; font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.vv-slot { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 4px; align-items: center; font-family: var(--mono); font-size: 0.8rem; }
+.vv-slot span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vv-slot b { min-width: 1.6em; text-align: center; font-size: 1rem; }
+.vv-slot b.ahead { color: var(--accent); }
+.vv-slot button { font: inherit; width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid var(--rule); background: var(--sheet); color: var(--ink); cursor: pointer; padding: 0; }
+.vv-out { font-family: var(--display); font-size: var(--step-1); font-weight: 700; }
+.vv-out.concurrent { color: var(--accent); }
+
+/* sync order */
+.so-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.so-box { background: var(--paper); border: 1.5px solid var(--rule); border-radius: 10px; padding: 8px 10px; display: grid; gap: 4px; min-width: 0; font-family: var(--mono); font-size: 0.74rem; color: var(--muted); }
+.so-box h4 { margin: 0; font-size: 0.74rem; color: var(--ink); }
+.so-box .sy-chip { color: var(--ink); border-color: var(--rule); }
+.so-box .sy-chip.new { color: var(--ok); border-color: var(--ok); }
+.so-box .sy-chip.lost { color: var(--bad); border-color: var(--bad); }
+@media (max-width: 560px) { .so-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body data-lesson="m10">
+<div class="shell">
+  <aside class="rail" aria-label="Lesson progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 10</div>
+      <h1>Two copies will disagree. The sync rule decides whether a dose <em>survives</em>.</h1>
+      <p class="lede">The moment VaxRecords keeps a copy on a clinic tablet, readers can see old data and writers can collide. This module is about choosing what readers may see, and merging offline edits so that nothing a nurse entered quietly disappears.</p>
+
+      <div class="tape-card" aria-label="Two clinic tablets edit one child's record offline and sync with the server">
+        <div class="tape-top"><span>Child <b>P000001</b>: two tablets offline, then sync</span><span class="sy-dots" id="sy-dots" aria-hidden="true"></span></div>
+        <div class="sy-modes">
+          <button class="btn-ghost on" id="sy-lww" type="button">Last writer wins</button>
+          <button class="btn-ghost" id="sy-vv" type="button">Version vectors</button>
+          <button class="btn-ghost" id="sy-skew" type="button">B's clock: 30 min slow</button>
+        </div>
+        <div class="sy-stage" id="sy-stage">
+          <svg class="sy-wires" id="sy-wires" aria-hidden="true"></svg>
+          <div class="sy-node server" id="sy-server"></div>
+          <div class="sy-node" id="sy-A"></div>
+          <div class="sy-node" id="sy-B"></div>
+        </div>
+        <div class="sy-msg" id="sy-msg" aria-live="polite"></div>
+        <div class="tape-log">
+          <div class="sy-banner" id="sy-banner" hidden></div>
+          <div style="display:flex;gap:6px;margin-left:auto"><button class="btn-ghost" id="sy-step" type="button">Step</button><button class="btn-ghost" id="sy-play" type="button">Pause</button></div>
+        </div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>Strict and eventual consistency, cache coherence, why last-writer-wins loses data, and how version vectors detect concurrent updates.</div>
+        <div><b>You will build</b>A time-to-live cache, a version-vector comparison and a grow-only merge that keeps every dose two offline tablets recorded.</div>
+        <div><b>How it works</b>Watch the sync above in both modes, step through the worked examples, predict each output, then write the code and check it.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="Strict and eventual">
+      <div class="sec-head"><span class="sec-num">01</span><h2>One copy, then many</h2></div>
+      <p>When there is one copy of the data, every read sees the last write. Once you make copies, that stops being automatic. VaxRecords already has several: a read replica of its database behind the SurveilLite dashboard, a cache of district totals, and a full copy on every clinic tablet that works for days without signal. You must decide what a reader of a copy is allowed to see. The book contrasts two answers.</p>
+      <div class="two">
+        <div><span class="eyebrow">Strict consistency</span><h3>As if there were one copy</h3><p>Every read returns the result of the most recent write. Easy to reason about, but a write is not finished until the replicas agree, and if one cannot be reached you must wait or refuse.</p></div>
+        <div><span class="eyebrow">Eventual consistency</span><h3>Agree in the end</h3><p>Replicas may disagree for a while, but once updates stop they converge to the same value. Reads are fast and work offline; a reader can see stale data, and you need a rule for combining updates made in different places.</p></div>
+      </div>
+      <p>A nurse records MCV1 for a child at time 0, which raises the child's dose count from 5 to 6 on the primary. The dashboard reads from the replica once a second after that. Move the replication lag and switch between the two promises. Then cut the link to the replica.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls">
+            <label class="field" for="lag-mode">promise <select id="lag-mode" style="width:auto"><option value="ev">eventual</option><option value="st">strict</option></select></label>
+            <label class="field" for="lag-n">lag <input id="lag-n" type="range" min="0" max="8" value="3"><b id="lag-v" style="color:var(--ink)">3 s</b></label>
+            <label class="field" for="lag-cut"><input id="lag-cut" type="checkbox" style="width:auto"> replica unreachable</label>
+          </div>
+        </div>
+        <div class="lag-strip" id="lag-strip" aria-live="polite"></div>
+        <div class="verdict-line" id="lag-note"></div>
+      </div>
+
+      <p>Neither promise is free. Eventual consistency answers at once and is sometimes wrong for a few seconds. Strict consistency is never wrong, but the nurse waits for the slowest replica, and when the replica is unreachable the write cannot complete at all. Here is the eventual version in Python: writes go to the primary at once and reach the replica <code>LAG</code> seconds later.</p>
+      <div class="cell" data-predict="t = 3 replica says 6 doses">
+        <div class="predict"><label for="p-s1">Predict the last line:</label><input id="p-s1" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s1" spellcheck="false" aria-label="Python code">primary = {"P000001": 5}   # doses on record
+replica = {"P000001": 5}
+queue = []                 # (arrives_at, key, value) on the way to the replica
+LAG = 3                    # seconds for a write to reach the replica
+
+def write(t, key, value):
+    primary[key] = value
+    queue.append((t + LAG, key, value))
+
+def read_replica(t, key):
+    for arrives, k, v in list(queue):
+        if arrives &lt;= t:
+            replica[k] = v
+            queue.remove((arrives, k, v))
+    return replica[key]
+
+write(0, "P000001", 6)          # the nurse records MCV1 at t = 0
+print("primary says", primary["P000001"], "doses")
+for t in [2, 3]:
+    print("t =", t, "replica says", read_replica(t, "P000001"), "doses")</textarea></div>
+      </div>
+      <p class="note"><b>Notice:</b> at t = 2 the replica still says 5. Nothing is broken; that is exactly what eventual consistency allows. The question is whether anyone acting on that 5 can be harmed.</p>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2" data-short="What staleness costs">
+      <div class="sec-head"><span class="sec-num">02</span><h2>What does a stale answer cost?</h2></div>
+      <p>Neither model is "correct". The deciding question is what a stale answer costs the person reading it. A SurveilLite incidence map that is an hour old leads to the same public health decision as a fresh one: weekly counts from 40 clinics do not change the picture in an hour. A nurse checking whether a child already had MCV1 before giving it cannot safely act on stale data, or must at least be told the data may be stale.</p>
+      <div class="callout">Ask of every figure: if this is a little out of date, who acts on it, and what goes wrong?</div>
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Decide which figures may be served from a stale replica or cache.</span></div>
+        <div class="sorter" id="sorter"></div>
+      </div>
+      <p>This is the module's <code>staleness_policy</code> exercise in the repository. Notice that the answer comes from the domain, not from the database: the same replica can be fine for one screen and dangerous for another.</p>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3" data-short="Caches">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Caches and coherence</h2></div>
+      <p>A <b>cache</b> is a replica whose job is speed. It is <b>coherent</b> if reads through it behave as if there were no cache. The book's tools are familiar from web work: <b>invalidate</b> the cached copy on every write, or bound staleness with a <b>time-to-live</b> (TTL) and accept that window. If SurveilLite caches district totals for five minutes, that is an explicit, bounded eventual-consistency promise.</p>
+      <p>Below, SurveilLite caches the North-Central measles total. Late reports arrive at minute 2 and minute 7. Step through the same events under both policies and watch which reads come back stale.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls">
+            <label class="field" for="ca-pol">policy <select id="ca-pol" style="width:auto"><option value="ttl">TTL 5 minutes</option><option value="inv">invalidate on write</option></select></label>
+            <button class="btn" id="ca-step" type="button">Next event</button><button class="btn alt" id="ca-reset" type="button">Start over</button>
+          </div>
+        </div>
+        <div class="scroll-x"><table class="data" id="ca-table"><thead><tr><th>Minute</th><th>Event</th><th>Database</th><th>Cache holds</th><th>Read returns</th></tr></thead><tbody></tbody></table></div>
+        <div class="cond" id="ca-note">Press <b>Next event</b> to start.</div>
+      </div>
+
+      <p>Invalidation gives coherence, but every write must know about every cache, which gets hard once caches live on other machines. A TTL needs no coordination at all and promises only that no answer is older than five minutes. Here is the TTL cache in Python. Predict the last line before you run it.</p>
+      <div class="cell" data-predict="431">
+        <div class="predict"><label for="p-s3">Predict the last line:</label><input id="p-s3" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s3" spellcheck="false" aria-label="Python code">DB = {"N-CEN": 412}           # measles cases this quarter, North-Central
+
+class TTLCache:
+    def __init__(self, ttl):
+        self.ttl = ttl
+        self.store = {}           # key -> (value, loaded_at)
+
+    def get(self, key, now):
+        if key in self.store:
+            value, loaded_at = self.store[key]
+            if now - loaded_at &lt; self.ttl:
+                return value      # young enough: serve the copy
+        value = DB[key]           # miss or expired: go to the database
+        self.store[key] = (value, now)
+        return value
+
+cache = TTLCache(ttl=5)
+print(cache.get("N-CEN", 0))
+DB["N-CEN"] = 431                 # late reports arrive at minute 2
+print(cache.get("N-CEN", 3))
+print(cache.get("N-CEN", 6))</textarea></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: the cache is built, two pieces are missing.</span></div>
+        <p>This cache reloads from the database on every call, so it never saves any work. Finish <code>get</code> so it serves the cached value while it is younger than <code>self.ttl</code> minutes, and finish <code>invalidate</code> so a write can force the next read to reload.</p>
+        <div class="cell" id="ex-ttl">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-ttl" spellcheck="false" aria-label="Python code">DB = {"N-CEN": 412, "S-COA": 97}
+
+class TTLCache:
+    def __init__(self, ttl):
+        self.ttl = ttl
+        self.store = {}            # key -> (value, loaded_at)
+
+    def get(self, key, now):
+        if key in self.store:
+            value, loaded_at = self.store[key]
+            # TODO: return value if it is younger than self.ttl
+        value = DB[key]
+        self.store[key] = (value, now)
+        return value
+
+    def invalidate(self, key):
+        # TODO: forget the cached copy of key, if there is one
+        pass
+
+cache = TTLCache(5)
+print(cache.get("N-CEN", 0))
+DB["N-CEN"] = 431
+print(cache.get("N-CEN", 3))   # should still be 412
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4" data-short="Last writer wins">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Disconnected operation and last-writer-wins</h2></div>
+      <p>VaxRecords runs on tablets in clinics that are offline for days. Each tablet keeps a full copy of the records it needs, health workers keep recording doses, and the tablet syncs when it reconnects. Now two replicas can change the same record independently. The book calls this the <b>reconciliation</b> problem, and it has two parts: <b>detect</b> that updates conflict, then <b>resolve</b> them.</p>
+      <p><b>Last-writer-wins</b> (LWW) skips detection. Each record carries a timestamp, and the later one replaces the earlier one wholesale. It is easy, and it loses data. This is the scenario from the hero, written as the repository's <code>offline_sync.py</code> writes it. Tablet A records MCV1 at 10:00; tablet B records MCV2 at 10:15, but B's clock runs 30 minutes slow. The real lab builds the record from the synthetic population with pandas; here it is typed in.</p>
+      <div class="cell" data-predict="LOST: MCV2 given 2024-01-31 at C04">
+        <div class="predict"><label for="p-s4">Predict the last line:</label><input id="p-s4" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s4" spellcheck="false" aria-label="Python code">import copy
+
+class Replica:
+    def __init__(self, name, record, clock_skew=0):
+        self.name = name
+        self.record = copy.deepcopy(record)
+        self.clock_skew = clock_skew          # minutes this clock is off by
+
+    def record_dose(self, vaccine, day, clinic, now):
+        self.record["doses"].add((vaccine, day, clinic))
+        self.record["updated_at"] = now + self.clock_skew   # what THIS clock says
+
+def lww_sync(server, tablet):
+    if tablet.record["updated_at"] &gt; server.record["updated_at"]:
+        server.record = copy.deepcopy(tablet.record)
+        print("  sync", tablet.name + ": tablet is later, its whole record wins")
+    else:
+        print("  sync", tablet.name + ": server is later, tablet's record discarded")
+    tablet.record = copy.deepcopy(server.record)  # tablet downloads the result
+
+record = {"person_id": "P000001", "updated_at": 0,
+          "doses": {("BCG", "2022-11-12", "C04"), ("DTP1", "2022-12-26", "C02"),
+                    ("OPV1", "2023-01-03", "C05"), ("DTP2", "2023-01-13", "C02"),
+                    ("OPV2", "2023-01-29", "C05")}}
+server = Replica("server", record)
+a = Replica("tablet-A", record)
+b = Replica("tablet-B", record, clock_skew=-30)
+
+a.record_dose("MCV1", "2023-08-17", "C01", now=600)   # 10:00
+b.record_dose("MCV2", "2024-01-31", "C04", now=615)   # 10:15, clock says 09:45
+recorded = a.record["doses"] | b.record["doses"]
+
+lww_sync(server, a)
+lww_sync(server, b)
+print("recorded", len(recorded), "on server", len(server.record["doses"]))
+for vaccine, day, clinic in sorted(recorded - server.record["doses"]):
+    print("LOST:", vaccine, "given", day, "at", clinic)</textarea></div>
+      </div>
+      <p>No error, no warning. The tablet even downloads the server's copy afterwards, so MCV2 vanishes from tablet B as well. Device clocks make it worse, because "later" is decided by whichever cheap clock runs fast. But is the clock the real culprit? Slide tablet B's clock error and watch who wins.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls"><label class="field" for="sk-n">B's clock error <input id="sk-n" type="range" min="-60" max="60" step="5" value="-30"><b id="sk-v" style="color:var(--ink)">-30 min</b></label></div>
+        </div>
+        <div class="vars">
+          <div class="var-row"><span>tablet A records MCV1 at 10:00, stamps</span><b id="sk-a">10:00</b></div>
+          <div class="var-row"><span>tablet B records MCV2 at 10:15, stamps</span><b id="sk-b">09:45</b></div>
+        </div>
+        <div class="verdict-line bad" id="sk-out"></div>
+      </div>
+      <p>Every position loses a dose. With a correct clock, B's later stamp wins and MCV1 disappears instead. The skewed clock only decides <em>which</em> dose is lost. The real fault is that LWW keeps one whole record when two replicas each changed it.</p>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="Version vectors">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Version vectors detect conflicts</h2></div>
+      <p><b>Version vectors</b> detect conflicts without trusting clocks. Each replica counts its own updates. The vector <code>{"server": 1, "tablet-A": 2}</code> means "I have seen the server's first update and tablet A's first two". Missing entries count as 0. Comparing two vectors slot by slot gives one of four answers:</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Comparison</th><th>Meaning</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><b>equal</b></td><td>same history</td><td>nothing to do</td></tr>
+          <tr><td><b>before</b> / <b>after</b></td><td>one has seen everything the other has</td><td>take the newer one</td></tr>
+          <tr><td><b>concurrent</b></td><td>each has an update the other lacks</td><td>reconcile</td></tr>
+        </tbody>
+      </table></div>
+      <p>Change the counts and watch the verdict. A slot shown in the accent color is ahead of the same slot on the other side.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><div class="controls"><button class="btn alt" id="vv-preset" type="button">Load the hero's case</button></div></div>
+        <div class="vv-grid" id="vv-grid"></div>
+        <div><div class="vv-out" id="vv-out" aria-live="polite"></div><p class="note" id="vv-why" style="margin:4px 0 0"></p></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">From the repository's <code>exercises.py</code>.</span></div>
+        <p>Write <code>compare(vv_a, vv_b)</code>. Return <code>"equal"</code> if the vectors are the same, <code>"before"</code> if <code>vv_a</code> happened before <code>vv_b</code> (b has seen everything a has, and more), <code>"after"</code> for the reverse, and <code>"concurrent"</code> if each has seen an update the other has not.</p>
+        <div class="cell" id="ex-compare">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-compare" spellcheck="false" aria-label="Python code">def compare(vv_a, vv_b):
+    keys = set(vv_a) | set(vv_b)     # every replica either vector mentions
+    # Missing entries count as 0, so use vv_a.get(k, 0)
+    # Your code here
+    return "equal"
+
+print(compare({"server": 1, "tablet-A": 1}, {"server": 1, "tablet-B": 1}))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6" data-short="Grow-only merge">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Resolving: the grow-only merge</h2></div>
+      <p>Detection tells you <em>that</em> two updates conflict. <b>Resolving</b> them needs knowledge of the domain, not of the system. For doses the rule is simple: a dose, once given, stays given. Doses form a <b>grow-only set</b>, so the merge is a union, and the merged vector is the slot-by-slot maximum. Because union is commutative and idempotent, replicas can sync in any order, any number of times, and still converge.</p>
+      <p>Test that claim. Sync the two tablets in any order you like, as often as you like, and compare with last-writer-wins.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls">
+            <label class="field" for="so-mode">rule <select id="so-mode" style="width:auto"><option value="vv">version vectors + union</option><option value="lww">last writer wins</option></select></label>
+          </div>
+        </div>
+        <div class="controls"><button class="btn" id="so-a" type="button">Tablet A syncs</button><button class="btn" id="so-b" type="button">Tablet B syncs</button><button class="btn alt" id="so-reset" type="button">Start over</button></div>
+        <div class="so-grid" id="so-grid"></div>
+        <div class="term" id="so-log" aria-live="polite"></div>
+      </div>
+
+      <p>Here is the version-vector sync from <code>offline_sync.py</code>, run on the same scenario, slow clock included. Predict how many doses the server ends with.</p>
+      <div class="cell" data-predict="7">
+        <div class="predict"><label for="p-s6">Predict the last line:</label><input id="p-s6" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s6" spellcheck="false" aria-label="Python code">import copy
+
+def dominates(a, b):
+    """True if vector a has seen everything b has."""
+    return all(a.get(k, 0) &gt;= n for k, n in b.items())
+
+def merged_vector(a, b):
+    return {k: max(a.get(k, 0), b.get(k, 0)) for k in set(a) | set(b)}
+
+def vv_sync(server, tablet):
+    mine, theirs = server["vv"], tablet["vv"]
+    if dominates(mine, theirs):
+        print("  server already has it")
+    elif dominates(theirs, mine):
+        print("  tablet is newer: take it")
+        server = copy.deepcopy(tablet)
+    else:
+        print("  CONCURRENT: merge doses (union)")
+        server["doses"] = server["doses"] | tablet["doses"]
+        server["vv"] = merged_vector(mine, theirs)
+    return server, copy.deepcopy(server)      # new server, tablet downloads it
+
+start = {"vv": {"server": 1}, "doses": {"BCG", "DTP1", "OPV1", "DTP2", "OPV2"}}
+server, a, b = copy.deepcopy(start), copy.deepcopy(start), copy.deepcopy(start)
+a["doses"].add("MCV1"); a["vv"]["tablet-A"] = 1      # 10:00
+b["doses"].add("MCV2"); b["vv"]["tablet-B"] = 1      # 10:15, slow clock: irrelevant now
+
+server, a = vv_sync(server, a)
+server, b = vv_sync(server, b)
+server, b = vv_sync(server, b)                         # B syncs again: harmless
+print(sorted(server["vv"].items()))
+print(len(server["doses"]))</textarea></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: the shape is given, fill in the two rules.</span></div>
+        <p>Finish <code>merge(record_a, record_b)</code> so it returns a <b>new</b> record with the union of both dose sets and a version vector that has seen everything either input had seen. Keep <code>person_id</code>, take the later <code>updated_at</code>, and do not modify the inputs.</p>
+        <div class="cell" id="ex-merge">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-merge" spellcheck="false" aria-label="Python code">def merge(record_a, record_b):
+    merged = {"person_id": record_a["person_id"]}
+    merged["doses"] = set(record_a["doses"])      # TODO: every dose in either record
+    merged["vv"] = {}
+    for k in set(record_a["vv"]) | set(record_b["vv"]):
+        merged["vv"][k] = record_a["vv"].get(k, 0)  # TODO: slot-by-slot maximum
+    merged["updated_at"] = max(record_a["updated_at"], record_b["updated_at"])
+    return merged
+
+a = {"person_id": "P000001", "doses": {"BCG", "MCV1"}, "vv": {"server": 1, "tablet-A": 1}, "updated_at": 600}
+b = {"person_id": "P000001", "doses": {"BCG", "MCV2"}, "vv": {"server": 1, "tablet-B": 1}, "updated_at": 585}
+m = merge(a, b)
+print(sorted(m["doses"]), sorted(m["vv"].items()), m["updated_at"])
+</textarea></div>
+        </div>
+      </div>
+      <p>Not every field is that easy. If one tablet corrects a child's birth date to 2022-10-26 and another to 2022-10-16, union makes no sense and neither does "later wins": a person who knows the child has to decide. That is why good designs shape their data so that most updates are additions, like doses, and keep the few true conflicts visible for a human.</p>
+      <p>Replicas also exist for <b>durability</b>: several copies so a lost disk does not lose doses. The same question returns in a new form: after a write, how many replicas must have it before the tablet tells the health worker "saved"?</p>
+      <div class="callout"><b>Run the full lab.</b> In the repository, <code>offline_sync.py</code> builds the child's record from the synthetic population and runs both rounds; the exercises add your own lossy LWW scenario and a staleness policy. Run <code>pytest lessons/10_consistency</code>. See <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/10_consistency" target="_blank" rel="noopener">lessons/10_consistency on GitHub</a>.</div>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Recall and review</h2></div>
+      <p>Reading something again feels productive but fades fast. Pulling it out of memory is what makes it last. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix ideas from every section. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s7"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through the flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Up next · Module 11</span>
+        <h3>Information security</h3>
+        <p>So far every failure was an accident. Next, someone is trying: a district officer edits the patient ID in the URL. You will put every VaxRecords request through a guard that authenticates, authorizes and audits it, and chain the audit log so that editing one entry shows.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module of <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">Computer System Design</a>. Follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009), Chapter 10. Not affiliated with the authors or MIT. All data is synthetic.</span>
+      <span>Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript. The repository's labs run the same ideas in full Python.</span>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc } = CT;
+const reduced = CT.reduced;
+
+/* ---------- shared sync engine (mirrors offline_sync.py) ---------- */
+const DOSES = { BCG: "2022-11-12 at C04", DTP1: "2022-12-26 at C02", OPV1: "2023-01-03 at C05", DTP2: "2023-01-13 at C02", OPV2: "2023-01-29 at C05", MCV1: "2023-08-17 at C01", MCV2: "2024-01-31 at C04" };
+const BASE = ["BCG", "DTP1", "OPV1", "DTP2", "OPV2"];
+const hm = m => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+const clone = r => ({ doses: r.doses.slice(), stamp: r.stamp, vv: Object.assign({}, r.vv), fresh: r.fresh.slice(), lost: r.lost.slice() });
+const fresh0 = () => ({ doses: BASE.slice(), stamp: 0, vv: { server: 1 }, fresh: [], lost: [] });
+const dominates = (a, b) => Object.keys(b).every(k => (a[k] || 0) >= b[k]);
+const vvText = vv => "{" + Object.keys(vv).sort().map(k => k.replace("tablet-", "") + ":" + vv[k]).join(", ") + "}";
+function record(t, name, vaccine, stamp) { t.doses.push(vaccine); t.fresh.push(vaccine); t.stamp = stamp; t.vv[name] = (t.vv[name] || 0) + 1; }
+/* returns {server, tablet, text} ; does not mutate inputs */
+function syncLWW(server, tab, tname) {
+  let s = clone(server), text;
+  if (tab.stamp > s.stamp) { s = clone(tab); text = `${tname} stamp ${hm(tab.stamp)} is later than the server's ${hm(server.stamp)}: the tablet's whole record replaces the server's.`; }
+  else text = `Server stamp ${hm(server.stamp)} is later than ${tname}'s ${hm(tab.stamp)}: the tablet's record is discarded, and it downloads the server's copy.`;
+  const gone = tab.doses.filter(d => !s.doses.includes(d)).concat(server.doses.filter(d => !s.doses.includes(d)));
+  s.lost = Array.from(new Set(s.lost.concat(gone)));
+  const t = clone(s); t.lost = gone.slice();
+  s.fresh = s.doses.filter(d => !BASE.includes(d)); t.fresh = s.fresh.slice();
+  return { server: s, tablet: t, text };
+}
+function syncVV(server, tab, tname) {
+  let s = clone(server), text;
+  if (dominates(server.vv, tab.vv)) text = `Server ${vvText(server.vv)} has seen everything in ${tname}'s ${vvText(tab.vv)}: nothing to do.`;
+  else if (dominates(tab.vv, server.vv)) { s = clone(tab); s.lost = server.lost.slice(); text = `Server ${vvText(server.vv)} is before ${tname}'s ${vvText(tab.vv)}: take the tablet's record.`; }
+  else {
+    s.doses = Array.from(new Set(server.doses.concat(tab.doses)));
+    Object.keys(tab.vv).forEach(k => s.vv[k] = Math.max(s.vv[k] || 0, tab.vv[k]));
+    text = `Server ${vvText(server.vv)} and ${tname} ${vvText(tab.vv)} are CONCURRENT: merge the doses by union, take the slot-by-slot maximum.`;
+  }
+  s.fresh = s.doses.filter(d => !BASE.includes(d));
+  const t = clone(s); t.lost = [];
+  return { server: s, tablet: t, text };
+}
+const ORDER = ["BCG", "DTP1", "OPV1", "DTP2", "OPV2", "MCV1", "MCV2"];
+function chips(r) {
+  return ORDER.filter(d => r.doses.includes(d) || r.lost.includes(d)).map(d => {
+    const cls = r.doses.includes(d) ? (r.fresh.includes(d) ? " new" : "") : " lost";
+    return `<span class="sy-chip${cls}">${d}</span>`;
+  }).join("");
+}
+
+/* ---------- hero ---------- */
+const hero = { mode: "lww", skew: -30, at: 0, steps: [], timer: null, playing: !reduced, touched: false };
+function heroBuild() {
+  const steps = [], st = { server: fresh0(), A: fresh0(), B: fresh0(), online: { A: true, B: true } };
+  const snap = (msg, extra) => steps.push(Object.assign({ server: clone(st.server), A: clone(st.A), B: clone(st.B), online: Object.assign({}, st.online), msg, flow: null, flash: null, banner: null }, extra || {}));
+  snap(`All three copies agree: <b>5 doses</b>, stamp 00:00, vector {server:1}. Both tablets download the record.`);
+  st.online = { A: false, B: false };
+  snap(`The clinics lose signal. Both tablets keep working offline.`);
+  record(st.A, "tablet-A", "MCV1", 600);
+  snap(`<span class="t">10:00</span> Tablet A records <b>MCV1</b>. Its clock is right, so it stamps 10:00 and counts tablet-A:1.`, { flash: "A" });
+  const bStamp = 615 + hero.skew;
+  record(st.B, "tablet-B", "MCV2", bStamp);
+  snap(`<span class="t">10:15</span> Tablet B records <b>MCV2</b>. ${hero.skew ? `Its clock runs 30 minutes slow, so it stamps <b>${hm(bStamp)}</b>.` : "Its clock is right, so it stamps 10:15."} It counts tablet-B:1.`, { flash: "B" });
+  const sync = hero.mode === "lww" ? syncLWW : syncVV;
+  st.online.A = true;
+  let r = sync(st.server, st.A, "tablet A"); st.server = r.server; st.A = r.tablet;
+  snap(`Tablet A reconnects and syncs. ` + r.text, { flow: "A" });
+  st.online.B = true;
+  r = sync(st.server, st.B, "tablet B"); st.server = r.server; st.B = r.tablet;
+  snap(`Tablet B reconnects and syncs. ` + r.text, { flow: "B" });
+  const lost = ORDER.filter(d => !st.server.doses.includes(d) && d !== undefined && (d === "MCV1" || d === "MCV2"));
+  const banner = lost.length
+    ? { cls: "bad", text: `7 doses recorded, ${st.server.doses.length} on the server. LOST: ${lost[0]} given ${DOSES[lost[0]]}. No error was raised.` }
+    : { cls: "good", text: `7 doses recorded, 7 on the server. Nothing lost; vector now ${vvText(st.server.vv)}.` };
+  snap(lost.length ? `Sync finished without complaint. Look for the struck-through dose.` : `Sync finished. Every dose either tablet entered is on the server.`, { banner });
+  hero.steps = steps;
+}
+function heroNode(id, title, r, online, isServer) {
+  const useStamp = hero.mode === "lww";
+  const pill = isServer ? `<span class="sy-pill on">server</span>` : `<span class="sy-pill ${online ? "on" : "off"}">${online ? "online" : "offline"}</span>`;
+  return `<div class="sy-name"><span>${title}</span>${pill}</div>
+    <div class="sy-meta"><span class="${useStamp ? "use" : ""}">stamp <b>${hm(r.stamp)}</b></span> · <span class="${useStamp ? "" : "use"}">vv <b>${vvText(r.vv)}</b></span></div>
+    <div class="sy-chips">${chips(r)}</div>`;
+}
+function heroRender() {
+  const s = hero.steps[hero.at];
+  $("#sy-server").innerHTML = heroNode("server", "VaxRecords server", s.server, true, true);
+  $("#sy-A").innerHTML = heroNode("A", "Tablet A", s.A, s.online.A);
+  $("#sy-B").innerHTML = heroNode("B", "Tablet B", s.B, s.online.B);
+  $$(".sy-node").forEach(n => n.classList.remove("busy", "flash"));
+  if (s.flash) $("#sy-" + s.flash).classList.add("flash");
+  if (s.flow) { $("#sy-" + s.flow).classList.add("busy"); $("#sy-server").classList.add("busy"); }
+  $("#sy-msg").innerHTML = s.msg;
+  const bn = $("#sy-banner");
+  bn.hidden = !s.banner;
+  if (s.banner) { bn.className = "sy-banner " + s.banner.cls; bn.textContent = s.banner.text; }
+  $("#sy-dots").innerHTML = hero.steps.map((_, i) => `<i class="${i <= hero.at ? "on" : ""}"></i>`).join("");
+  $("#sy-lww").classList.toggle("on", hero.mode === "lww");
+  $("#sy-vv").classList.toggle("on", hero.mode === "vv");
+  $("#sy-skew").textContent = hero.skew ? "B's clock: 30 min slow" : "B's clock: correct";
+  requestAnimationFrame(() => heroWires(s));
+}
+let dotAnim = null;
+function heroWires(s) {
+  const svg = $("#sy-wires"), box = $("#sy-stage").getBoundingClientRect();
+  const sv = $("#sy-server").getBoundingClientRect();
+  const pt = id => { const r = $("#sy-" + id).getBoundingClientRect(); return [r.left + r.width / 2 - box.left, r.top - box.top]; };
+  const top = [sv.left + sv.width / 2 - box.left, sv.bottom - box.top];
+  const ends = { A: pt("A"), B: pt("B") };
+  svg.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
+  let html = "";
+  ["A", "B"].forEach(k => {
+    const [x, y] = ends[k];
+    const tx = top[0] + (k === "A" ? -40 : 40);
+    html += `<line class="${s.online[k] ? "live" : ""}" x1="${x}" y1="${y}" x2="${tx}" y2="${top[1]}"/>`;
+  });
+  svg.innerHTML = html + `<circle id="sy-dot" r="5" cx="0" cy="0" style="visibility:hidden"/>`;
+  cancelAnimationFrame(dotAnim);
+  if (s.flow && !reduced) {
+    const [x1, y1] = ends[s.flow], x2 = top[0] + (s.flow === "A" ? -40 : 40), y2 = top[1];
+    const t0 = performance.now(), dur = 1300;
+    const tick = now => {
+      const dot = $("#sy-dot"); if (!dot) return;
+      let p = ((now - t0) % dur) / dur;
+      const up = p < 0.5, q = up ? p * 2 : (p - 0.5) * 2;
+      const e = q < .5 ? 2 * q * q : 1 - Math.pow(-2 * q + 2, 2) / 2;
+      const f = up ? e : 1 - e;
+      dot.style.visibility = "visible";
+      dot.setAttribute("cx", x1 + (x2 - x1) * f); dot.setAttribute("cy", y1 + (y2 - y1) * f);
+      if (now - t0 < dur * 2) dotAnim = requestAnimationFrame(tick); else dot.style.visibility = "hidden";
+    };
+    dotAnim = requestAnimationFrame(tick);
+  }
+}
+function heroStep() {
+  if (hero.at < hero.steps.length - 1) hero.at++;
+  else if (hero.hold < 1) { hero.hold = (hero.hold || 0) + 1; return; }
+  else {
+    hero.hold = 0;
+    if (!hero.touched) hero.mode = hero.mode === "lww" ? "vv" : "lww";
+    heroBuild(); hero.at = 0;
+  }
+  heroRender();
+}
+function heroLoop() { clearInterval(hero.timer); if (hero.playing) hero.timer = setInterval(heroStep, 2300); $("#sy-play").textContent = hero.playing ? "Pause" : "Play"; }
+function heroRestart() { hero.touched = true; hero.hold = 0; heroBuild(); hero.at = 0; heroRender(); heroLoop(); }
+$("#sy-lww").addEventListener("click", () => { hero.mode = "lww"; heroRestart(); });
+$("#sy-vv").addEventListener("click", () => { hero.mode = "vv"; heroRestart(); });
+$("#sy-skew").addEventListener("click", () => { hero.skew = hero.skew ? 0 : -30; heroRestart(); });
+$("#sy-step").addEventListener("click", () => { hero.playing = false; heroLoop(); heroStep(); });
+$("#sy-play").addEventListener("click", () => { hero.playing = !hero.playing; heroLoop(); });
+addEventListener("resize", () => requestAnimationFrame(() => heroWires(hero.steps[hero.at])));
+heroBuild(); heroRender(); heroLoop();
+
+/* ---------- s1: replica lag strip ---------- */
+function lagRender() {
+  const lag = +$("#lag-n").value, strict = $("#lag-mode").value === "st", cut = $("#lag-cut").checked;
+  $("#lag-v").textContent = lag + " s";
+  let stale = 0, html = "";
+  const ack = cut ? Infinity : (strict ? lag : 0);
+  for (let t = 1; t <= 8; t++) {
+    let cls, val, lbl;
+    if (strict && t < ack) { cls = "wait"; val = "…"; lbl = "waiting"; }
+    else {
+      const arrived = !cut && t >= lag;
+      val = arrived ? 6 : 5; cls = arrived ? "fresh" : "stale"; lbl = arrived ? "fresh" : "stale";
+      if (!arrived) stale++;
+    }
+    html += `<div class="${cls}"><span>t=${t}</span><b>${val}</b><span>${lbl}</span></div>`;
+  }
+  $("#lag-strip").innerHTML = html;
+  const note = $("#lag-note");
+  if (strict && cut) { note.className = "verdict-line bad"; note.textContent = "Strict: the replica never confirms, so the nurse's write cannot finish. The system must keep waiting or refuse the write."; }
+  else if (strict) { note.className = "verdict-line ok"; note.textContent = `Strict: the write is confirmed after ${lag} s, when the replica has it. Every read after that is fresh. The cost is the nurse's ${lag} s wait.`; }
+  else if (cut) { note.className = "verdict-line bad"; note.textContent = "Eventual: the write is confirmed at once, but the replica cannot catch up. All 8 reads are stale until the link returns."; }
+  else { note.className = "verdict-line " + (stale ? "bad" : "ok"); note.textContent = `Eventual: the write is confirmed at once. ${stale} of 8 reads ${stale === 1 ? "is" : "are"} stale, then the replica converges.`; }
+}
+["#lag-n", "#lag-mode", "#lag-cut"].forEach(s => $(s).addEventListener("input", lagRender));
+$("#lag-mode").addEventListener("change", lagRender); $("#lag-cut").addEventListener("change", lagRender);
+lagRender();
+
+/* ---------- s2: staleness sorter ---------- */
+const sortItems = [
+  { code: "weekly_incidence_map: incidence per 100k by district, last 12 weeks", ans: 0, why: "Weekly aggregates change slowly; an hour-old map leads to the same public health decision." },
+  { code: "national_coverage_trend: % of children with MCV1, by month", ans: 0, why: "A monthly trend over thousands of children barely moves when a few late doses arrive." },
+  { code: "child_dose_history_at_clinic: a nurse checks a child's doses before vaccinating", ans: 1, why: "A missing recent dose can lead the nurse to vaccinate the child twice. Show fresh data, or at least warn that it may be stale." },
+  { code: "vaccine_lot_recall_status: has this vaccine lot been recalled?", ans: 1, why: "Using a recalled lot because a replica had not heard of the recall harms a child. This must be strict." }
+];
+const kinds = ["Stale is fine (eventual)", "Must be fresh (strict)"];
+$("#sorter").innerHTML = sortItems.map((it, i) => `<div class="sort-item" data-i="${i}"><pre>${esc(it.code)}</pre><div class="opts">${kinds.map((k, j) => `<button class="opt" type="button" data-j="${j}">${k}</button>`).join("")}</div></div>`).join("");
+$$(".sort-item").forEach(el => {
+  const it = sortItems[+el.dataset.i];
+  $$(".opt", el).forEach(b => b.addEventListener("click", () => {
+    const ok = +b.dataset.j === it.ans;
+    b.classList.add(ok ? "right" : "wrong");
+    let w = $(".why", el); if (!w) { w = document.createElement("div"); el.appendChild(w); }
+    w.className = "why " + (ok ? "ok" : "no"); w.textContent = (ok ? "Right. " : "Not quite. ") + it.why;
+    if (ok) $$(".opt", el).forEach(x => x.disabled = true);
+  }));
+});
+
+/* ---------- s3: cache step-through ---------- */
+const caEvents = [
+  { t: 0, kind: "read" }, { t: 2, kind: "write", v: 431 }, { t: 3, kind: "read" }, { t: 6, kind: "read" }, { t: 7, kind: "write", v: 440 }, { t: 9, kind: "read" }
+];
+let caAt = -1;
+function caRows(pol) {
+  let db = 412, cache = null; const rows = [];
+  caEvents.forEach(e => {
+    let ret = "", fresh = null, note;
+    if (e.kind === "write") {
+      db = e.v;
+      if (pol === "inv") { cache = null; note = `Late reports arrive: the database becomes ${db}, and the write invalidates the cached copy.`; }
+      else note = `Late reports arrive: the database becomes ${db}. The cache is not told.`;
+    } else {
+      if (cache && (pol === "inv" || e.t - cache.at < 5)) { ret = cache.v; note = pol === "ttl" ? `The copy is ${e.t - cache.at} min old, under 5, so the cache serves ${cache.v} without asking the database.` : `The cache still holds a valid copy: ${cache.v}.`; }
+      else { const why = cache ? `The copy is ${e.t - cache.at} min old, so it has expired.` : "Nothing cached."; cache = { v: db, at: e.t }; ret = db; note = `${why} Load ${db} from the database.`; }
+      fresh = ret === db;
+      if (!fresh) note += ` The database already says ${db}: this read is stale.`;
+    }
+    rows.push({ t: e.t, ev: e.kind === "read" ? "dashboard reads" : "write " + e.v, db, cache: cache ? `${cache.v} (min ${cache.at})` : "empty", ret, fresh, note });
+  });
+  return rows;
+}
+function caRender() {
+  const rows = caRows($("#ca-pol").value), tb = $("#ca-table tbody");
+  tb.innerHTML = rows.map((r, i) => `<tr class="${i > caAt ? "hide" : ""} ${i === caAt ? "now" : ""}"><td>${r.t}</td><td>${r.ev}</td><td>${r.db}</td><td>${r.cache}</td><td class="${r.fresh === null ? "" : r.fresh ? "fresh" : "stale"}">${r.fresh === null ? "" : r.ret + (r.fresh ? " fresh" : " stale")}</td></tr>`).join("");
+  const stale = rows.slice(0, caAt + 1).filter(r => r.fresh === false).length;
+  $("#ca-note").innerHTML = caAt < 0 ? "Press <b>Next event</b> to start." : esc(rows[caAt].note) + (caAt === rows.length - 1 ? ` <b>Done: ${stale} stale read${stale === 1 ? "" : "s"}.</b>` : "");
+  $("#ca-step").disabled = caAt >= rows.length - 1;
+}
+$("#ca-step").addEventListener("click", () => { caAt++; caRender(); });
+$("#ca-reset").addEventListener("click", () => { caAt = -1; caRender(); });
+$("#ca-pol").addEventListener("change", () => { caAt = -1; caRender(); });
+caRender();
+
+/* ---------- s4: clock skew slider ---------- */
+function skRender() {
+  const sk = +$("#sk-n").value, a = 600, b = 615 + sk;
+  $("#sk-v").textContent = (sk > 0 ? "+" : "") + sk + " min";
+  $("#sk-a").textContent = hm(a); $("#sk-b").textContent = hm(b);
+  const bWins = b > a, lost = bWins ? "MCV1" : "MCV2";
+  $("#sk-out").innerHTML = `${bWins ? `B's stamp ${hm(b)} is later: B's whole record wins` : `A's stamp ${hm(a)} is ${b === a ? "not earlier (a tie keeps the server's copy)" : "later"}: A's record wins`}. <b>LOST: ${lost} given ${DOSES[lost]}.</b>`;
+}
+$("#sk-n").addEventListener("input", skRender); skRender();
+
+/* ---------- s5: version vector comparator ---------- */
+const SLOTS = ["server", "tablet-A", "tablet-B"];
+const vvs = { a: { server: 1, "tablet-A": 1, "tablet-B": 0 }, b: { server: 1, "tablet-A": 0, "tablet-B": 1 } };
+function vvCompare(a, b) {
+  const aAhead = SLOTS.filter(k => a[k] > b[k]), bAhead = SLOTS.filter(k => b[k] > a[k]);
+  if (aAhead.length && bAhead.length) return ["concurrent", `A is ahead in ${aAhead.join(", ")} and B is ahead in ${bAhead.join(", ")}. Each has an update the other lacks, so this needs reconciling.`];
+  if (aAhead.length) return ["after", `A has seen everything B has, and more (${aAhead.join(", ")}). Take A.`];
+  if (bAhead.length) return ["before", `B has seen everything A has, and more (${bAhead.join(", ")}). A happened before B: take B.`];
+  return ["equal", "Same history in every slot. Nothing to do."];
+}
+function vvRender() {
+  $("#vv-grid").innerHTML = ["a", "b"].map(side => `<div class="vv-col"><h4>vector ${side.toUpperCase()}</h4>${SLOTS.map(k => {
+    const other = vvs[side === "a" ? "b" : "a"][k], me = vvs[side][k];
+    return `<div class="vv-slot"><span>${k}</span><button type="button" data-s="${side}" data-k="${k}" data-d="-1" aria-label="decrease ${k} in ${side}">-</button><b class="${me > other ? "ahead" : ""}">${me}</b><button type="button" data-s="${side}" data-k="${k}" data-d="1" aria-label="increase ${k} in ${side}">+</button></div>`;
+  }).join("")}</div>`).join("");
+  const [verdict, why] = vvCompare(vvs.a, vvs.b);
+  const out = $("#vv-out"); out.textContent = "compare(A, B) = \"" + verdict + "\""; out.className = "vv-out " + verdict;
+  $("#vv-why").textContent = why;
+  $$("#vv-grid button").forEach(b => b.addEventListener("click", () => { const v = vvs[b.dataset.s]; v[b.dataset.k] = Math.max(0, Math.min(9, v[b.dataset.k] + +b.dataset.d)); vvRender(); }));
+}
+$("#vv-preset").addEventListener("click", () => { vvs.a = { server: 1, "tablet-A": 1, "tablet-B": 0 }; vvs.b = { server: 1, "tablet-A": 0, "tablet-B": 1 }; vvRender(); });
+vvRender();
+
+/* ---------- s6: sync in any order ---------- */
+let so;
+function soReset() {
+  const A = fresh0(), B = fresh0();
+  record(A, "tablet-A", "MCV1", 600); record(B, "tablet-B", "MCV2", 585);
+  so = { server: fresh0(), A, B, log: [] }; soRender();
+}
+function soBox(title, r) { return `<div class="so-box"><h4>${title}</h4><div>stamp ${hm(r.stamp)} · vv ${vvText(r.vv)}</div><div class="sy-chips">${chips(r)}</div></div>`; }
+function soRender() {
+  $("#so-grid").innerHTML = soBox("Server", so.server) + soBox("Tablet A", so.A) + soBox("Tablet B", so.B);
+  const n = so.server.doses.length;
+  $("#so-log").textContent = (so.log.length ? so.log.map((l, i) => `${i + 1}. ${l}`).join("\n") + "\n" : "") + `Server holds ${n} of 7 doses.` + (so.log.length ? "" : " Sync the tablets in any order.");
+}
+function soSync(k) {
+  const r = ($("#so-mode").value === "vv" ? syncVV : syncLWW)(so.server, so[k], "tablet " + k);
+  so.server = r.server; so[k] = r.tablet;
+  so.log.push(`tablet ${k} syncs: ${r.text}`);
+  soRender();
+}
+$("#so-a").addEventListener("click", () => soSync("A"));
+$("#so-b").addEventListener("click", () => soSync("B"));
+$("#so-reset").addEventListener("click", soReset);
+$("#so-mode").addEventListener("change", soReset);
+soReset();
+
+const QUIZ = {
+  s1: [
+    { q: "The dashboard's replica lags the primary by 3 seconds. One second after a nurse records a dose, the dashboard reads from the replica. Under eventual consistency, what may it show?", o: ["Only the new count; anything else is a bug", "The old count, and that is allowed", "An error until the replica catches up", "Nothing: reads block until replicas agree"], a: 1, why: "Eventual consistency allows replicas to disagree for a while as long as they converge once updates stop. A stale read within the lag window is the promised behavior, not a bug." },
+    { q: "What is the main cost of strict consistency for a write?", o: ["It needs more disk space", "The write is not finished until the replicas agree, so an unreachable replica means waiting or refusing", "Reads may return old values", "It loses concurrent updates"], a: 1, why: "Strict consistency buys \"as if there were one copy\" with coordination. The writer waits for agreement, and a partition forces a choice between waiting and refusing." }
+  ],
+  s2: [
+    { q: "Which question decides whether a figure may be served from a stale replica?", o: ["How often the figure is read", "What a stale answer costs the person acting on it", "Whether the data lives in SurveilLite or VaxRecords", "Whether the replica is in the same building"], a: 1, why: "Consistency is a domain decision. A slightly old incidence map changes nothing; a slightly old dose history can lead to a double dose." },
+    { q: "A clinic tablet is offline and cannot reach the server. A nurse looks up a child's dose history on it. What is the safest design?", o: ["Refuse to show anything until the tablet is online", "Show the local copy as if it were current", "Show the local copy, marked with when it was last synced", "Show the national average instead"], a: 2, why: "Offline work must continue, but the nurse needs to know the data may be stale so she can ask the caregiver or check the child's card." }
+  ],
+  s3: [
+    { q: "A cache with a 5-minute TTL loaded 412 at minute 0. The database changes to 431 at minute 2. What does a read at minute 4 return?", o: ["431", "412", "an error", "it waits until minute 5"], a: 1, why: "The copy is 4 minutes old, under the TTL, so the cache serves it without asking the database. That bounded staleness is the TTL's promise." },
+    { q: "What does it mean for a cache to be <b>coherent</b>?", o: ["It never misses", "Reads through it behave as if there were no cache", "It refreshes every TTL seconds", "Every entry has the same age"], a: 1, why: "Coherence is about what readers observe, not about speed. Invalidate-on-write gives coherence; a TTL gives bounded incoherence." }
+  ],
+  s4: [
+    { q: "All clocks are perfect. Tablets A and B each add a different dose to the same child while offline, then sync with last-writer-wins. What happens?", o: ["Both doses survive, since the clocks are right", "One dose is lost: the later record replaces the earlier one wholesale", "The sync fails with a conflict error", "The server keeps the earlier record and both tablets keep theirs"], a: 1, why: "LWW keeps one whole record. The other tablet's dose was never in the winner's copy, so it vanishes. Perfect clocks only make the choice of loser fair." },
+    { q: "Tablet B records its dose 15 minutes after tablet A, but its clock runs 30 minutes slow. Under LWW, whose dose survives?", o: ["B's, because it was really later", "A's, because B's stamp is earlier", "Both", "Neither"], a: 1, why: "B stamps 09:45 against A's 10:00, so A's record wins and B's dose is lost. With a correct clock, B would win and A's dose would be lost instead." }
+  ],
+  s5: [
+    { q: "The server's vector is <code>{\"server\": 1, \"tablet-A\": 1}</code> and tablet B's is <code>{\"server\": 1, \"tablet-B\": 1}</code>. How do they compare?", o: ["equal", "before", "after", "concurrent"], a: 3, why: "The server is ahead in tablet-A, the tablet is ahead in tablet-B. Each has an update the other lacks." },
+    { q: "What is <code>compare({\"server\": 1}, {\"server\": 1, \"tablet-A\": 2})</code>?", o: ["equal", "before", "after", "concurrent"], a: 1, why: "The missing tablet-A slot counts as 0. The second vector has seen everything the first has, and more, so the first happened before it." }
+  ],
+  s6: [
+    { q: "Right after the merge, tablet B syncs a second time with no new doses. What happens to the server's record?", o: ["Nothing: the server's vector dominates B's", "MCV2 is added a second time", "The vectors are concurrent again", "B's record replaces the server's"], a: 0, why: "After the merge, B downloaded the server's record, so the server has seen everything B has. Union is idempotent too: adding the same doses again changes nothing." },
+    { q: "Why can a union merge doses automatically but not a corrected birth date?", o: ["Dates are strings", "A given dose stays given, so adding doses never contradicts anything; two different birth dates genuinely conflict", "Version vectors cannot track dates", "Birth dates never change"], a: 1, why: "Growing a set has no contradictions. Choosing between two dates needs someone who knows the child, so good designs make most updates additions." }
+  ],
+  s7: [
+    { q: "SurveilLite caches district totals with a 5-minute TTL. Which statement is right?", o: ["The dashboard is strictly consistent", "It promises bounded eventual consistency: no total is more than 5 minutes old", "It loses updates like last-writer-wins", "It needs version vectors"], a: 1, why: "A TTL is an explicit staleness bound. Nothing is lost; the database still has every write, and the cache catches up within the window." },
+    { q: "Why do version vectors not care that tablet B's clock is 30 minutes slow?", o: ["They round timestamps", "They count each replica's updates instead of comparing times", "They use the server's clock", "They do care: the merge picks the later clock"], a: 1, why: "A vector records what each replica has seen, so before, after and concurrent are decided from history, not from cheap hardware clocks." },
+    { q: "Three tablets sync with the server in the orders A, B, C and C, A, B, each with the union merge. Do the servers end up the same?", o: ["Only if the clocks agree", "Yes: union is commutative and idempotent, so every order converges", "No: the last tablet to sync wins", "Only if no tablet syncs twice"], a: 1, why: "The order of unions does not change the result, and repeating one changes nothing. That is why grow-only data converges under eventual consistency." }
+  ]
+};
+const CARDS = [
+  ["Strict consistency", "Every read returns the result of the most recent write, as if there were a single copy. Costs coordination."],
+  ["Eventual consistency", "Replicas may disagree for a while, but converge to the same value once updates stop."],
+  ["What decides strict vs eventual for a figure?", "What a stale answer costs the person acting on it."],
+  ["A coherent cache", "Reads through it behave as if there were no cache. Get it by invalidating on every write."],
+  ["Time-to-live (TTL)", "Serve a cached copy only while it is younger than the TTL: a bounded staleness promise with no coordination."],
+  ["Reconciliation", "Merging replicas that changed independently. Two parts: detect the conflict, then resolve it."],
+  ["Last-writer-wins", "Keep the record with the later timestamp, wholesale. Skips detection and silently loses concurrent updates."],
+  ["Version vector", "A counter per replica. <code>{\"server\": 1, \"tablet-A\": 2}</code>: seen the server's first update and tablet A's first two."],
+  ["The four vector comparisons", "equal, before, after, concurrent. Only concurrent needs reconciling."],
+  ["Grow-only merge", "Doses, once given, stay given: merge by union, vector by slot-by-slot maximum."],
+  ["Why the union merge converges", "Union is commutative and idempotent, so any sync order and any repeat give the same result."]
+];
+
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  exercises: {
+    "ex-ttl": {
+      cases: [
+        "c = TTLCache(5)\nDB['N-CEN'] = 412\nprint(c.get('N-CEN', 0))\nDB['N-CEN'] = 431\nprint(c.get('N-CEN', 3), c.get('N-CEN', 4))",
+        "c = TTLCache(5)\nDB['N-CEN'] = 412\nc.get('N-CEN', 0)\nDB['N-CEN'] = 431\nprint(c.get('N-CEN', 5), c.get('N-CEN', 9))",
+        "c = TTLCache(5)\nDB['N-CEN'] = 412\nc.get('N-CEN', 0)\nDB['N-CEN'] = 440\nc.invalidate('N-CEN')\nprint(c.get('N-CEN', 1))",
+        "c = TTLCache(0)\nDB['S-COA'] = 97\nprint(c.get('S-COA', 0))\nDB['S-COA'] = 99\nprint(c.get('S-COA', 0))",
+        "c = TTLCache(10)\nc.invalidate('S-COA')\nDB['S-COA'] = 97\nprint(c.get('S-COA', 2))\nDB['S-COA'] = 120\nprint(c.get('S-COA', 11), c.get('S-COA', 12))"
+      ],
+      solution: "DB = {\"N-CEN\": 412, \"S-COA\": 97}\n\nclass TTLCache:\n    def __init__(self, ttl):\n        self.ttl = ttl\n        self.store = {}\n\n    def get(self, key, now):\n        if key in self.store:\n            value, loaded_at = self.store[key]\n            if now - loaded_at < self.ttl:\n                return value\n        value = DB[key]\n        self.store[key] = (value, now)\n        return value\n\n    def invalidate(self, key):\n        if key in self.store:\n            del self.store[key]\n\ncache = TTLCache(5)\nprint(cache.get(\"N-CEN\", 0))\nDB[\"N-CEN\"] = 431\nprint(cache.get(\"N-CEN\", 3))",
+      hint: ["In get, under the TODO: if now - loaded_at < self.ttl, return value. Otherwise fall through to the database.", "In invalidate: if key in self.store, delete it with del self.store[key]. Deleting a key that is not there would raise KeyError."]
+    },
+    "ex-compare": {
+      cases: [
+        "print(compare({'server': 1, 'tablet-A': 1}, {'server': 1, 'tablet-B': 1}))",
+        "print(compare({'server': 1}, {'server': 1, 'tablet-A': 2}))",
+        "print(compare({'server': 2, 'tablet-A': 1}, {'server': 1}))",
+        "print(compare({'server': 1, 'tablet-A': 0}, {'server': 1}))",
+        "print(compare({}, {}), compare({'tablet-B': 3}, {'server': 1}))",
+        "print(compare({'server': 1, 'tablet-A': 2, 'tablet-B': 1}, {'server': 1, 'tablet-A': 2, 'tablet-B': 2}))"
+      ],
+      solution: "def compare(vv_a, vv_b):\n    keys = set(vv_a) | set(vv_b)\n    a_ahead = any(vv_a.get(k, 0) > vv_b.get(k, 0) for k in keys)\n    b_ahead = any(vv_b.get(k, 0) > vv_a.get(k, 0) for k in keys)\n    if a_ahead and b_ahead:\n        return \"concurrent\"\n    if a_ahead:\n        return \"after\"\n    if b_ahead:\n        return \"before\"\n    return \"equal\"\n\nprint(compare({\"server\": 1, \"tablet-A\": 1}, {\"server\": 1, \"tablet-B\": 1}))",
+      hint: ["Compute two booleans: is a ahead of b in any slot, and is b ahead of a in any slot? any(vv_a.get(k, 0) > vv_b.get(k, 0) for k in keys).", "Both ahead: concurrent. Only a ahead: after. Only b ahead: before. Neither: equal. A slot holding 0 counts the same as a missing slot."]
+    },
+    "ex-merge": {
+      cases: [
+        "a = {'person_id': 'P000001', 'doses': {'BCG', 'MCV1'}, 'vv': {'server': 1, 'tablet-A': 1}, 'updated_at': 600}\nb = {'person_id': 'P000001', 'doses': {'BCG', 'MCV2'}, 'vv': {'server': 1, 'tablet-B': 1}, 'updated_at': 585}\nm = merge(a, b)\nprint(sorted(m['doses']), sorted(m['vv'].items()), m['updated_at'], m['person_id'])",
+        "a = {'person_id': 'P000004', 'doses': {'BCG'}, 'vv': {'server': 3}, 'updated_at': 10}\nb = {'person_id': 'P000004', 'doses': {'BCG', 'OPV1', 'DTP1'}, 'vv': {'server': 2, 'tablet-A': 4}, 'updated_at': 50}\nm = merge(a, b)\nprint(sorted(m['doses']), sorted(m['vv'].items()), m['updated_at'])",
+        "a = {'person_id': 'P000001', 'doses': {'BCG', 'MCV1'}, 'vv': {'server': 1, 'tablet-A': 1}, 'updated_at': 600}\nb = {'person_id': 'P000001', 'doses': {'BCG', 'MCV2'}, 'vv': {'server': 1, 'tablet-B': 1}, 'updated_at': 585}\nm = merge(a, b)\nprint(sorted(a['doses']), sorted(b['doses']), sorted(a['vv'].items()))",
+        "a = {'person_id': 'P000008', 'doses': set(), 'vv': {}, 'updated_at': 0}\nb = {'person_id': 'P000008', 'doses': {'BCG'}, 'vv': {'tablet-B': 1}, 'updated_at': 5}\nm1 = merge(a, b)\nm2 = merge(b, a)\nprint(sorted(m1['doses']) == sorted(m2['doses']), sorted(m1['vv'].items()) == sorted(m2['vv'].items()), sorted(m2['doses']))",
+        "a = {'person_id': 'P000001', 'doses': {'BCG', 'MCV1'}, 'vv': {'server': 1, 'tablet-A': 1}, 'updated_at': 600}\nm = merge(a, a)\nprint(sorted(m['doses']), sorted(m['vv'].items()), m is a)"
+      ],
+      solution: "def merge(record_a, record_b):\n    merged = {\"person_id\": record_a[\"person_id\"]}\n    merged[\"doses\"] = set(record_a[\"doses\"]) | set(record_b[\"doses\"])\n    merged[\"vv\"] = {}\n    for k in set(record_a[\"vv\"]) | set(record_b[\"vv\"]):\n        merged[\"vv\"][k] = max(record_a[\"vv\"].get(k, 0), record_b[\"vv\"].get(k, 0))\n    merged[\"updated_at\"] = max(record_a[\"updated_at\"], record_b[\"updated_at\"])\n    return merged\n\na = {\"person_id\": \"P000001\", \"doses\": {\"BCG\", \"MCV1\"}, \"vv\": {\"server\": 1, \"tablet-A\": 1}, \"updated_at\": 600}\nb = {\"person_id\": \"P000001\", \"doses\": {\"BCG\", \"MCV2\"}, \"vv\": {\"server\": 1, \"tablet-B\": 1}, \"updated_at\": 585}\nm = merge(a, b)\nprint(sorted(m[\"doses\"]), sorted(m[\"vv\"].items()), m[\"updated_at\"])",
+      hint: ["Doses: the union of both sets, set(record_a[\"doses\"]) | set(record_b[\"doses\"]). Building a new set leaves the inputs untouched.", "Vector: for each key, max(record_a[\"vv\"].get(k, 0), record_b[\"vv\"].get(k, 0))."]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

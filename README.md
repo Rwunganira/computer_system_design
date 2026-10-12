@@ -6,6 +6,8 @@ one chapter at a time, with runnable Python and Flask examples drawn from public
 Every module works on the same two fictional systems: **SurveilLite**, a disease surveillance
 dashboard, and **VaxRecords**, a vaccination records API. All data is synthetic.
 
+**Read it as a website:** https://rwunganira.github.io/computer_system_design/
+
 ## Start here
 
 ```bash
@@ -35,11 +37,11 @@ Then open [`lessons/00_setup/README.md`](lessons/00_setup/README.md).
 | [11. Security](lessons/11_security) | 11 | Authentication, authorization and a tamper-evident audit log |
 | [Capstone](lessons/12_capstone) | 1 to 11 | A surveillance service that survives a scripted bad week |
 
-The full plan, with learning goals per module, is in [`COURSE_OUTLINE.md`](COURSE_OUTLINE.md).
+The full plan, with learning goals per module, is in [`COURSE_OUTLINE.md`](COURSE_OUTLINE.md). Key terms are explained in [`GLOSSARY.md`](GLOSSARY.md).
 
 ## How a module works
 
-Each folder has a `README.md` with the chapter's ideas, runnable examples, `predict.md` questions to
+Each folder has a `key_ideas.md` (a one-minute summary, a diagram and self-check questions), a `README.md` with the chapter's ideas, runnable examples, `predict.md` questions to
 answer before running them, and `exercises.py` with `TODO`s. Check your work with:
 
 ```bash
@@ -48,3 +50,14 @@ COURSE_SOLUTIONS=1 pytest lessons/01_complexity   # the worked answers in soluti
 ```
 
 Try the exercises before opening `solutions.py`.
+
+## The website
+
+`web/` holds the interactive version of the course: one page per module with live diagrams,
+step-through widgets, Python that runs in your browser, self-checking exercises, quick checks,
+flashcards and review dates. It uses the same engine and design as the
+[Computational Thinking and Data Science](https://github.com/Rwunganira/intro_computation_data_science)
+course. To preview it, run `python3 -m http.server -d web` and open http://localhost:8000.
+
+Every push to `main` publishes it to GitHub Pages. `web/AUTHORING.md` describes how a module page is written
+and tested.

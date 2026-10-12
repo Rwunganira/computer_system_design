@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Computer System Design, in Python</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+.home-wrap { max-width: 1080px; margin: 0 auto; padding-inline: 24px; padding-block: 48px 96px; display: grid; gap: 56px; }
+@media (max-width: 640px) { .home-wrap { padding-inline: 16px; padding-block: 28px 64px; gap: 40px; } }
+.home-hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: end; }
+@media (max-width: 860px) { .home-hero { grid-template-columns: minmax(0, 1fr); } }
+.home-hero h1 { font-size: clamp(2.4rem, 6vw, 4.2rem); font-weight: 800; letter-spacing: -0.03em; }
+.home-hero h1 em { font-style: normal; color: var(--accent); }
+.home-hero .lede { font-size: var(--step-1); color: var(--muted); line-height: 1.5; max-width: 52ch; margin-top: 18px; }
+.resume { background: var(--code-bg); color: var(--code-fg); border-radius: 16px; padding: 22px; display: grid; gap: 14px; }
+.resume .eyebrow { color: var(--tok-kw); }
+.resume h2 { font-size: 1.5rem; }
+.resume p { color: var(--code-muted); font-size: 0.95rem; }
+.resume a.go { justify-self: start; font-family: var(--mono); font-weight: 600; font-size: 0.9rem; background: var(--tok-kw); color: #1A0E12; text-decoration: none; padding: 8px 16px; border-radius: 8px; }
+.ring-row { display: flex; gap: 14px; align-items: center; }
+.ring-row svg { width: 64px; height: 64px; flex: none; }
+.ring-row b { font-family: var(--display); font-size: 1.6rem; display: block; line-height: 1; }
+.ring-row span { font-family: var(--mono); font-size: 0.75rem; color: var(--code-muted); }
+
+.method { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.method div { border-top: 2px solid var(--ink); padding-top: 12px; display: grid; gap: 4px; align-content: start; }
+.method b { font-family: var(--display); font-size: 1.05rem; }
+.method p { color: var(--muted); font-size: 0.95rem; }
+
+.part { display: grid; gap: 18px; }
+.part-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); padding-bottom: 12px; }
+.part-head h2 { font-size: var(--step-3); }
+.part-head p { color: var(--muted); max-width: 60ch; font-size: 0.98rem; }
+.lessons { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0; }
+@media (max-width: 400px) { .lessons { grid-template-columns: minmax(0, 1fr); } }
+.lessons a { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 4px 14px; padding: 16px 18px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; text-decoration: none; color: var(--ink); height: 100%; }
+.lessons a:hover { border-color: var(--accent); }
+.lessons .num { grid-row: span 3; font-family: var(--mono); font-size: 1.6rem; font-weight: 600; color: var(--muted); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.lessons .t { font-family: var(--display); font-weight: 700; font-size: 1.08rem; line-height: 1.25; }
+.lessons .b { font-size: 0.9rem; color: var(--muted); line-height: 1.45; }
+.lessons .st { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+.lessons .bar { flex: 1; height: 4px; border-radius: 2px; background: var(--rule); overflow: hidden; max-width: 120px; }
+.lessons .bar i { display: block; height: 100%; background: var(--accent); }
+.lessons a.done .num { color: var(--ok); }
+.lessons a.done .bar i { background: var(--ok); }
+.home-foot { font-size: 0.85rem; color: var(--muted); display: grid; gap: 6px; border-top: 1px solid var(--rule); padding-top: 20px; }
+</style>
+
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<div class="home-wrap">
+  <header class="home-hero">
+    <div>
+      <div class="eyebrow">A 13-module course in Python</div>
+      <h1>Computer <em>System Design</em>, in Python</h1>
+      <p class="lede">Learn how real systems stay correct when parts fail, messages get lost and many users act at once, following Saltzer and Kaashoek's <i>Principles of Computer System Design</i>. Every module runs real Python in your browser, built around a disease surveillance dashboard and a vaccination records API.</p>
+    </div>
+    <div class="resume" aria-live="polite">
+      <div class="ring-row">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="27" fill="none" stroke="#2A3548" stroke-width="7"/><circle id="ring" cx="32" cy="32" r="27" fill="none" stroke="var(--tok-kw)" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 170" transform="rotate(-90 32 32)"/></svg>
+        <div><b id="pct">0%</b><span id="pct-label">of checks and programs complete</span></div>
+      </div>
+      <div class="eyebrow" id="resume-eyebrow">Start here</div>
+      <h2 id="resume-title">Module 0 · Setup and the running case</h2>
+      <p id="resume-blurb">Meet SurveilLite and VaxRecords, the synthetic data, and what working means.</p>
+      <a class="go" id="resume-go" href="m00.html">Open module →</a>
+    </div>
+  </header>
+
+  <section class="method" aria-label="How each module works">
+    <div><b>Worked examples first</b><p>Each idea starts with a step-through you can control, so you see the mechanism (a lost reply, a race, a crash) before you write code.</p></div>
+    <div><b>Predict, then run</b><p>Commit to an answer before pressing Run. Wrong predictions show you exactly where your model of the system breaks.</p></div>
+    <div><b>Faded practice</b><p>Exercises start partly written and check themselves against several test cases, including edge cases.</p></div>
+    <div><b>Retrieval and spacing</b><p>Quick checks after every section, flashcards and a mixed quiz at the end, and dates to come back and review.</p></div>
+  </section>
+
+  <section class="part" aria-labelledby="p1">
+    <div class="part-head"><h2 id="p1">Part I · Foundations</h2><p>Chapters 1 to 6 of the printed book: complexity, naming, clients and services, virtualization and performance.</p></div>
+    <ol class="lessons" id="list-1"></ol>
+  </section>
+
+  <section class="part" aria-labelledby="p2">
+    <div class="part-head"><h2 id="p2">Part II · Distributed and reliable</h2><p>Chapters 7 to 11, published online: networks, fault tolerance, atomicity, consistency and security, then a capstone.</p></div>
+    <ol class="lessons" id="list-2"></ol>
+  </section>
+
+  <footer class="home-foot">
+    <span>An independent study course that follows Jerome H. Saltzer and M. Frans Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (Morgan Kaufmann, 2009). Not affiliated with the authors or MIT. All patients, clinics and places are synthetic.</span>
+    <span>Primary source: <a href="https://ocw.mit.edu/courses/res-6-004-principles-of-computer-system-design-an-introduction-spring-2009/" target="_blank" rel="noopener">the book's Part II chapters on MIT OCW</a>. The full Python labs, with Flask services, threads and tests, are in the <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">course repository</a>. Code here runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript. Your progress is saved in this browser only.</span>
+  </footer>
+</div>
+
+<script src="course.js"></script>
+<script>
+(() => {
+  const { COURSE, store, esc } = CT;
+  const prog = store.get("progress", {});
+  let done = 0, total = 0, resume = null;
+  COURSE.forEach((l, i) => {
+    const p = prog[l.id];
+    if (p) { done += p.done; total += p.total; }
+    const pct = p && p.total ? Math.round(p.done / p.total * 100) : 0;
+    if (!resume && pct < 100) resume = { l, i, started: !!p };
+    const li = document.createElement("li");
+    li.innerHTML = `<a href="${l.id}.html" class="${pct === 100 ? "done" : ""}"><span class="num">${String(i).padStart(2, "0")}</span><span class="t">${esc(l.title)}</span><span class="b">${esc(l.blurb)}</span><span class="st">${p ? `<span class="bar"><i style="width:${pct}%"></i></span>${pct === 100 ? "Complete" : pct + "%"}` : "Not started"}</span></a>`;
+    document.getElementById("list-" + l.part).appendChild(li);
+  });
+  // lessons never opened count toward the total with an estimate of 12 items each
+  const unseen = COURSE.filter(l => !prog[l.id]).length;
+  const pct = total + unseen * 12 ? Math.round(done / (total + unseen * 12) * 100) : 0;
+  document.getElementById("pct").textContent = pct + "%";
+  document.getElementById("ring").setAttribute("stroke-dasharray", `${(pct / 100 * 169.6).toFixed(1)} 170`);
+  if (resume) {
+    document.getElementById("resume-eyebrow").textContent = resume.started ? "Continue where you left off" : (resume.i === 0 ? "Start here" : "Up next");
+    document.getElementById("resume-title").textContent = `Module ${resume.i} · ${resume.l.title}`;
+    document.getElementById("resume-blurb").textContent = resume.l.blurb;
+    document.getElementById("resume-go").href = resume.l.id + ".html";
+  } else {
+    document.getElementById("resume-eyebrow").textContent = "Course complete";
+    document.getElementById("resume-title").textContent = "You finished all 13 modules";
+    document.getElementById("resume-blurb").textContent = "Revisit any module's flashcards on its review dates to keep it fresh.";
+    document.getElementById("resume-go").href = "m12.html";
+  }
+})();
+</script>
+</body>
+</html>

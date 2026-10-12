@@ -1,0 +1,1033 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Computer System Design, Module 4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+/* hero: client and service exchanging messages (always a dark card, like the Turing tape) */
+.rpc { background: var(--code-bg); color: var(--code-fg); border-radius: 14px; padding: 20px 20px 16px; display: grid; gap: 14px; min-width: 0; }
+.rpc-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px 12px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.8rem; color: var(--code-muted); }
+.rpc-top b { color: var(--code-fg); font-weight: 600; }
+.rpc-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(58px, 0.7fr) minmax(0, 1fr); align-items: stretch; }
+.node { border: 1.5px solid #3A475C; border-radius: 10px; padding: 10px 12px; font-family: var(--mono); font-size: 0.76rem; line-height: 1.45; display: grid; gap: 4px; align-content: start; min-width: 0; min-height: 176px; overflow-wrap: anywhere; transition: border-color .3s; }
+.node.busy { border-color: var(--tok-fn); }
+.node h4 { margin: 0; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--code-muted); font-weight: 600; }
+.node .big { font-family: var(--display); font-size: 1.05rem; font-weight: 700; color: var(--code-fg); }
+.node .dim { color: var(--code-muted); }
+.node .st { color: var(--tok-num); }
+.node .st.ok { color: var(--tok-str); }
+.wire { position: relative; min-width: 0; }
+.wire::before, .wire::after { content: ""; position: absolute; left: 4px; right: 4px; border-top: 1.5px dashed #3A475C; }
+.wire::before { top: 34%; } .wire::after { top: 66%; }
+.lane { position: absolute; left: 0; right: 0; text-align: center; font-family: var(--mono); font-size: 0.6rem; color: var(--code-muted); }
+.lane.a { top: calc(34% - 22px); } .lane.b { top: calc(66% + 8px); }
+.pkt { z-index: 1; position: absolute; left: 0; width: 46px; text-align: center; font-family: var(--mono); font-size: 0.66rem; font-weight: 600; padding: 2px 0; border-radius: 99px; transform: translateY(-50%); transition: left .5s ease, opacity .4s, background .3s; color: var(--code-bg); }
+.pkt.req { top: 34%; background: var(--tok-fn); }
+.pkt.rep, .pkt.lost { top: 66%; background: var(--tok-str); }
+.pkt.lost.gone { background: var(--tok-kw); opacity: .5; }
+.reg { display: flex; flex-wrap: wrap; gap: 3px; }
+.reg span { padding: 0 5px; border-radius: 4px; border: 1px solid #3A475C; font-size: 0.68rem; transition: background .3s; }
+.reg span.dup { border-color: var(--tok-kw); color: var(--tok-kw); }
+.reg span.new { background: #24324A; }
+.keys { color: var(--tok-num); font-size: 0.68rem; }
+.rpc-msg { font-family: var(--mono); font-size: 0.82rem; line-height: 1.5; color: var(--code-fg); background: #19202D; border-radius: 8px; padding: 8px 10px; min-height: 3.4em; }
+.rpc-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; font-family: var(--mono); font-size: 0.85rem; }
+.btn-ghost.on { border-color: var(--tok-num); color: var(--tok-num); }
+
+/* lost request or lost reply */
+.views { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 560px) { .views { grid-template-columns: 1fr; } }
+.view { border: 1.5px solid var(--rule); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.view h4 { margin: 0; font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.view .v { font-family: var(--mono); font-size: 0.88rem; min-height: 2.8em; }
+.view.same { border-color: var(--accent); background: var(--accent-soft); }
+.trail { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.trail span { padding: 2px 8px; border-radius: 99px; border: 1.5px solid var(--rule); }
+.trail span.ok { border-color: var(--ok); color: var(--ok); }
+.trail span.bad { border-color: var(--bad); color: var(--bad); text-decoration: line-through; }
+
+/* backoff timeline */
+.tl { display: grid; gap: 14px; }
+.tl-row { display: grid; gap: 4px; }
+.tl-row .lbl { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.tl-row .lbl b { color: var(--ink); }
+.track { position: relative; height: 26px; border-radius: 6px; background: var(--paper); border: 1px solid var(--rule); overflow: hidden; }
+.track .down { position: absolute; top: 0; bottom: 0; left: 0; background: var(--bad-soft); }
+.track i { position: absolute; top: 5px; width: 3px; height: 14px; border-radius: 2px; background: var(--bad); margin-left: -1px; }
+.track i.ok { background: var(--ok); width: 5px; margin-left: -2px; }
+.axis { position: relative; height: 16px; font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+.axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+#stub-wire { overflow-wrap: anywhere; }
+.axis span:first-child { transform: none; } .axis span:last-child { transform: translateX(-100%); }
+.callout code { overflow-wrap: anywhere; }
+.field.wrap { flex-wrap: wrap; }
+.field input[type=range] { width: 140px; padding: 0; accent-color: var(--accent); }
+</style>
+</head>
+<body data-lesson="m04">
+<div class="shell">
+  <aside class="rail" aria-label="Lesson progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 4</div>
+      <h1>A remote call can run once, never, or <em>twice</em>, and the client cannot tell which.</h1>
+      <p class="lede">Putting VaxRecords in its own program keeps a dashboard bug from stopping dose recording. The price is that every call now travels as a message, and messages get lost. This module makes retries safe.</p>
+
+      <div class="rpc" aria-label="VaxClient sending ten doses to VaxRecords over a network that loses replies">
+        <div class="rpc-top"><span>VaxClient records 10 MCV1 doses over a network that loses replies</span><span>keys <b id="rpc-keys-lbl">off</b> · records <b id="rpc-recs">0</b></span></div>
+        <div class="rpc-stage">
+          <div class="node" id="rpc-client">
+            <h4>VaxClient · clinic C01</h4>
+            <div class="big" id="rpc-dose">Dose 1 of 10</div>
+            <div class="dim" id="rpc-kid">child P000001</div>
+            <div id="rpc-att">attempt 1</div>
+            <div class="keys" id="rpc-key">key: none</div>
+            <div class="st" id="rpc-cst">ready</div>
+          </div>
+          <div class="wire" aria-hidden="true"><span class="lane a">request</span><span class="lane b">reply</span><div class="pkt req" id="rpc-pkt" hidden>POST</div></div>
+          <div class="node" id="rpc-svc">
+            <h4>VaxRecords</h4>
+            <div class="big" id="rpc-n">0 records</div>
+            <div class="reg" id="rpc-reg"></div>
+            <div class="keys" id="rpc-seen"></div>
+          </div>
+        </div>
+        <div class="rpc-msg" id="rpc-msg" aria-live="polite">Press Step, or let it play.</div>
+        <div class="rpc-bar">
+          <div class="prims" id="rpc-prims">
+            <span class="prim" data-p="send">send</span><span class="prim" data-p="record">record</span><span class="prim" data-p="replay">replay</span><span class="prim" data-p="lost">reply lost</span><span class="prim" data-p="timeout">timeout</span><span class="prim" data-p="reply">reply</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn-ghost" id="rpc-toggle" type="button">Keys: off</button><button class="btn-ghost" id="rpc-step" type="button">Step</button><button class="btn-ghost" id="rpc-play" type="button">Pause</button></div>
+        </div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>Soft versus enforced modularity, what a remote procedure call hides, and why at-least-once retries record duplicate doses.</div>
+        <div><b>You will build</b>A client that sends one idempotency key per dose, a service that replays replies and rejects reused keys, and a retry loop with exponential backoff.</div>
+        <div><b>How it works</b>Watch the messages above, step through the stub, predict each simulated run, then fix the code. Each check you pass fills the bar.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="Enforced modularity">
+      <div class="sec-head"><span class="sec-num">01</span><h2>Soft and enforced modularity</h2></div>
+      <p>In Module 1 you split SurveilLite into load, compute and present modules. That is <b>soft modularity</b>: the modules are functions in one program, so the boundaries hold only as long as every module behaves. A function can write into another module's data, loop forever, or crash, and the whole program goes with it. If the dashboard and dose recording share a program, a bug in the chart code can stop health workers from recording doses.</p>
+      <p><b>Enforced modularity</b> puts each module in its own program and lets them talk only by sending <b>messages</b>. The <b>client</b> sends a request; the <b>service</b> does the work and sends a reply. The client cannot touch the service's memory, and the service checks every request it receives. The book calls this the client/service organization, and almost every system you use is built this way.</p>
+      <div class="two">
+        <div><span class="eyebrow">Soft</span><h3>One program, many functions</h3><p>Fast, simple calls. One crash, infinite loop or stray write takes everything down.</p></div>
+        <div><span class="eyebrow">Enforced</span><h3>Separate programs, messages only</h3><p>A failure stays inside the program that had it. Every call can now be slow, lost or repeated.</p></div>
+      </div>
+      <p>The cell below runs the same dashboard bug both ways. In the browser there are no separate processes, so a small <code>run_program</code> function stands in for the operating system that keeps two programs apart. Predict the last line.</p>
+      <div class="cell" data-predict="3">
+        <div class="predict"><label for="p-s1">Predict the last line:</label><input id="p-s1" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s1" spellcheck="false" aria-label="Python code">doses = []
+
+def record_dose(person_id):
+    doses.append(person_id)
+
+def draw_chart(weekly_counts):
+    return sum(weekly_counts) / len(weekly_counts)   # an empty week divides by zero
+
+# Soft modularity: one program does both jobs
+def one_program():
+    record_dose("P000001")
+    record_dose("P000002")
+    draw_chart([])               # a bug in the dashboard code
+    record_dose("P000003")       # never reached
+
+try:
+    one_program()
+except ZeroDivisionError:
+    print("one program: crashed, doses recorded =", len(doses))
+
+# Enforced modularity: two programs, each run on its own.
+# run_program stands in for the operating system.
+doses = []
+def run_program(name, job):
+    try:
+        job()
+        print(name, "ran to the end")
+    except Exception:
+        print(name, "crashed")
+
+run_program("dashboard", lambda: draw_chart([]))
+run_program("VaxRecords", lambda: [record_dose(p) for p in ["P000001", "P000002", "P000003"]])
+print(len(doses))</textarea></div>
+      </div>
+      <div class="callout">Enforced modularity contains failures: the dashboard can crash and VaxRecords keeps recording doses.</div>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2" data-short="Remote procedure call">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Remote procedure call</h2></div>
+      <p>Writing every message by hand is tedious, so we wrap it in something that looks like a function. <code>client.record_dose(dose)</code> packs the arguments into a request, sends it, waits, and unpacks the reply. This is a <b>remote procedure call</b> (RPC), and the code that hides the messages is the <b>stub</b>. In the lab the stub is <code>VaxClient</code>, and <code>requests</code> plus Flask do the packing and unpacking. Step through one call and watch what the stub does on your behalf.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><div class="controls"><button class="btn" id="stub-step" type="button">Next step</button><button class="btn alt" id="stub-reset" type="button">Start over</button></div></div>
+        <div class="trace-grid">
+          <div class="mini-code" id="stub-code"></div>
+          <div class="vars">
+            <div class="var-row"><span>where</span><b id="stub-where">dashboard</b></div>
+            <div class="term" id="stub-wire" aria-live="polite"></div>
+            <div class="cond" id="stub-note">Press Next step to begin.</div>
+          </div>
+        </div>
+      </div>
+
+      <p>Now run a whole stub. The service here is an object reached only through <code>handle(request)</code>, a string in and a string out, so the client could not reach its <code>doses</code> list even if it tried. The network is perfect for now: it delivers every message at once.</p>
+      <div class="cell" data-predict="(201, 3)">
+        <div class="predict"><label for="p-s2">Predict the last line:</label><input id="p-s2" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s2" spellcheck="false" aria-label="Python code"># The service: its own data, reached only through messages
+class VaxRecords:
+    def __init__(self):
+        self.doses = []
+
+    def handle(self, request):
+        op, fields = decode(request)
+        if op != "record_dose" or len(fields) != 4:
+            return encode("400", {"error": "bad request"})
+        dose_id = len(self.doses) + 1
+        self.doses.append(fields)
+        return encode("201", {"dose_id": dose_id})
+
+# Marshaling: turn a call into text and back
+def encode(op, fields):
+    parts = [op]
+    for k in sorted(fields):
+        parts.append(k + "=" + str(fields[k]))
+    return "|".join(parts)
+
+def decode(text):
+    parts = text.split("|")
+    fields = {}
+    for p in parts[1:]:
+        k, v = p.split("=")
+        fields[k] = v
+    return parts[0], fields
+
+# The stub: looks like a local method, sends a message underneath
+class VaxClient:
+    def __init__(self, send):
+        self.send = send
+
+    def record_dose(self, dose):
+        request = encode("record_dose", dose)
+        print("on the wire:", request)
+        status, body = decode(self.send(request))
+        return int(status), int(body["dose_id"])
+
+service = VaxRecords()
+client = VaxClient(service.handle)    # a perfect network: deliver at once
+for kid in ["P000004", "P000005", "P000006"]:
+    reply = client.record_dose({"person_id": kid, "vaccine": "MCV1",
+                                "clinic_id": "C01", "dose_date": "2026-03-02"})
+print(reply)</textarea></div>
+      </div>
+      <p class="note"><b>Notice:</b> the dose crosses the boundary as text. Nothing the client holds is a reference into the service's memory, which is exactly what makes the modularity enforced.</p>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3" data-short="Three outcomes">
+      <div class="sec-head"><span class="sec-num">03</span><h2>A local call has two outcomes; a remote call has three</h2></div>
+      <p>The danger of an RPC is that it <em>looks</em> like a local call but is not one. A local call runs once and then returns or raises. A remote call can also:</p>
+      <ul>
+        <li>be <b>slow</b>, because the network or the service is busy;</li>
+        <li>get <b>no reply at all</b>, because the request was lost, the service crashed, or the <b>reply</b> was lost;</li>
+        <li><b>run twice</b>, if the client sends it again.</li>
+      </ul>
+      <p>The hard case is the lost reply. The client waits, gives up after a timeout, and cannot tell whether the dose was recorded. Try each failure below and compare what the client sees with what VaxRecords actually holds.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls"><button class="btn alt" type="button" data-net="ok">Deliver both</button><button class="btn alt" type="button" data-net="req">Lose the request</button><button class="btn alt" type="button" data-net="rep">Lose the reply</button><button class="btn alt" type="button" data-net="slow">Slow service</button></div>
+        </div>
+        <div class="trail" id="lr-trail"></div>
+        <div class="views">
+          <div class="view" id="lr-cv"><h4>What VaxClient sees</h4><div class="v" id="lr-client">Pick a network above.</div></div>
+          <div class="view"><h4>What VaxRecords holds</h4><div class="v" id="lr-svc">0 doses for P000004</div></div>
+        </div>
+        <p class="note" id="lr-note"></p>
+      </div>
+      <div class="callout">From the client's side, a lost request, a lost reply and a very slow service look exactly the same: silence.</div>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4" data-short="At least, at most once">
+      <div class="sec-head"><span class="sec-num">04</span><h2>At-least-once and at-most-once</h2></div>
+      <p>After a timeout the client must choose. It can give up, or it can send the request again. Each choice gives a different guarantee, which the book calls the call's <b>semantics</b>.</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Semantics</th><th>What the client does</th><th>What can go wrong</th></tr></thead>
+        <tbody>
+          <tr><td><b>At-most-once</b></td><td>send once, never retry</td><td>a lost request means a dose never recorded</td></tr>
+          <tr><td><b>At-least-once</b></td><td>retry until a reply arrives</td><td>a lost reply means the dose recorded twice</td></tr>
+          <tr><td><b>Exactly-once</b></td><td>retry, and the service suppresses duplicates</td><td>needs the service to remember what it has done</td></tr>
+        </tbody>
+      </table></div>
+      <p>The cell simulates the lab. In <code>rpc_demo.py</code> the service saves each dose and then loses 30% of its replies, drawn from a seeded generator. With seed 4 the same nine replies are lost on every run, and <code>LOST</code> below replays exactly that pattern: dose 1 loses two replies, dose 7 loses four. The real lab uses Flask and <code>requests</code>; here the network is a Python object that raises <code>Timeout</code>. The client retries up to five times, as the lab's does. How many doses will VaxRecords record for 10 children?</p>
+      <div class="cell" data-predict="19">
+        <div class="predict"><label for="p-s4">Predict the last line:</label><input id="p-s4" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s4" spellcheck="false" aria-label="Python code"># The lab's lost replies (seed 4): 1 = the dose is saved but the reply is lost
+LOST = [1, 1, 0,  1, 1, 0,  0,  0,  0,  1, 0,  1, 1, 1, 1, 0,  0,  0,  0]
+
+class Timeout(Exception):
+    pass
+
+class VaxRecords:
+    def __init__(self):
+        self.doses = []
+        self.replies = {}                  # idempotency key -> first reply
+
+    def handle(self, dose, key):
+        if key is not None and key in self.replies:
+            return self.replies[key]       # seen this key: replay, record nothing
+        reply = {"dose_id": len(self.doses) + 1, "person_id": dose["person_id"]}
+        self.doses.append(reply)
+        if key is not None:
+            self.replies[key] = reply
+        return reply
+
+class Network:
+    def __init__(self, service, lost):
+        self.service = service
+        self.lost = list(lost)
+
+    def call(self, dose, key):
+        reply = self.service.handle(dose, key)   # the dose is saved...
+        if self.lost and self.lost.pop(0):
+            raise Timeout("no reply")              # ...but the reply never arrives
+        return reply
+
+def todays_doses(n=10):
+    return [{"person_id": "P%06d" % i, "vaccine": "MCV1",
+             "clinic_id": "C01", "dose_date": "2026-03-02"} for i in range(1, n + 1)]
+
+RETRIES = 5        # try 0 to get at-most-once
+
+class VaxClient:
+    def __init__(self, network, retries):
+        self.network = network
+        self.retries = retries
+        self.timeouts = 0
+        self.unknown = 0
+
+    def record_dose(self, dose):
+        for attempt in range(self.retries + 1):
+            try:
+                return self.network.call(dose, None)    # no key
+            except Timeout:
+                self.timeouts += 1
+        self.unknown += 1                               # gave up: recorded or not?
+        return None
+
+service = VaxRecords()
+client = VaxClient(Network(service, LOST), RETRIES)
+for dose in todays_doses():
+    client.record_dose(dose)
+
+counts = {}
+for d in service.doses:
+    counts[d["person_id"]] = counts.get(d["person_id"], 0) + 1
+print("timeouts the client saw:", client.timeouts, " doses it gave up on:", client.unknown)
+print("recorded more than once:", [p + " x" + str(n) for p, n in sorted(counts.items()) if n > 1])
+print(len(service.doses))</textarea></div>
+      </div>
+      <p>Nineteen records for ten children: the register now says P000007 had five measles doses. Now set <code>RETRIES = 0</code> and run again. That is at-most-once: the service records 10, but the client gives up on 5 doses that were in fact recorded, and would tell the nurse they failed.</p>
+      <p>At-least-once is fine for an <b>idempotent</b> request, one that has the same effect however many times it runs. "Set Amina's MCV1 date to 2 March" is idempotent; "add an MCV1 dose for Amina" is not. For VaxRecords a duplicate is not harmless: the register says a child had a second measles dose, coverage figures are inflated, and stock looks lower than it is.</p>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="Idempotency keys">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Idempotency keys</h2></div>
+      <p>The fix is to make a non-idempotent request idempotent. The client gives each dose a unique <b>idempotency key</b> (in the lab a UUID) and sends the <em>same</em> key with every retry of that dose. The service remembers the reply it sent for each key; when a retry arrives with a key it has seen, it replays that reply instead of recording again. Retrying gives at-least-once delivery, duplicate suppression gives at-most-once execution, and together they give the effect of <b>exactly-once</b>.</p>
+      <p>Same service, same nine lost replies, but this client makes one key per dose. Toggle <b>Keys</b> in the animation at the top to watch the same run as messages.</p>
+      <div class="cell" data-predict="10">
+        <div class="predict"><label for="p-s5">Predict the last line:</label><input id="p-s5" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s5" spellcheck="false" aria-label="Python code">LOST = [1, 1, 0,  1, 1, 0,  0,  0,  0,  1, 0,  1, 1, 1, 1, 0,  0,  0,  0]
+
+class Timeout(Exception):
+    pass
+
+class VaxRecords:
+    def __init__(self):
+        self.doses = []
+        self.replies = {}                  # idempotency key -> first reply
+
+    def handle(self, dose, key):
+        if key is not None and key in self.replies:
+            return self.replies[key]       # seen this key: replay, record nothing
+        reply = {"dose_id": len(self.doses) + 1, "person_id": dose["person_id"]}
+        self.doses.append(reply)
+        if key is not None:
+            self.replies[key] = reply
+        return reply
+
+class Network:
+    def __init__(self, service, lost):
+        self.service = service
+        self.lost = list(lost)
+
+    def call(self, dose, key):
+        reply = self.service.handle(dose, key)
+        if self.lost and self.lost.pop(0):
+            raise Timeout("no reply")
+        return reply
+
+def todays_doses(n=10):
+    return [{"person_id": "P%06d" % i, "vaccine": "MCV1",
+             "clinic_id": "C01", "dose_date": "2026-03-02"} for i in range(1, n + 1)]
+
+class VaxClient:
+    def __init__(self, network, retries=5):
+        self.network = network
+        self.retries = retries
+        self.timeouts = 0
+        self.keys_made = 0
+
+    def new_key(self):                  # stands in for str(uuid.uuid4())
+        self.keys_made += 1
+        return "K" + str(self.keys_made)
+
+    def record_dose(self, dose):
+        key = self.new_key()            # one key per dose, made before the first attempt
+        for attempt in range(self.retries + 1):
+            try:
+                return self.network.call(dose, key)
+            except Timeout:
+                self.timeouts += 1
+        return None
+
+service = VaxRecords()
+client = VaxClient(Network(service, LOST))
+for dose in todays_doses():
+    client.record_dose(dose)
+print("timeouts the client saw:", client.timeouts)
+print("keys the service remembers:", len(service.replies))
+print(len(service.doses))</textarea></div>
+      </div>
+      <p>The client saw the same 9 timeouts as before. Only the key changed the outcome. Notice where the key is made: once per dose, <em>outside</em> the retry loop.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Find the bug, then fix it.</span></div>
+        <p>A colleague's client sends idempotency keys, yet VaxRecords still records 19 doses for 10 children. Fix <code>record_dose</code> so every child is recorded exactly once, whatever replies are lost. The checker runs your client over other loss patterns too.</p>
+        <div class="cell" id="ex-key">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-key" spellcheck="false" aria-label="Python code">LOST = [1, 1, 0,  1, 1, 0,  0,  0,  0,  1, 0,  1, 1, 1, 1, 0,  0,  0,  0]
+
+class Timeout(Exception):
+    pass
+
+class VaxRecords:
+    def __init__(self):
+        self.doses = []
+        self.replies = {}
+
+    def handle(self, dose, key):
+        if key is not None and key in self.replies:
+            return self.replies[key]
+        reply = {"dose_id": len(self.doses) + 1, "person_id": dose["person_id"]}
+        self.doses.append(reply)
+        if key is not None:
+            self.replies[key] = reply
+        return reply
+
+class Network:
+    def __init__(self, service, lost):
+        self.service = service
+        self.lost = list(lost)
+
+    def call(self, dose, key):
+        reply = self.service.handle(dose, key)
+        if self.lost and self.lost.pop(0):
+            raise Timeout("no reply")
+        return reply
+
+def todays_doses(n=10):
+    return [{"person_id": "P%06d" % i, "vaccine": "MCV1",
+             "clinic_id": "C01", "dose_date": "2026-03-02"} for i in range(1, n + 1)]
+
+class VaxClient:
+    def __init__(self, network, retries=5):
+        self.network = network
+        self.retries = retries
+        self.timeouts = 0
+        self.keys_made = 0
+
+    def new_key(self):
+        self.keys_made += 1
+        return "K" + str(self.keys_made)
+
+    def record_dose(self, dose):
+        for attempt in range(self.retries + 1):
+            key = self.new_key()
+            try:
+                return self.network.call(dose, key)
+            except Timeout:
+                self.timeouts += 1
+        return None
+
+service = VaxRecords()
+client = VaxClient(Network(service, LOST))
+for dose in todays_doses():
+    client.record_dose(dose)
+print(len(service.doses), "records for 10 doses")
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6" data-short="Checking keys">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Checking keys on the service</h2></div>
+      <p>The service's side of the bargain has three cases, and a fourth that protects it from a buggy client:</p>
+      <ul>
+        <li><b>No key</b>: record the dose and reply <code>201 Created</code>.</li>
+        <li><b>A new key</b>: record the dose, remember the reply under the key, reply 201.</li>
+        <li><b>A key seen before, same dose</b>: record nothing; replay the first reply with <code>200 OK</code>.</li>
+        <li><b>A key seen before, different dose</b>: the client is reusing keys. Record nothing and reply <code>409 Conflict</code>, so the bug is loud instead of silently dropping Juma's dose.</li>
+      </ul>
+      <p>In the lab the check and the record happen while holding <code>store.lock</code>, because two retries of one dose can arrive at the same moment on two server threads. Module 5 shows what goes wrong without it. The browser runs one thing at a time, so the exercise leaves the lock out.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: the structure is given, you fill the gaps.</span></div>
+        <p>This is the lab's <code>record_dose_checked</code>. Replace the placeholder line with the two cases for a key seen before, and remember the reply for a new key (gap 3). A retry of Amina's dose with key <code>K1</code> should print <code>200 1</code> and leave one dose in the store.</p>
+        <div class="cell" id="ex-checked">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-checked" spellcheck="false" aria-label="Python code">REQUIRED = ("person_id", "vaccine", "clinic_id", "dose_date")
+
+class DoseStore:
+    def __init__(self):
+        self.doses = []
+        self.replies = {}            # key -> (fields, first reply)
+
+    def add(self, payload):
+        dose = {"dose_id": len(self.doses) + 1}
+        for k in REQUIRED:
+            dose[k] = payload[k]
+        self.doses.append(dose)
+        return dose
+
+def record_dose_checked(store, payload, key):
+    fields = {k: payload[k] for k in REQUIRED}
+    if key is None:
+        return store.add(payload), 201
+    if key in store.replies:
+        first_fields, first_reply = store.replies[key]
+        # 1. same fields as before: replay first_reply with status 200
+        # 2. different fields: a buggy client reused the key, reply 409
+        return None, 0               # replace this line
+    dose = store.add(payload)
+    # 3. remember (fields, dose) under the key, so a retry can be recognised
+    return dose, 201
+
+amina = {"person_id": "P000001", "vaccine": "MCV1", "clinic_id": "C01", "dose_date": "2026-03-02"}
+juma = {"person_id": "P000002", "vaccine": "MCV1", "clinic_id": "C01", "dose_date": "2026-03-02"}
+
+store = DoseStore()
+body, status = record_dose_checked(store, amina, "K1")
+print(status, body["dose_id"])
+body, status = record_dose_checked(store, amina, "K1")     # a retry
+print(status, body["dose_id"])
+print(len(store.doses))
+</textarea></div>
+        </div>
+      </div>
+      <p>The service now has to remember keys. How long should it keep them? Real services keep them for a day or so. And what happens if the service itself crashes and forgets them? That question belongs to Chapter 9 and Module 9.</p>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="Backoff and degrading">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Retry gently, fail gracefully</h2></div>
+      <p>Keys make retries safe. They do not make them free. When VaxRecords is overloaded, 40 clinics retrying every quarter second keep it overloaded. <b>Exponential backoff</b> waits longer after each failure (0.5 s, 1 s, 2 s, 4 s), so a struggling service gets room to recover. Drag the outage length and compare.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <label class="field wrap" for="bo-down">service down for <input id="bo-down" type="range" min="0.5" max="9.5" step="0.25" value="3"> <b id="bo-down-v">3 s</b></label>
+        </div>
+        <div class="tl">
+          <div class="tl-row"><div class="lbl"><span>retry at once, every 0.25 s</span><span id="bo-a"></span></div><div class="track" id="bo-ta"></div></div>
+          <div class="tl-row"><div class="lbl"><span>backoff 0.5, 1, 2, 4 s, then give up</span><span id="bo-b"></span></div><div class="track" id="bo-tb"></div></div>
+          <div class="axis" aria-hidden="true"><span style="left:0">0 s</span><span style="left:20%">2</span><span style="left:40%">4</span><span style="left:60%">6</span><span style="left:80%">8</span><span style="left:100%">10 s</span></div>
+        </div>
+        <p class="note" id="bo-note"></p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">From the lab's <code>exercises.py</code>.</span></div>
+        <p>Write <code>post_with_backoff</code>. Call <code>post(payload)</code>; if it raises <code>Timeout</code>, call <code>sleep(base_delay)</code> and try again, doubling the wait after each further failure. Make at most <code>retries</code> retries. If the last attempt times out too, re-raise its <code>Timeout</code>. Any other exception is not a network failure: let it through at once, without retrying. The fake <code>sleep</code> just records each wait, so nothing really pauses.</p>
+        <div class="cell" id="ex-backoff">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-backoff" spellcheck="false" aria-label="Python code">class Timeout(Exception):
+    pass
+
+def flaky_service(outcomes):
+    """A fake post(): each call takes the next outcome from the list."""
+    calls = []
+    def post(payload):
+        calls.append(payload)
+        outcome = outcomes[len(calls) - 1]
+        if outcome == "timeout":
+            raise Timeout("no reply within 2 s")
+        if outcome == "bad":
+            raise ValueError("400: missing field dose_date")
+        return "201 recorded"
+    return post
+
+def post_with_backoff(post, payload, retries=4, base_delay=0.5, sleep=None):
+    # Retry on Timeout, waiting base_delay, then twice as long each time.
+    # Re-raise the last Timeout; let any other error through at once.
+    return post(payload)
+
+waits = []
+post = flaky_service(["timeout", "timeout", "ok"])
+print(post_with_backoff(post, {"person_id": "P000001"}, sleep=waits.append))
+print("waited:", waits)
+</textarea></div>
+        </div>
+      </div>
+
+      <p>The other half of failing gracefully belongs to the client's own users. If VaxRecords is down, the SurveilLite dashboard should show "unavailable", not crash. This is the lab's <code>dose_total_for_dashboard</code>:</p>
+      <div class="cell">
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s7" spellcheck="false" aria-label="Python code">class Unreachable(Exception):
+    pass
+
+def fetch_up(path):
+    return [{"dose_id": i} for i in range(1, 11)]      # VaxRecords answers
+
+def fetch_down(path):
+    raise Unreachable("connection refused")             # VaxRecords is down
+
+def dose_total_for_dashboard(fetch):
+    try:
+        return len(fetch("/doses"))
+    except Unreachable:
+        return None
+
+for fetch in [fetch_up, fetch_down]:
+    total = dose_total_for_dashboard(fetch)
+    print("doses:", "unavailable" if total is None else total)</textarea></div>
+      </div>
+      <div class="callout">Enforced modularity moves failure from "everything stops" to "this call failed". Each side must then be written to expect that.</div>
+      <div class="callout"><b>Run the full lab.</b> The repository runs VaxRecords as a real Flask service on a localhost port, with <code>requests</code>, UUID keys, and a lock around the key check. Run <code>python lessons/04_client_service/rpc_demo.py</code>, then <code>pytest lessons/04_client_service</code> to check your exercises. See <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/04_client_service" target="_blank" rel="noopener">lessons/04_client_service on GitHub</a>.</div>
+      <div class="quiz" data-quiz="s7"></div>
+    </section>
+
+    <!-- 8 -->
+    <section class="lesson" id="s8" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">08</span><h2>Recall and review</h2></div>
+      <p>Reading something again feels productive but fades fast. Pulling it out of memory is what makes it last. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix ideas from every section. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s8"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through the flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Up next · Module 5</span>
+        <h3>Virtualization</h3>
+        <p>Separate computers for every module are expensive. Threads give each activity the illusion of its own processor on one machine, and bring back the danger this module escaped: shared memory. You will watch two consumer threads lose a positive lab result, fix it with a lock, and pass results through a bounded buffer.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module that follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009), Chapter 4. Not affiliated with the authors or MIT. All data is synthetic.</span>
+      <span>Course repository: <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">github.com/Rwunganira/computer_system_design</a>. Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript.</span>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc, highlight } = CT;
+const reduced = CT.reduced;
+
+/* ---------- Hero: VaxClient and VaxRecords ---------- */
+// Attempts per dose with the lab's seed 4: dose 1 needs 3 attempts, dose 7 needs 5.
+const PATTERN = [3, 3, 1, 1, 1, 2, 5, 1, 1, 1];
+const pid = i => "P" + String(i + 1).padStart(6, "0");
+const rpc = { keys: false, at: -1, ev: [], playing: !reduced, timer: null, hold: 0 };
+function rpcBuild() {
+  const ev = [];
+  PATTERN.forEach((n, d) => { for (let a = 1; a <= n; a++) { ev.push({ t: "send", d, a }); if (a < n) { ev.push({ t: "lost", d, a }); ev.push({ t: "timeout", d, a }); } else ev.push({ t: "reply", d, a }); } });
+  ev.push({ t: "end" });
+  rpc.ev = ev; rpc.at = -1; rpc.hold = 0;
+}
+function rpcState(upto) {
+  const s = { reg: [], seen: [], lostN: 0, timeouts: 0, last: null, replayed: false, newIdx: -1 };
+  for (let i = 0; i <= upto; i++) {
+    const e = rpc.ev[i]; s.last = e;
+    if (e.t === "send") {
+      const key = "K" + (e.d + 1);
+      if (rpc.keys && s.seen.includes(key)) { s.replayed = true; s.newIdx = -1; }
+      else { s.replayed = false; s.reg.push({ p: pid(e.d), dup: s.reg.some(r => r.p === pid(e.d)) }); s.newIdx = s.reg.length - 1; if (rpc.keys) s.seen.push(key); }
+    } else if (e.t === "lost") s.lostN++;
+    else if (e.t === "timeout") s.timeouts++;
+  }
+  return s;
+}
+function rpcLight(ps) { $$("#rpc-prims .prim").forEach(p => p.classList.toggle("on", ps.includes(p.dataset.p))); }
+function pktFly(kind, text) {
+  const p = $("#rpc-pkt"); p.hidden = false; p.textContent = text; p.className = "pkt " + kind;
+  const start = kind === "req" ? "0px" : "calc(100% - 46px)", end = kind === "req" ? "calc(100% - 46px)" : kind === "lost" ? "calc(50% - 23px)" : "0px";
+  p.style.transition = "none"; p.style.left = start; void p.offsetWidth; p.style.transition = "";
+  p.style.left = end;
+  if (kind === "lost") setTimeout(() => { p.classList.add("gone"); p.textContent = "lost"; }, reduced ? 0 : 420);
+}
+function drawService(s) {
+  $("#rpc-n").textContent = s.reg.length + (s.reg.length === 1 ? " record" : " records");
+  $("#rpc-recs").textContent = s.reg.length;
+  $("#rpc-reg").innerHTML = s.reg.map((r, i) => `<span class="${r.dup ? "dup" : ""}${i === s.newIdx ? " new" : ""}">${r.p.replace(/^P0+/, "P")}</span>`).join("");
+  $("#rpc-seen").textContent = rpc.keys ? (s.seen.length ? "keys seen: " + s.seen.join(" ") : "keys seen: none") : "";
+}
+function rpcDraw(animate) {
+  const s = rpcState(rpc.at), e = s.last;
+  $("#rpc-keys-lbl").textContent = rpc.keys ? "on" : "off";
+  const t = $("#rpc-toggle"); t.textContent = "Keys: " + (rpc.keys ? "on" : "off"); t.classList.toggle("on", rpc.keys);
+  const cst = $("#rpc-cst"); cst.classList.remove("ok");
+  $("#rpc-client").classList.remove("busy"); $("#rpc-svc").classList.remove("busy");
+  if (!e) {
+    $("#rpc-dose").textContent = "Dose 1 of 10"; $("#rpc-kid").textContent = "child " + pid(0); $("#rpc-att").textContent = "attempt 1";
+    $("#rpc-key").textContent = rpc.keys ? "key: K1" : "key: none"; cst.textContent = "ready";
+    $("#rpc-pkt").hidden = true; drawService(s); rpcLight([]);
+    $("#rpc-msg").textContent = rpc.keys ? "Keys on: every dose gets one key, sent with every retry. Press Step, or let it play." : "Keys off: the client simply retries until a reply arrives. Press Step, or let it play.";
+    $("#rpc-step").textContent = "Step";
+    return;
+  }
+  $("#rpc-step").textContent = `Step ${rpc.at + 1} of ${rpc.ev.length}`;
+  if (e.t === "end") {
+    $("#rpc-pkt").hidden = true; drawService(s); rpcLight([]);
+    $("#rpc-dose").textContent = "10 of 10 sent"; $("#rpc-att").textContent = ""; $("#rpc-kid").textContent = ""; $("#rpc-key").textContent = "";
+    cst.textContent = "done"; cst.classList.add("ok");
+    const dups = new Set(s.reg.filter(r => r.dup).map(r => r.p)).size;
+    $("#rpc-msg").textContent = rpc.keys
+      ? `Same ${s.lostN} lost replies, ${s.reg.length} records: every child recorded exactly once. Retrying plus a key the service remembers is effectively exactly-once.`
+      : `10 doses given, ${s.lostN} replies lost, ${s.reg.length} records: ${dups} children are on the register more than once. Retrying alone is at-least-once.`;
+    return;
+  }
+  const key = "K" + (e.d + 1);
+  $("#rpc-dose").textContent = `Dose ${e.d + 1} of 10`; $("#rpc-kid").textContent = "child " + pid(e.d);
+  $("#rpc-att").textContent = "attempt " + e.a; $("#rpc-key").textContent = rpc.keys ? "key: " + key : "key: none";
+  if (e.t === "send") {
+    cst.textContent = "waiting for a reply";
+    $("#rpc-svc").classList.add("busy");
+    if (animate && !reduced) { drawService(rpcState(rpc.at - 1)); pktFly("req", "POST"); setTimeout(() => { if (rpcState(rpc.at).last === e) drawService(s); }, 480); }
+    else { $("#rpc-pkt").hidden = true; drawService(s); }
+    rpcLight(s.replayed ? ["send", "replay"] : ["send", "record"]);
+    const n = s.reg.filter(r => r.p === pid(e.d)).length;
+    $("#rpc-msg").textContent = `Dose ${e.d + 1}, attempt ${e.a}: VaxClient sends POST /doses${rpc.keys ? " with key " + key : ""}. ` +
+      (s.replayed ? `VaxRecords has seen ${key}, so it records nothing and replays its first reply.` : n > 1 ? `VaxRecords records it again: ${pid(e.d)} now has ${n} MCV1 records.` : `VaxRecords records the dose.`);
+  } else if (e.t === "lost") {
+    cst.textContent = "waiting for a reply"; drawService(s);
+    if (animate && !reduced) pktFly("lost", "201"); else $("#rpc-pkt").hidden = true;
+    rpcLight(["lost"]);
+    $("#rpc-msg").textContent = "The dose is saved, but the reply is lost on the way back.";
+  } else if (e.t === "timeout") {
+    cst.textContent = "timed out: recorded or not?"; drawService(s); $("#rpc-pkt").hidden = true;
+    $("#rpc-client").classList.add("busy");
+    rpcLight(["timeout"]);
+    $("#rpc-msg").textContent = "No reply after 0.25 s. The client cannot tell whether the dose was recorded, so it retries" + (rpc.keys ? " with the same key." : ".");
+  } else if (e.t === "reply") {
+    cst.textContent = "confirmed"; cst.classList.add("ok"); drawService(s);
+    if (animate && !reduced) pktFly("rep", s.replayed ? "200" : "201"); else $("#rpc-pkt").hidden = true;
+    rpcLight(["reply"]);
+    $("#rpc-msg").textContent = s.replayed ? "Reply 200 arrives: the replayed first reply. The client moves on to the next child." : "Reply 201 arrives. The client moves on to the next child.";
+  }
+}
+function rpcTick() {
+  if (rpc.at >= rpc.ev.length - 1) {
+    if (++rpc.hold < 5) return;
+    rpc.keys = !rpc.keys; rpcBuild(); rpcDraw(false); return;
+  }
+  rpc.at++; rpcDraw(true);
+}
+function rpcLoop() { clearInterval(rpc.timer); if (rpc.playing) rpc.timer = setInterval(rpcTick, 900); $("#rpc-play").textContent = rpc.playing ? "Pause" : "Play"; }
+$("#rpc-step").addEventListener("click", () => { rpc.playing = false; rpcLoop(); if (rpc.at < rpc.ev.length - 1) { rpc.at++; rpcDraw(true); } else { rpcBuild(); rpcDraw(false); } });
+$("#rpc-play").addEventListener("click", () => { rpc.playing = !rpc.playing; rpcLoop(); });
+$("#rpc-toggle").addEventListener("click", () => { rpc.keys = !rpc.keys; rpcBuild(); rpcDraw(false); });
+rpcBuild(); rpcDraw(false); rpcLoop();
+
+/* ---------- Stub tracer ---------- */
+const stubLines = [
+  "# in the dashboard",
+  "reply = client.record_dose(dose)",
+  "",
+  "# in VaxClient, the stub",
+  "def record_dose(self, dose):",
+  "    request = encode('record_dose', dose)",
+  "    raw = self.network.send(request)",
+  "    reply = decode(raw)",
+  "    return reply"
+];
+const stubSteps = [
+  { line: 1, where: "dashboard", wire: "", note: "The dashboard calls record_dose as if VaxRecords were an object in its own program." },
+  { line: 5, where: "client stub", wire: "record_dose|clinic_id=C01|dose_date=2026-03-02|person_id=P000004|vaccine=MCV1", note: "The stub packs the procedure's name and arguments into one message. This is called marshaling." },
+  { line: 6, where: "network", wire: "→ record_dose|clinic_id=C01|...|person_id=P000004|vaccine=MCV1", note: "The message leaves this program. The client now waits. It cannot see inside VaxRecords, and nothing it holds points into the service's memory." },
+  { line: 6, where: "VaxRecords", wire: "→ record_dose|...|person_id=P000004|...", note: "In another program, VaxRecords unpacks the message, checks that all four fields are present, and records dose_id 7." },
+  { line: 6, where: "network", wire: "← 201|dose_id=7", note: "VaxRecords packs the result into a reply and sends it back. Any of these hops could be slow or lost." },
+  { line: 7, where: "client stub", wire: "reply = {'status': 201, 'dose_id': 7}", note: "The stub unpacks the reply into an ordinary Python value." },
+  { line: 1, where: "dashboard", wire: "reply = {'status': 201, 'dose_id': 7}", note: "To the caller this looked exactly like a local call. That is the convenience of RPC, and also its danger: the three new failure modes are hidden too." }
+];
+let stubAt = -1;
+function stubRender() {
+  const st = stubSteps[stubAt];
+  $("#stub-code").innerHTML = stubLines.map((l, i) => `<div class="${st && i === st.line ? "cur" : ""}">${l ? highlight(l).trimEnd() : "&nbsp;"}</div>`).join("");
+  $("#stub-where").textContent = st ? st.where : "dashboard";
+  $("#stub-wire").textContent = st ? (st.wire || "(nothing on the wire yet)") : "";
+  $("#stub-note").textContent = st ? st.note : "Press Next step to begin.";
+  $("#stub-step").disabled = stubAt >= stubSteps.length - 1;
+  $("#stub-step").textContent = stubAt < 0 ? "Next step" : `Step ${stubAt + 1} of ${stubSteps.length}`;
+}
+$("#stub-step").addEventListener("click", () => { stubAt++; stubRender(); });
+$("#stub-reset").addEventListener("click", () => { stubAt = -1; stubRender(); });
+stubRender();
+
+/* ---------- Lost request or lost reply ---------- */
+const NETS = {
+  ok: { trail: [["request", "ok"], ["record", "ok"], ["reply", "ok"]], client: "201, dose_id 7, after 40 ms", svc: "1 dose for P000004 (dose_id 7)", same: false, note: "The easy case. The client knows exactly what happened." },
+  req: { trail: [["request", "bad"], ["record", "bad"], ["reply", "bad"]], client: "nothing... timeout after 0.25 s", svc: "0 doses for P000004", same: true, note: "The dose was never recorded. Retrying is the right move." },
+  rep: { trail: [["request", "ok"], ["record", "ok"], ["reply", "bad"]], client: "nothing... timeout after 0.25 s", svc: "1 dose for P000004 (dose_id 7)", same: true, note: "Identical view for the client, opposite truth: the dose was recorded. A plain retry now records it twice." },
+  slow: { trail: [["request", "ok"], ["record", "ok"], ["reply after 0.6 s", "bad"]], client: "nothing... timeout after 0.25 s", svc: "1 dose for P000004 (dose_id 7)", same: true, note: "This is how the lab loses replies: the service saves the dose, then stalls past the client's timeout. A late reply is a lost reply." }
+};
+function lrShow(k) {
+  const n = NETS[k];
+  $("#lr-trail").innerHTML = n.trail.map(([t, c]) => `<span class="${c}">${t}</span>`).join("→");
+  $("#lr-client").textContent = n.client; $("#lr-svc").textContent = n.svc;
+  $("#lr-cv").classList.toggle("same", n.same);
+  $("#lr-note").innerHTML = (n.same ? "<b>Same client view as every other failure.</b> " : "") + esc(n.note);
+  $$("[data-net]").forEach(b => b.classList.toggle("alt", b.dataset.net !== k));
+}
+$$("[data-net]").forEach(b => b.addEventListener("click", () => lrShow(b.dataset.net)));
+
+/* ---------- Backoff timeline ---------- */
+function boTimes(down) {
+  const a = []; let t = 0;
+  while (true) { a.push(t); if (t >= down) break; t += 0.25; }
+  const b = []; t = 0;
+  for (let k = 0; k <= 4; k++) { b.push(t); if (t >= down) break; t += 0.25 + 0.5 * 2 ** k; }
+  return { a, b, bOk: b[b.length - 1] >= down };
+}
+function boDraw() {
+  const down = parseFloat($("#bo-down").value), r = boTimes(down);
+  $("#bo-down-v").textContent = down + " s";
+  const marks = (ts, ok) => ts.filter(t => t <= 10).map((t, i) => `<i class="${ok && i === ts.length - 1 ? "ok" : ""}" style="left:${t / 10 * 100}%"></i>`).join("");
+  const shade = `<div class="down" style="width:${Math.min(down, 10) / 10 * 100}%"></div>`;
+  $("#bo-ta").innerHTML = shade + marks(r.a, true);
+  $("#bo-tb").innerHTML = shade + marks(r.b, r.bOk);
+  $("#bo-a").innerHTML = `<b>${r.a.length - 1}</b> failed attempts`;
+  $("#bo-b").innerHTML = `<b>${r.bOk ? r.b.length - 1 : r.b.length}</b> failed attempts${r.bOk ? "" : ", gave up"}`;
+  const fa = r.a.length - 1, fb = r.bOk ? r.b.length - 1 : r.b.length;
+  $("#bo-note").innerHTML = `With all 40 clinics retrying, the struggling service receives <b>${(fa * 40).toLocaleString()}</b> wasted requests in the first case and <b>${fb * 40}</b> with backoff.` +
+    (r.bOk ? ` Backoff costs up to ${(r.b[r.b.length - 1] - down).toFixed(2)} s of extra delay after the service recovers.` : " The backoff client gives up after 5 attempts and reports the dose as unknown, which is when the dashboard should say unavailable.");
+}
+$("#bo-down").addEventListener("input", boDraw);
+boDraw();
+
+const QUIZ = {
+  s1: [
+    { q: "SurveilLite's chart code and VaxRecords' dose recording run as functions in one Flask process. The chart code enters an infinite loop. What happens to dose recording?", o: ["Nothing: they are separate functions", "It stops too, because they share one program", "Python detects the loop and restarts only the chart", "It keeps going but more slowly"], a: 1, why: "Functions in one program give soft modularity. A loop, crash or stray write in one module takes the whole program with it." },
+    { q: "What does enforced modularity give up in exchange for containing failures?", o: ["Nothing; it is strictly better", "Every call between modules becomes a message that can be slow, lost or repeated", "The service can no longer check its inputs", "Modules can no longer be written in Python"], a: 1, why: "Separate programs share nothing but messages, so the failure modes of messages, delay, loss and duplication, now apply to every call." }
+  ],
+  s2: [
+    { q: "What is the <b>stub</b> in a remote procedure call?", o: ["The service's database", "The client-side code that makes a remote call look like a local function, packing and unpacking messages", "A placeholder function that does nothing", "The network cable"], a: 1, why: "In the lab, VaxClient is the stub: record_dose builds the HTTP request, sends it, waits and decodes the reply." },
+    { q: "Why does the service in the cell receive the dose as a string rather than a reference to the client's dict?", o: ["Strings are faster", "Separate programs share no memory, so only copies of data can cross the boundary as messages", "Python cannot pass dicts to methods", "To save space"], a: 1, why: "Messages carry copies. That is what stops a client from corrupting the service's data, and why the service must check each request." }
+  ],
+  s3: [
+    { q: "VaxClient sends a dose and hears nothing for 0.25 s. Which can it conclude?", o: ["The dose was not recorded", "The dose was recorded", "Nothing certain: the request, the reply, or the service may have failed, or it is just slow", "The service has crashed"], a: 2, why: "Silence is ambiguous. That ambiguity is the whole problem the rest of this module solves." }
+  ],
+  s4: [
+    { q: "Which request is idempotent?", o: ["Add an MCV1 dose for Amina", "Set Amina's MCV1 date to 2 March", "Subtract one vial from clinic C01's stock", "Append a line to the audit log"], a: 1, why: "Setting a value leaves the same state however many times it runs. Adding, subtracting and appending change the state each time." },
+    { q: "The naive client retries until it gets a reply. In the lab's run it recorded 19 doses for 10 children. Could it ever record <b>fewer</b> than 10?", o: ["Yes, when a request is lost", "No: in this lab every lost message is a reply lost after the dose is saved, and the client retries until it succeeds", "Yes, when two retries arrive together", "Only if RETRIES is 5"], a: 1, why: "At-least-once never records fewer than one per dose while the client keeps retrying until it succeeds. Duplicates are its failure mode, not gaps." }
+  ],
+  s5: [
+    { q: "What would happen if VaxClient created a new idempotency key on every retry instead of once per dose?", o: ["Nothing changes; every request still has a key", "Each retry looks like a new dose, so lost replies still produce duplicates", "The service rejects the retries with 409", "The client would never time out"], a: 1, why: "The key only works because every attempt for one dose carries the same key. A fresh key per attempt is the bug in the exercise." },
+    { q: "With keys, the client saw the same 9 timeouts as the naive client. Why not fewer?", o: ["Keys make the network more reliable", "Keys change what the service does with a repeat, not whether replies get lost", "The service was slower", "It is a coincidence of the seed"], a: 1, why: "The same replies are lost in both runs. The key only changes whether a retry records again or replays." }
+  ],
+  s6: [
+    { q: "A retry arrives with key K1, which the service has seen with the same dose fields. What should it reply?", o: ["201 and a new dose_id", "200 with the first reply, recording nothing", "409 Conflict", "404 Not Found"], a: 1, why: "Replaying the first reply is what makes the retry harmless: the client gets the same dose_id it would have got the first time." },
+    { q: "Why reply 409 when a key is reused for a <b>different</b> dose, instead of quietly replaying the first reply?", o: ["409 is faster to compute", "A quiet replay would tell the client Juma's dose was recorded when it was not", "HTTP requires it", "To make the client retry"], a: 1, why: "A reused key is a client bug. Replaying would silently lose a real dose; an error makes the bug visible." }
+  ],
+  s7: [
+    { q: "Why does exponential backoff help a struggling service?", o: ["It makes each request smaller", "Clients send fewer requests while it is down, giving it room to recover", "It guarantees exactly-once", "It shortens the timeout"], a: 1, why: "Retrying at a fixed fast rate keeps an overloaded service overloaded. Waiting longer after each failure spreads the load out." },
+    { q: "Should <code>post_with_backoff</code> retry when the service replies 400 Bad Request (a ValueError in the exercise)?", o: ["Yes, always retry on any error", "No: the request itself is wrong, and sending it again will fail the same way", "Yes, but only once", "Only with a new idempotency key"], a: 1, why: "Retries are for failures that might go away, like a lost reply. A malformed request will be rejected every time." }
+  ],
+  s8: [
+    { q: "VaxClient uses at-most-once semantics (never retries) and a reply is lost after the dose is saved. What is true?", o: ["The dose is recorded twice", "The dose is recorded once, but the client reports it as failed", "The dose is never recorded", "The service replies 409"], a: 1, why: "At-most-once avoids duplicates but leaves the client unsure. With RETRIES = 0 the cell gave up on 5 doses that were in fact recorded." },
+    { q: "Which combination gives the effect of exactly-once?", o: ["At-most-once plus a longer timeout", "At-least-once retries plus duplicate suppression by idempotency key", "Exponential backoff alone", "Soft modularity"], a: 1, why: "Retrying makes sure the request gets through at least once; remembering keys makes sure it executes at most once." },
+    { q: "VaxRecords crashes and restarts with its list of remembered keys empty. A retry of yesterday's dose arrives with its old key. What happens?", o: ["It is replayed correctly", "It is recorded again, because the service has forgotten the key", "It is rejected with 409", "The client detects the crash"], a: 1, why: "Duplicate suppression is only as good as the service's memory of keys. Keeping that memory safe across crashes is the subject of Chapter 9." }
+  ]
+};
+const CARDS = [
+  ["Soft modularity", "Modularity by convention, such as functions in one program, where one buggy module can still damage another."],
+  ["Enforced modularity", "Modules in separate programs that talk only by messages, so a failure in one is contained."],
+  ["Client/service organization", "The client sends a request message; the service does the work, checks every request, and sends a reply."],
+  ["Remote procedure call (RPC)", "A request to another program that looks like a function call but can be slow, go unanswered, or run twice."],
+  ["Stub", "The client-side code (VaxClient) that packs a call into a message, sends it, waits, and unpacks the reply."],
+  ["The lost reply", "The dose was saved but the reply never arrived. The client times out and cannot tell whether the dose was recorded."],
+  ["At-least-once", "Retry until a reply arrives. Every request runs one or more times; a lost reply causes a duplicate."],
+  ["At-most-once", "Never run a request twice: send once, or have the service remember what it has handled."],
+  ["Idempotent", "Same effect however many times it runs. \"Set the MCV1 date\" is; \"add an MCV1 dose\" is not."],
+  ["Idempotency key", "A unique id made once per dose, outside the retry loop, and sent with every retry so the service can replay instead of recording again."],
+  ["Exactly-once (in effect)", "At-least-once retries plus duplicate suppression by key."],
+  ["Exponential backoff", "Wait 0.5, 1, 2, 4 s between retries so a struggling service is not flooded."]
+];
+
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  exercises: {
+    "ex-key": {
+      cases: [
+        "service = VaxRecords()\nclient = VaxClient(Network(service, LOST))\nfor d in todays_doses(): client.record_dose(d)\nprint(len(service.doses), client.timeouts)",
+        "service = VaxRecords()\nclient = VaxClient(Network(service, [1, 1, 1, 0] * 10))\nfor d in todays_doses(): client.record_dose(d)\nprint(len(service.doses), client.timeouts)",
+        "service = VaxRecords()\nclient = VaxClient(Network(service, []))\nfor d in todays_doses(): client.record_dose(d)\nprint(len(service.doses), client.timeouts)",
+        "service = VaxRecords()\nclient = VaxClient(Network(service, [0, 1, 0, 1, 1, 0]))\nfor d in todays_doses(4): client.record_dose(d)\nprint(len(service.doses), sorted(set(r['person_id'] for r in service.doses)))",
+        "service = VaxRecords()\nclient = VaxClient(Network(service, [1, 0] * 20), retries=1)\nfor d in todays_doses(6): client.record_dose(d)\nprint(len(service.doses), len(service.replies))"
+      ],
+      solution: `LOST = [1, 1, 0,  1, 1, 0,  0,  0,  0,  1, 0,  1, 1, 1, 1, 0,  0,  0,  0]
+
+class Timeout(Exception):
+    pass
+
+class VaxRecords:
+    def __init__(self):
+        self.doses = []
+        self.replies = {}
+
+    def handle(self, dose, key):
+        if key is not None and key in self.replies:
+            return self.replies[key]
+        reply = {"dose_id": len(self.doses) + 1, "person_id": dose["person_id"]}
+        self.doses.append(reply)
+        if key is not None:
+            self.replies[key] = reply
+        return reply
+
+class Network:
+    def __init__(self, service, lost):
+        self.service = service
+        self.lost = list(lost)
+
+    def call(self, dose, key):
+        reply = self.service.handle(dose, key)
+        if self.lost and self.lost.pop(0):
+            raise Timeout("no reply")
+        return reply
+
+def todays_doses(n=10):
+    return [{"person_id": "P%06d" % i, "vaccine": "MCV1",
+             "clinic_id": "C01", "dose_date": "2026-03-02"} for i in range(1, n + 1)]
+
+class VaxClient:
+    def __init__(self, network, retries=5):
+        self.network = network
+        self.retries = retries
+        self.timeouts = 0
+        self.keys_made = 0
+
+    def new_key(self):
+        self.keys_made += 1
+        return "K" + str(self.keys_made)
+
+    def record_dose(self, dose):
+        key = self.new_key()
+        for attempt in range(self.retries + 1):
+            try:
+                return self.network.call(dose, key)
+            except Timeout:
+                self.timeouts += 1
+        return None`,
+      hint: ["Every attempt for one dose must carry the same key. Where is the key made now?", "Move key = self.new_key() up, above the for loop, so it runs once per call to record_dose."]
+    },
+    "ex-checked": {
+      cases: [
+        "store = DoseStore()\nfor i in range(3):\n    body, status = record_dose_checked(store, amina, 'K1')\n    print(status, body['dose_id'])\nprint(len(store.doses))",
+        "store = DoseStore()\nprint(record_dose_checked(store, amina, 'K1')[1])\nbody, status = record_dose_checked(store, juma, 'K1')\nprint(status, 'error' in body, len(store.doses))",
+        "store = DoseStore()\nprint(record_dose_checked(store, amina, None)[1], record_dose_checked(store, amina, None)[1], len(store.doses))",
+        "store = DoseStore()\nprint(record_dose_checked(store, amina, 'K1')[1], record_dose_checked(store, juma, 'K2')[1])\nbody, status = record_dose_checked(store, juma, 'K2')\nprint(status, body['person_id'], body['dose_id'], len(store.doses))",
+        "store = DoseStore()\nrecord_dose_checked(store, amina, 'K1')\nlate = dict(amina)\nlate['dose_date'] = '2026-03-09'\nprint(record_dose_checked(store, late, 'K1')[1], record_dose_checked(store, amina, 'K1')[1], len(store.doses))"
+      ],
+      solution: `REQUIRED = ("person_id", "vaccine", "clinic_id", "dose_date")
+
+class DoseStore:
+    def __init__(self):
+        self.doses = []
+        self.replies = {}            # key -> (fields, first reply)
+
+    def add(self, payload):
+        dose = {"dose_id": len(self.doses) + 1}
+        for k in REQUIRED:
+            dose[k] = payload[k]
+        self.doses.append(dose)
+        return dose
+
+def record_dose_checked(store, payload, key):
+    fields = {k: payload[k] for k in REQUIRED}
+    if key is None:
+        return store.add(payload), 201
+    if key in store.replies:
+        first_fields, first_reply = store.replies[key]
+        if first_fields == fields:
+            return first_reply, 200
+        return {"error": "key " + key + " was already used for a different dose"}, 409
+    dose = store.add(payload)
+    store.replies[key] = (fields, dose)
+    return dose, 201
+
+amina = {"person_id": "P000001", "vaccine": "MCV1", "clinic_id": "C01", "dose_date": "2026-03-02"}
+juma = {"person_id": "P000002", "vaccine": "MCV1", "clinic_id": "C01", "dose_date": "2026-03-02"}`,
+      hint: ["Gap 3 comes first: without store.replies[key] = (fields, dose), no key is ever 'seen before'.", "In the seen-before branch: if first_fields == fields: return first_reply, 200. Otherwise return {'error': '...'}, 409."]
+    },
+    "ex-backoff": {
+      cases: [
+        "w = []\nprint(post_with_backoff(flaky_service(['timeout', 'timeout', 'ok']), {}, sleep=w.append))\nprint(w)",
+        "w = []\ntry:\n    post_with_backoff(flaky_service(['timeout'] * 5), {}, sleep=w.append)\nexcept Timeout:\n    print('gave up')\nprint(w)",
+        "w = []\ntry:\n    post_with_backoff(flaky_service(['timeout', 'bad', 'ok']), {}, sleep=w.append)\nexcept ValueError:\n    print('not retried')\nprint(w)",
+        "w = []\nprint(post_with_backoff(flaky_service(['ok']), {}, sleep=w.append), w)",
+        "w = []\ntry:\n    post_with_backoff(flaky_service(['timeout'] * 3), {}, retries=2, base_delay=0.25, sleep=w.append)\nexcept Timeout:\n    print('gave up')\nprint(w)"
+      ],
+      solution: `class Timeout(Exception):
+    pass
+
+def flaky_service(outcomes):
+    """A fake post(): each call takes the next outcome from the list."""
+    calls = []
+    def post(payload):
+        calls.append(payload)
+        outcome = outcomes[len(calls) - 1]
+        if outcome == "timeout":
+            raise Timeout("no reply within 2 s")
+        if outcome == "bad":
+            raise ValueError("400: missing field dose_date")
+        return "201 recorded"
+    return post
+
+def post_with_backoff(post, payload, retries=4, base_delay=0.5, sleep=None):
+    for attempt in range(retries + 1):
+        try:
+            return post(payload)
+        except Timeout:
+            if attempt == retries:
+                raise
+            sleep(base_delay * 2 ** attempt)`,
+      hint: ["Loop over attempt in range(retries + 1). Put return post(payload) inside try, and catch only Timeout.", "In the except branch: if attempt == retries, re-raise with a bare raise; otherwise sleep(base_delay * 2 ** attempt)."]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

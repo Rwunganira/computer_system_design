@@ -50,7 +50,7 @@ def run_week(parts):
             c.post("/reports", json=report("C32", seq, week, cases), headers=auth("tok-c32"))
 
         # 3. Silent corruption: a bit flips in replica 1 of one stored report.
-        victim = Path(tmp) / "replica1" / "C32_2.json"
+        victim = next((Path(tmp) / "replica1").glob("C32_2_*.json"))
         rec = json.loads(victim.read_text())
         rec["payload"]["cases"] = 310  # 31 became 310; the checksum still says 31
         victim.write_text(json.dumps(rec, sort_keys=True))

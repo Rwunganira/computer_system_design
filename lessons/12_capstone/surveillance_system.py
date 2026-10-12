@@ -60,6 +60,7 @@ def create_app(parts, data_dir, users):
     app.config["PROPAGATE_EXCEPTIONS"] = True  # let errors in your parts surface, not become HTTP 500s
     data_dir = Path(data_dir)
     seen = set()       # message keys already accepted
+    deliveries = [0]   # every accepted delivery is stored as a new record, like an append-only intake log
     audit = []         # (user name, action, target, allowed)
     app.config["AUDIT"] = audit
 
@@ -81,7 +82,8 @@ def create_app(parts, data_dir, users):
             return jsonify(error="forbidden"), 403
         if not parts.accept(msg, seen):
             return jsonify(status="duplicate ignored"), 200
-        key = f"{msg['clinic_id']}_{msg['seq']}"
+        deliveries[0] += 1
+        key = f"{msg['clinic_id']}_{msg['seq']}_d{deliveries[0]}"
         write_replicas(replica_paths(key), msg)
         return jsonify(status="stored", key=key), 201
 

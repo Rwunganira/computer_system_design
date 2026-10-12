@@ -1,0 +1,48 @@
+name: site
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  check:
+    # Runs every module page in a headless browser: code cells, exercises, quizzes, phone width.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-save playwright@1.56.0 skulpt@1.2.0 && npx playwright install --with-deps chromium
+      - run: bash tools/check_all.sh
+
+  deploy:
+    # Publishes web/ to https://rwunganira.github.io/computer_system_design/
+    # Requires Settings > Pages > Source: GitHub Actions.
+    if: github.ref == 'refs/heads/main'
+    needs: check
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deployment
+        uses: actions/deploy-pages@v4

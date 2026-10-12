@@ -10,8 +10,8 @@ tries something they should not. The capstone puts SurveilLite's report intake b
 Flask service and runs a scripted "bad week" against it.
 
 `surveillance_system.py` is the service. Clinics `POST /reports`; district officers
-`GET /districts/<id>/incidence`. Each stored report is written to two replicas, each with a SHA-256
-checksum, using write-then-rename so a crash never leaves half a file (Module 9).
+`GET /districts/<id>/incidence`. Every accepted delivery is stored as a new record, like an
+append-only intake log, and each record is written to two replicas with a SHA-256 checksum, using write-then-rename so a crash never leaves half a file (Module 9).
 
 Three decisions are deliberately left pluggable, because they are where the course's ideas live:
 
@@ -34,8 +34,8 @@ choices is the simplest thing that works on a good day.
 3. **Silent corruption.** One replica of one report has a digit changed on disk: 31 cases become 310.
 4. **Misuse.** A Hillview officer reads Coastal's data, and a Coastal nurse submits a report as another clinic.
 
-With the naive parts, the dashboard shows 419 cholera cases in Coastal instead of 140, and both
-misuse attempts succeed. An epidemiologist would see a threefold outbreak that did not happen.
+With the naive parts, the dashboard shows 459 cholera cases in Coastal instead of 140 (the retried
+report counts twice and the corrupted copy adds 279), and both misuse attempts succeed. An epidemiologist would see a threefold outbreak that did not happen.
 
 ## Things to notice
 
