@@ -6,6 +6,8 @@ one chapter at a time, with runnable Python and Flask examples drawn from public
 Every module works on the same two fictional systems: **SurveilLite**, a disease surveillance
 dashboard, and **VaxRecords**, a vaccination records API. All data is synthetic.
 
+**Read it as a website:** https://rwunganira.github.io/computer_system_design/
+
 ## Start here
 
 ```bash
@@ -48,3 +50,15 @@ COURSE_SOLUTIONS=1 pytest lessons/01_complexity   # the worked answers in soluti
 ```
 
 Try the exercises before opening `solutions.py`.
+
+## Building the website
+
+The website is generated from the lessons, so each module's README, examples, exercises and
+solutions stay the single source. To preview it locally:
+
+```bash
+pip install -r requirements-site.txt
+python scripts/build_site.py --serve   # http://127.0.0.1:8000
+```
+
+Every push to `main` publishes it to GitHub Pages.
