@@ -34,10 +34,11 @@ Each module is one folder, `lessons/NN_topic/`, containing:
 | `predict.md` | "Predict, then run" prompts: guess what the example will do before running it |
 | `exercises.py` | Two to four small exercises with `TODO` markers |
 | `test_exercises.py` | Tests that pass once the exercises are done: `pytest lessons/NN_topic` |
+| `solutions.py` | One worked answer; `COURSE_SOLUTIONS=1 pytest lessons/NN_topic` runs the tests against it |
 
 Tooling: Python 3.11+, Flask, pandas, requests, pytest, and SQLite (built into Python). No cloud
-accounts, Docker or databases to install. Synthetic data generators live in `data/` so no real
-patient data is ever used.
+accounts, Docker or databases to install. The synthetic data generators live in `course/data.py`,
+so no real patient data is ever used.
 
 ---
 
@@ -48,7 +49,7 @@ patient data is ever used.
 - Install requirements, run the test suite, generate the synthetic datasets.
 - Tour SurveilLite and VaxRecords: what they do, who uses them, what "working" means for each.
 
-**Runnable example:** `data/generate.py` creates a synthetic population, weekly case reports from
+**Runnable example:** `course/data.py` creates a synthetic population, weekly case reports from
 40 clinics in 8 districts, and a vaccination register, then prints a summary table with pandas.
 
 **Exercises:** add a new disease to the generator; write a test that checks every report has a
@@ -139,7 +140,7 @@ Flask part maps URLs like `/districts/<district>/cases` onto these names.
 - Compare at-least-once, at-most-once and exactly-once semantics.
 
 **Runnable example:** `lessons/04_client_service/`. VaxRecords is split into a Flask service
-(`server.py`) and a client (`client.py`) that records doses using `requests`. A flag makes the
+(`vax_server.py`) and a client (`vax_client.py`) that records doses using `requests`. A flag makes the
 server randomly drop responses after saving. Running the naive client with retries records the same
 dose twice; adding an idempotency key on each request makes retries safe.
 
@@ -306,7 +307,7 @@ record.
 
 ---
 
-## Capstone. A resilient surveillance system
+## Capstone. A resilient surveillance system (`lessons/12_capstone`)
 
 Bring the modules together: SurveilLite and VaxRecords as separate services with clear names,
 idempotent RPC, atomic dose recording, offline sync, tolerance of a failed replica, and
@@ -319,9 +320,3 @@ correct numbers.
 One module per week alongside the matching chapter, with the capstone over two weeks: about
 14 weeks in total. Modules 1 to 6 follow the printed book (Part I); modules 7 to 11 follow the
 chapters published online (Part II).
-
-## Next steps after this outline
-
-1. Agree on the outline, the running case, and the module format.
-2. Build Module 0 and the synthetic data generator.
-3. Write modules in order, each as its own pull request with passing tests.
