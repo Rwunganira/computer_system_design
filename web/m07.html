@@ -1,0 +1,973 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Computer System Design, Module 7</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+.ncard { background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.ntop { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.ntop b { color: var(--ink); font-weight: 600; }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 18px; }
+.slider { display: grid; gap: 4px; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.slider span b { color: var(--ink); font-size: 0.95rem; }
+.slider input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
+.choice { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-btn { font: inherit; font-size: 0.88rem; background: var(--paper); color: var(--ink); border: 1.5px solid var(--rule); border-radius: 99px; padding: 5px 12px; cursor: pointer; }
+.chip-btn:hover { border-color: var(--ink); }
+.chip-btn[aria-pressed=true] { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); font-weight: 700; }
+.chip-btn[aria-pressed=true]::before { content: "on · "; font-family: var(--mono); font-size: 0.75rem; }
+.nsvg { width: 100%; height: auto; display: block; }
+.nsvg text { font-family: var(--mono); font-size: 14px; fill: var(--muted); }
+.nsvg .box { fill: var(--paper); stroke: var(--rule); stroke-width: 1.5; transition: stroke .2s, fill .2s; }
+.nsvg .box.flash { stroke: var(--accent); fill: var(--accent-soft); }
+.nsvg .box.okf { stroke: var(--ok); fill: var(--ok-soft); }
+.nsvg .box.dupf { stroke: var(--s4); }
+.nsvg .lane { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 5; }
+.nsvg .lbl { fill: var(--ink); font-weight: 600; }
+.nsvg .big { font-family: var(--display); font-size: 34px; font-weight: 800; fill: var(--ink); }
+.nsvg .pk rect { fill: var(--s1); }
+.nsvg .pk.ack rect { fill: var(--ok); }
+.nsvg .pk.lost rect { fill: var(--bad); }
+.nsvg .pk text { fill: var(--sheet); font-size: 11px; font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.tile { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 8px 12px; display: grid; gap: 2px; min-width: 0; }
+.tile small { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.tile b { font-family: var(--display); font-size: 1.35rem; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.tile.key { border-color: var(--accent); }
+.meterbox { display: grid; gap: 6px; }
+.meterbox .lab { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.meterbox .lab b { color: var(--ink); }
+.mtrack { position: relative; height: 18px; background: var(--paper); border: 1px solid var(--rule); border-radius: 9px; }
+.mfill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 9px; background: var(--s1); transition: width .3s ease, background .3s; }
+.mfill.right { background: var(--ok); }
+.mfill.over { background: var(--bad); }
+.mtruth { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1.5px; background: var(--ink); border-radius: 2px; }
+.status { font-size: 0.95rem; padding: 10px 12px; border-radius: 8px; background: var(--hl); color: var(--ink); min-height: 2.6em; }
+.status.good { background: var(--ok-soft); }
+.status.bad { background: var(--bad-soft); }
+.layers { display: grid; gap: 8px; }
+.layer { font: inherit; text-align: left; display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: baseline; padding: 12px 14px; border-radius: 10px; border: 1.5px solid var(--rule); background: var(--paper); color: var(--ink); cursor: pointer; }
+.layer:hover { border-color: var(--ink); }
+.layer[aria-pressed=true] { border-color: var(--accent); background: var(--accent-soft); }
+.layer b { font-family: var(--display); font-size: 1.05rem; }
+.layer span { font-size: 0.92rem; color: var(--muted); }
+@media (max-width: 480px) { .layer { grid-template-columns: 1fr; gap: 2px; } }
+.ldetail { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.ldetail div { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; font-size: 0.93rem; }
+.ldetail small { display: block; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.seq text { font-family: var(--mono); font-size: 14px; fill: var(--muted); }
+.seq .who { fill: var(--ink); font-weight: 600; }
+.seq .life { stroke: var(--rule); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.seq .hd { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
+.seq .ar { stroke: var(--s1); stroke-width: 2.2; fill: none; }
+.seq .ar.ack { stroke: var(--ok); }
+.seq .ar.lost { stroke: var(--bad); stroke-dasharray: 6 4; }
+.seq .ar.dup { stroke: var(--s4); }
+.seq .tag-t { fill: var(--ink); font-size: 14px; }
+.seq .nt { fill: var(--hl); stroke: var(--rule); }
+.seq .old { opacity: .45; }
+.tchart { width: 100%; height: auto; display: block; }
+.tchart text { font-family: var(--mono); font-size: 12px; fill: var(--muted); }
+</style>
+</head>
+<body data-lesson="m07">
+<div class="shell">
+  <aside class="rail" aria-label="Lesson progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 7</div>
+      <h1>The network only <em>tries</em>. Getting it right is the endpoints' job.</h1>
+      <p class="lede">Rural clinics text their weekly cholera counts to the district office over a network that loses, duplicates and reorders messages. This module builds, one mechanism at a time, the end-to-end protocol that makes the district total exactly right.</p>
+
+      <div class="ncard" aria-label="Five Coastal clinics texting weekly cholera counts to the district office">
+        <div class="ntop">
+          <span>5 Coastal clinics · 12 weeks · 60 reports · true district total <b>361</b></span>
+          <span style="display:flex;gap:8px"><button class="btn alt" id="h-play" type="button">Pause</button><button class="btn alt" id="h-again" type="button">Restart</button></span>
+        </div>
+        <div class="sliders">
+          <label class="slider" for="h-loss"><span>Lost: <b id="h-loss-v">20%</b></span><input id="h-loss" type="range" min="0" max="50" step="5" value="20"></label>
+          <label class="slider" for="h-dup"><span>Duplicated: <b id="h-dup-v">10%</b></span><input id="h-dup" type="range" min="0" max="30" step="5" value="10"></label>
+          <label class="slider" for="h-del"><span>Delay, so reordering: <b id="h-del-v">1 to 3 rounds</b></span><input id="h-del" type="range" min="1" max="4" step="1" value="3"></label>
+        </div>
+        <div class="choice" id="h-toggles">
+          <button class="chip-btn" type="button" data-t="seq" aria-pressed="false">Sequence numbers</button>
+          <button class="chip-btn" type="button" data-t="ack" aria-pressed="false">ACK and resend on timeout</button>
+          <button class="chip-btn" type="button" data-t="dedup" aria-pressed="false">Drop duplicates</button>
+        </div>
+        <svg class="nsvg" id="h-svg" viewBox="0 0 480 300" role="img" aria-label="Messages travelling from clinics to the office"></svg>
+        <div class="meterbox">
+          <div class="lab"><span>District total at the office: <b id="h-total">0</b></span><span>truth: <b>361</b> (the black mark)</span></div>
+          <div class="mtrack"><span class="mfill" id="h-fill"></span><span class="mtruth" id="h-truth"></span></div>
+        </div>
+        <div class="tiles">
+          <div class="tile key"><small>Reports counted</small><b id="h-counted">0</b></div>
+          <div class="tile"><small>Texts sent</small><b id="h-sent">0</b></div>
+          <div class="tile"><small>Resends</small><b id="h-resent">0</b></div>
+          <div class="tile"><small>Lost in transit</small><b id="h-lost">0</b></div>
+          <div class="tile"><small>Duplicates dropped</small><b id="h-drop">0</b></div>
+        </div>
+        <div class="status" id="h-status" aria-live="polite">Fire and forget: each clinic texts each report once, and the office adds whatever arrives.</div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>The link, network and end-to-end layers; best effort; at-least-once and at-most-once delivery; checksums; and the end-to-end argument.</div>
+        <div><b>You will build</b>An office that acknowledges every copy but counts each report once, a checksum that turns detection into correction, and an end-to-end total check.</div>
+        <div><b>How it works</b>Switch the mechanisms on in the channel above, step through a lost report, predict, run, then code each piece.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="Layers and best effort">
+      <div class="sec-head"><span class="sec-num">01</span><h2>Three layers, and a deliberately weak promise</h2></div>
+      <p>The book organises a network into three layers, each built only on the one below. The surprise is how little the middle one promises. Tap each layer.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><span class="note">A clinic's text, layer by layer.</span></div>
+        <div class="layers" id="layers">
+          <button class="layer" type="button" data-l="2" aria-pressed="false"><b>End-to-end</b><span>runs only in the clinic phone and the office server</span></button>
+          <button class="layer" type="button" data-l="1" aria-pressed="true"><b>Network</b><span>forwards packets hop by hop, source to destination</span></button>
+          <button class="layer" type="button" data-l="0" aria-pressed="false"><b>Link</b><span>moves a frame across one physical hop</span></button>
+        </div>
+        <div class="ldetail" id="ldetail"></div>
+      </div>
+      <p>The network layer's promise is <b>best effort</b>: it tries to deliver each packet, with no guarantee that it arrives once, in order, or at all. A packet may be lost (a queue overflowed), duplicated (a link resent it), delayed and reordered (it took another path), or, rarely, damaged. SMS behaves the same way, which makes it a good stand-in: two texts sent a minute apart can arrive in either order.</p>
+      <div class="cell" data-predict="dose 2">
+        <div class="predict"><label for="p-s1">Predict the last line (which text arrives first?):</label><input id="p-s1" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s1" spellcheck="false" aria-label="Python code"># (text, round sent, delay in rounds): the network chose the delays
+sent = [("dose 1", 0, 3),
+        ("dose 2", 1, 1)]
+arrivals = sorted([(r + delay, text) for text, r, delay in sent])
+for when, text in arrivals:
+    print("round", when, ":", text)
+print(arrivals[0][1])</textarea></div>
+      </div>
+      <p>The network layer is weak on purpose. Every application wants something different: a weekly report must arrive, a live video call prefers a late frame dropped. So the network does the common minimum, and the <b>end-to-end layer</b> in the two endpoints turns best effort into whatever the application needs.</p>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Fire and forget gets it wrong both ways</h2></div>
+      <p>The simplest protocol: each report is sent once, and the office adds up whatever arrives. Lost texts make totals too low; duplicated texts make them too high. For surveillance both are dangerous: a missed cholera report hides an outbreak, a doubled one raises a false alarm.</p>
+      <p>The browser has no SMS gateway, so <code>SmsChannel</code> simulates one with seeded random choices, as the lab does. To keep the browser quick, each message here carries one district's weekly total (8 senders, 96 reports) instead of one clinic's (40 senders, 480 reports); the true district totals are the lab's. Before you run it, decide: will each district be too low, too high, or could it be either?</p>
+      <div class="cell" data-predict="False">
+        <div class="predict"><label for="p-s2">Predict the last line (are the totals right?):</label><input id="p-s2" autocomplete="off" placeholder="True or False"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s2" spellcheck="false" aria-label="Python code">import random
+random.seed(7)
+
+WEEKLY = {   # cholera cases per district, weeks 1 to 12 (the lab's data)
+    "N-CEN": [4, 4, 5, 1, 3, 4, 3, 2, 3, 3, 2, 5],
+    "N-RIV": [1, 1, 3, 2, 2, 0, 2, 1, 2, 0, 2, 2],
+    "N-HIL": [2, 0, 1, 3, 1, 2, 1, 2, 1, 1, 1, 2],
+    "N-LAK": [1, 2, 1, 0, 2, 6, 0, 3, 2, 1, 1, 2],
+    "S-CEN": [2, 5, 4, 5, 2, 9, 1, 3, 4, 0, 1, 5],
+    "S-SAV": [1, 2, 2, 0, 1, 1, 2, 3, 3, 0, 0, 0],
+    "S-COA": [1, 1, 5, 2, 1, 2, 13, 32, 45, 63, 87, 109],
+    "S-HIG": [0, 0, 1, 0, 0, 1, 2, 2, 0, 3, 2, 0],
+}
+messages = [(d, week + 1, WEEKLY[d][week]) for d in WEEKLY for week in range(12)]
+
+class SmsChannel:
+    """Best effort: loses, duplicates and delays (so reorders) texts."""
+    def __init__(self, loss=0.2, duplicate=0.1, max_delay=3):
+        self.loss = loss
+        self.duplicate = duplicate
+        self.max_delay = max_delay
+        self.now = 0                 # the current round
+        self.sent = 0                # texts handed to the channel
+        self.in_flight = []          # (arrival round, text)
+
+    def send(self, text):
+        self.sent += 1
+        if random.random() &lt; self.loss:
+            return                                       # lost
+        copies = 2 if random.random() &lt; self.duplicate else 1
+        for i in range(copies):
+            self.in_flight.append((self.now + random.randint(1, self.max_delay), text))
+
+    def deliver(self):
+        """Advance one round; return what arrives, in any order."""
+        self.now += 1
+        arriving = [m for t, m in self.in_flight if t &lt;= self.now]
+        self.in_flight = [(t, m) for t, m in self.in_flight if t &gt; self.now]
+        random.shuffle(arriving)
+        return arriving
+
+def totals(records):
+    out = {}
+    for d, week, cases in records:
+        out[d] = out.get(d, 0) + cases
+    return out
+
+def send_naively(messages, channel):
+    """Fire and forget: send each report once, add whatever arrives."""
+    for d, week, cases in messages:
+        channel.send(d + "|" + str(week) + "|" + str(cases))
+    records = []
+    while channel.in_flight:
+        for text in channel.deliver():
+            d, week, cases = text.split("|")
+            records.append((d, int(week), int(cases)))
+    return records
+
+truth = totals(messages)
+got = totals(send_naively(messages, SmsChannel()))
+print("district  true  received")
+for d in truth:
+    print(f"{d:&lt;8} {truth[d]:&gt;5} {got.get(d, 0):&gt;9}")
+print(got == truth)</textarea></div>
+      </div>
+      <p class="note"><b>Notice:</b> most districts are too low, a few are too high, and Coastal, the district with the outbreak, lost dozens of cases. Try other seeds: the direction changes, the wrongness does not. In the lab, with 480 clinic reports, Coastal came out at 312 instead of 361.</p>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3" data-short="At-least-once">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Sequence numbers, ACKs and timeouts</h2></div>
+      <p>To recover lost reports the clinic needs to know what arrived. Three mechanisms work together:</p>
+      <ul>
+        <li><b>Sequence numbers.</b> Each clinic numbers its reports 1, 2, 3, so a report can be named.</li>
+        <li><b>Acknowledgements.</b> The office replies <code>ACK 7</code> when report 7 arrives.</li>
+        <li><b>Timeouts and retransmission.</b> A clinic that gets no ACK within a timeout sends the report again.</li>
+      </ul>
+      <p>Together they give <b>at-least-once</b> delivery: every report eventually arrives. Step through what happens to one report, including the catch.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><div class="controls"><button class="btn" id="sq-step" type="button">Next step</button><button class="btn alt" id="sq-reset" type="button">Start over</button></div></div>
+        <svg class="seq nsvg" id="sq-svg" viewBox="0 0 480 420" role="img" aria-label="Sequence diagram of a lost report, a resend, an ACK and a duplicate"></svg>
+        <div class="status" id="sq-note" aria-live="polite"></div>
+      </div>
+
+      <p>Here is the catch. The clinic cannot tell a lost report from a lost (or merely slow) ACK; either way it sees silence and resends. So "at least once" means duplicates: channel duplicates, plus resends of reports that had already arrived. Run the lab's protocol without duplicate suppression.</p>
+      <div class="cell" data-predict="False">
+        <div class="predict"><label for="p-s3">Predict the last line (are the totals right?):</label><input id="p-s3" autocomplete="off" placeholder="True or False"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s3" spellcheck="false" aria-label="Python code">import random
+random.seed(2)
+
+WEEKLY = {
+    "N-CEN": [4, 4, 5, 1, 3, 4, 3, 2, 3, 3, 2, 5],
+    "N-RIV": [1, 1, 3, 2, 2, 0, 2, 1, 2, 0, 2, 2],
+    "N-HIL": [2, 0, 1, 3, 1, 2, 1, 2, 1, 1, 1, 2],
+    "N-LAK": [1, 2, 1, 0, 2, 6, 0, 3, 2, 1, 1, 2],
+    "S-CEN": [2, 5, 4, 5, 2, 9, 1, 3, 4, 0, 1, 5],
+    "S-SAV": [1, 2, 2, 0, 1, 1, 2, 3, 3, 0, 0, 0],
+    "S-COA": [1, 1, 5, 2, 1, 2, 13, 32, 45, 63, 87, 109],
+    "S-HIG": [0, 0, 1, 0, 0, 1, 2, 2, 0, 3, 2, 0],
+}
+messages = [(d, week + 1, WEEKLY[d][week]) for d in WEEKLY for week in range(12)]
+
+class SmsChannel:
+    def __init__(self, loss=0.2, duplicate=0.1, max_delay=3):
+        self.loss = loss
+        self.duplicate = duplicate
+        self.max_delay = max_delay
+        self.now = 0
+        self.sent = 0
+        self.in_flight = []
+    def send(self, text):
+        self.sent += 1
+        if random.random() &lt; self.loss:
+            return
+        copies = 2 if random.random() &lt; self.duplicate else 1
+        for i in range(copies):
+            self.in_flight.append((self.now + random.randint(1, self.max_delay), text))
+    def deliver(self):
+        self.now += 1
+        arriving = [m for t, m in self.in_flight if t &lt;= self.now]
+        self.in_flight = [(t, m) for t, m in self.in_flight if t &gt; self.now]
+        random.shuffle(arriving)
+        return arriving
+
+def send_reliably(messages, up, down, timeout=8, suppress_duplicates=True):
+    unacked = {}                  # (sender, seq) -> text, kept until ACKed
+    next_seq = {}
+    for d, week, cases in messages:
+        next_seq[d] = next_seq.get(d, 0) + 1
+        unacked[(d, next_seq[d])] = "DATA|" + d + "|" + str(next_seq[d]) + "|" + str(cases)
+    last_sent = {}                # (sender, seq) -> round it was last sent
+    seen = set()                  # office side: (sender, seq) already counted
+    records = []
+    resends = 0
+    now = 0
+    while unacked:
+        # Senders: send new reports, resend any whose ACK is overdue
+        for key in unacked:
+            if key not in last_sent or now - last_sent[key] &gt;= timeout:
+                if key in last_sent:
+                    resends += 1
+                up.send(unacked[key])
+                last_sent[key] = now
+        # Office: ACK every copy; count each (sender, seq) once if suppressing
+        for text in up.deliver():
+            kind, d, seq, cases = text.split("|")
+            down.send("ACK|" + d + "|" + seq)
+            if suppress_duplicates and (d, seq) in seen:
+                continue
+            seen.add((d, seq))
+            records.append((d, int(seq), int(cases)))
+        # Senders: an ACK means delivered, so stop resending
+        for text in down.deliver():
+            kind, d, seq = text.split("|")
+            if (d, int(seq)) in unacked:
+                del unacked[(d, int(seq))]
+        now += 1
+    print(up.sent, "texts for", len(messages), "reports,", resends, "resends,", now, "rounds")
+    return records
+
+def totals(records):
+    out = {}
+    for d, week, cases in records:
+        out[d] = out.get(d, 0) + cases
+    return out
+
+truth = totals(messages)
+got = totals(send_reliably(messages, SmsChannel(), SmsChannel(), suppress_duplicates=False))
+print("district  true  received")
+for d in truth:
+    print(f"{d:&lt;8} {truth[d]:&gt;5} {got[d]:&gt;9}")
+print(got == truth)</textarea></div>
+      </div>
+      <p>Every district is now at or above the truth: nothing is lost any more, but copies are counted twice. Change <code>suppress_duplicates=False</code> to <code>True</code> on the <code>got = ...</code> line and run it again before reading on.</p>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4" data-short="At-most-once">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Duplicate suppression: count each report once</h2></div>
+      <p>The office remembers which <code>(clinic, sequence number)</code> pairs it has already counted. Every copy is acknowledged, because the clinic needs to hear back (the first ACK may have been lost), but each pair is counted only once. That is <b>at-most-once</b>. Together with at-least-once from the previous section, each report is counted <b>exactly once</b>, and the totals are correct.</p>
+      <div class="cell" data-predict="51">
+        <div class="predict"><label for="p-s4">Predict the last line (the counted total):</label><input id="p-s4" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s4" spellcheck="false" aria-label="Python code"># (clinic, seq, cases) as they reach the office: one resend, out of order
+arrivals = [("C31", 8, 32), ("C31", 7, 13), ("C32", 7, 6), ("C31", 7, 13)]
+
+print("every copy:", sum([cases for clinic, seq, cases in arrivals]))
+seen = set()
+counted = 0
+for clinic, seq, cases in arrivals:
+    if (clinic, seq) not in seen:      # C31 #7 and C32 #7 are different reports
+        seen.add((clinic, seq))
+        counted += cases
+print(counted)</textarea></div>
+      </div>
+      <p>Reordering costs nothing here: report 8 arrived before report 7 and the total does not care, because addition does not care about order. A protocol that needed order, say "dose 2" must be recorded after "dose 1", would hold back early arrivals until the gap fills. VaxRecords has exactly that problem with dose records synced from tablets, and a resent "dose given" must never record a second dose.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: the ACK is built, you add the memory.</span></div>
+        <p>Finish <code>Office.receive</code>. It must return the ACK for <b>every</b> copy, add <code>cases</code> to <code>total</code> only the first time a <code>(sender, seq)</code> pair arrives, and count each repeat in <code>dropped</code>. The checker swaps in other <code>arrivals</code>.</p>
+        <div class="cell" id="ex-dedup">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-dedup" spellcheck="false" aria-label="Python code">class Office:
+    def __init__(self):
+        self.seen = set()       # (sender, seq) pairs already counted
+        self.total = 0
+        self.dropped = 0
+
+    def receive(self, sender, seq, cases):
+        """Return the ACK to send back. Count each (sender, seq) only once."""
+        ack = "ACK|" + sender + "|" + str(seq)
+        # TODO: if (sender, seq) was seen before, add 1 to self.dropped;
+        #       otherwise remember it and add cases to self.total
+        self.total += cases
+        return ack
+
+
+arrivals = [["C31", 7, 13], ["C32", 7, 4], ["C31", 7, 13], ["C31", 8, 32], ["C32", 7, 4]]
+office = Office()
+acks = [office.receive(s, q, c) for s, q, c in arrivals]
+print(office.total, office.dropped)
+print(acks)
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="Timeouts and cost">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Choosing the timeout, and what reliability costs</h2></div>
+      <p>The timeout is a trade-off. Too short, and clinics resend reports that were merely slow, wasting texts and money; the office drops the extra copies, so totals stay right, but someone pays. Too long, and a lost report sits unnoticed before anyone resends it. Here a round trip takes 2 to 6 rounds, because each direction is delayed 1 to 3 rounds.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><span class="note">96 reports, 20% lost, 10% duplicated, averaged over 20 runs.</span></div>
+        <label class="slider" for="t-to"><span>Timeout: <b id="t-to-v">8 rounds</b></span><input id="t-to" type="range" min="1" max="14" step="1" value="8"></label>
+        <svg class="tchart" id="t-svg" viewBox="0 0 480 190" role="img" aria-label="Texts per report and rounds to finish for each timeout"></svg>
+        <div class="tiles">
+          <div class="tile key"><small>Texts per report</small><b id="t-tpr">0</b></div>
+          <div class="tile"><small>Resends</small><b id="t-re">0</b></div>
+          <div class="tile"><small>Duplicates dropped</small><b id="t-dd">0</b></div>
+          <div class="tile"><small>Rounds to finish</small><b id="t-rd">0</b></div>
+        </div>
+        <p class="note" id="t-note"></p>
+      </div>
+      <p>Even with a sensible timeout, loss costs texts. A report is finished only when the report <b>and</b> its ACK both survive, which happens with probability (1 − p)², so you expect about 1 / (1 − p)² sends per report. Check that with a quick simulation.</p>
+      <div class="cell" data-predict="4.0">
+        <div class="predict"><label for="p-s5">Predict the last line (expected sends at 50% loss):</label><input id="p-s5" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s5" spellcheck="false" aria-label="Python code">import random
+import pylab
+random.seed(7)
+
+def sends_until_acked(p):
+    n = 1
+    while random.random() &lt; p or random.random() &lt; p:   # report lost, or ACK lost
+        n += 1
+    return n
+
+losses = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+measured = [sum([sends_until_acked(p) for i in range(2000)]) / 2000 for p in losses]
+expected = [1 / (1 - p) ** 2 for p in losses]
+pylab.plot(losses, measured, 'bo', label="simulated, 2,000 reports")
+pylab.plot(losses, expected, 'r--', label="1 / (1 - p) squared")
+pylab.title("Texts per report when reports and ACKs are both lossy")
+pylab.xlabel("loss rate p")
+pylab.ylabel("sends per report")
+pylab.legend()
+pylab.show()
+print(1 / (1 - 0.5) ** 2)</textarea></div>
+      </div>
+      <p>This plot is drawn by <code>pylab</code>, a browser subset whose <code>plot</code>, <code>title</code> and <code>legend</code> calls behave like matplotlib's. At 10% loss reliability costs about 1.2 texts per report, at 30% about 2, at 50% about 4. The lab measures slightly less, because a channel duplicate is a free second chance.</p>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6" data-short="Checksums">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Damaged messages: detect, then let retransmission correct</h2></div>
+      <p>Rarely, a text arrives changed: one digit flipped. The protocol so far would happily count <code>13</code> as <code>18</code>. The fix reuses everything already built. The sender appends a <b>checksum</b>, a short value computed from the text. The office recomputes it; if it does not match, the office drops the message <b>without an ACK</b>, and the sender's timeout resends it. Detection plus retransmission equals correction.</p>
+      <p>The lab uses <code>zlib.crc32</code>. The browser has no <code>zlib</code>, so the cells below use a polynomial rolling hash, a stand-in that also catches every single changed character. A checksum must be chosen with care, as this predict cell shows.</p>
+      <div class="cell" data-predict="True">
+        <div class="predict"><label for="p-s6">Predict the last line (does the weak checksum miss the swap?):</label><input id="p-s6" autocomplete="off" placeholder="True or False"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s6" spellcheck="false" aria-label="Python code">def weak_checksum(text):
+    """Add up the character codes. Cheap, and blind to order."""
+    return sum([ord(ch) for ch in text]) % 256
+
+def checksum(text):
+    """Polynomial rolling hash: each position gets its own weight."""
+    h = 0
+    for ch in text:
+        h = (h * 31 + ord(ch)) % 1000000007
+    return h
+
+a = "DATA|C31|8|14"
+b = "DATA|C31|8|41"       # a nurse's digits swapped in transit
+print(checksum(a), checksum(b), checksum(a) == checksum(b))
+print(weak_checksum(a), weak_checksum(b))
+print(weak_checksum(a) == weak_checksum(b))</textarea></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Exercise 1 from the lab.</span></div>
+        <p>Write <code>add_checksum(text)</code>, which returns the text, a <code>#</code>, and its checksum as digits, for example <code>DATA|S-COA|7|13#</code> followed by the number. Then write <code>verify(wire)</code>, which returns the original text if the checksum matches and <code>None</code> otherwise. It must not crash on garbage: the <code>#</code> may be missing, or the checksum may contain letters. The text itself may contain a <code>#</code>, so split at the <b>last</b> one.</p>
+        <div class="cell" id="ex-checksum">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-checksum" spellcheck="false" aria-label="Python code">def checksum(text):
+    """A stand-in for CRC-32: a polynomial rolling hash."""
+    h = 0
+    for ch in text:
+        h = (h * 31 + ord(ch)) % 1000000007
+    return h
+
+def add_checksum(text):
+    # TODO: return text + "#" + the checksum as digits
+    return text
+
+def verify(wire):
+    # TODO: split at the last "#" (wire.rpartition("#") helps);
+    #       return the text if the checksum digits match, else None
+    return wire
+
+
+wire = add_checksum("DATA|S-COA|7|13")
+print(wire)
+print(verify(wire))
+print(verify(wire.replace("|13#", "|18#")))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="The end-to-end argument">
+      <div class="sec-head"><span class="sec-num">07</span><h2>The end-to-end argument</h2></div>
+      <p>Where should "make sure the counts are right" live? The SMS gateway already checks that each text arrived intact. But it cannot know that a nurse keyed 14 instead of 41, that the office's database dropped a row, or that a bug further along lost a report. Only the application at the endpoints knows what a correct count is.</p>
+      <div class="callout">The end-to-end argument: a function that needs the application's knowledge to be done correctly can be implemented correctly only at the endpoints. A lower layer can help, but cannot finish the job.</div>
+      <p>So the end-to-end check is needed anyway. A check in a lower layer is then justified only as a <b>performance</b> improvement (catching errors earlier, fewer end-to-end retries), never as a replacement. That is why the checksum in section 6 lives in the clinic and the office, not in the gateway.</p>
+      <div class="two">
+        <div><span class="eyebrow">Gateway check</span><h3>Each text arrived intact</h3><p>Useful: it saves resends. But it is blind to a wrong number keyed in, a row the database lost, or a report never sent.</p></div>
+        <div><span class="eyebrow">End-to-end check</span><h3>The totals add up</h3><p>Each clinic also sends a monthly summary of the cases it reported. The office compares it with what it received. This catches every failure in between.</p></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Exercise 3 from the lab.</span></div>
+        <p>Write <code>clinics_with_wrong_totals(records, clinic_totals)</code>. <code>records</code> is a list of <code>(clinic_id, week, cases)</code> the office accepted; <code>clinic_totals</code> maps each clinic to the total it says it reported. Return a <b>sorted</b> list of clinics whose received total differs. A clinic with no records at all is wrong even if its total is 0: silence is not a report of zero cases.</p>
+        <div class="cell" id="ex-e2e">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-e2e" spellcheck="false" aria-label="Python code">def clinics_with_wrong_totals(records, clinic_totals):
+    received = {}
+    # TODO: add up the cases received per clinic,
+    #       then compare with clinic_totals
+    return []
+
+
+records = [("C31", 1, 0), ("C31", 2, 14), ("C32", 1, 6), ("C32", 2, 4)]
+clinic_totals = {"C31": 41, "C32": 10, "C33": 0}
+print(clinics_with_wrong_totals(records, clinic_totals))
+</textarea></div>
+        </div>
+      </div>
+      <div class="callout" style="font-size:var(--step-0);font-family:var(--body);overflow-wrap:anywhere"><b>Run the full lab.</b> The repository runs the same protocol over 480 clinic reports in CPython, adds a CRC-32 checksum with <code>zlib</code>, and measures the cost of reliability at 10%, 30% and 50% loss. Run <code>python lessons/07_networks/sms_reports.py</code>, then <code>pytest lessons/07_networks</code>. See <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/07_networks" target="_blank" rel="noopener">lessons/07_networks on GitHub</a>.</div>
+      <div class="quiz" data-quiz="s7"></div>
+    </section>
+
+    <!-- 8 -->
+    <section class="lesson" id="s8" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">08</span><h2>Recall and review</h2></div>
+      <p>Reading something again feels productive but fades fast. Pulling it out of memory is what makes it last. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix ideas from every section. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s8"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through the flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Up next · Module 8</span>
+        <h3>Fault tolerance</h3>
+        <p>Faults, errors and failures: why a flipped bit on a disk can become a wrong cholera incidence on the dashboard, and how detection, redundancy and checksums break that chain before it reaches a decision.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module. Follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009), Chapter 7. Not affiliated with the authors or MIT. All data is synthetic.</span>
+      <span>Course repository: <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">github.com/Rwunganira/computer_system_design</a>. Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript.</span>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc } = CT;
+const reduced = CT.reduced;
+const NS = "http://www.w3.org/2000/svg";
+const svgEl = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+
+/* ---------- Hero: SMS channel ---------- */
+const CLIN = [
+  ["C31", [0, 0, 2, 1, 0, 1, 3, 9, 5, 16, 19, 20]],
+  ["C32", [0, 0, 0, 1, 0, 1, 4, 6, 6, 11, 23, 23]],
+  ["C33", [0, 1, 0, 0, 1, 0, 4, 7, 8, 14, 16, 23]],
+  ["C34", [0, 0, 2, 0, 0, 0, 1, 5, 10, 14, 16, 19]],
+  ["C35", [1, 0, 1, 0, 0, 0, 1, 5, 16, 8, 13, 24]]
+];
+const TRUTH = 361, ROUND_S = 0.75, X0 = 96;
+let HW = 480, X1 = 386, PW = 48;
+const laneY = k => 46 + k * 52;
+const H = { loss: 0.2, dup: 0.1, delay: 3, seq: false, ack: false, dedup: false, playing: !reduced, raf: 0, last: 0 };
+const hsvg = $("#h-svg");
+function hStatic() {
+  HW = Math.round(Math.max(340, Math.min(480, hsvg.getBoundingClientRect().width || 480)));
+  X1 = HW - 94; PW = HW < 420 ? 42 : 48;
+  hsvg.setAttribute("viewBox", `0 0 ${HW} 300`);
+  hsvg.innerHTML = "";
+  if (H.pk) H.pk.forEach(p => { p.el = null; });
+  CLIN.forEach(([id], k) => {
+    const y = laneY(k);
+    svgEl("line", { class: "lane", x1: X0, x2: X1 + 6, y1: y, y2: y }, hsvg);
+  });
+  H.clBox = CLIN.map(([id], k) => {
+    const y = laneY(k);
+    const r = svgEl("rect", { class: "box", x: 4, y: y - 22, width: 86, height: 44, rx: 8 }, hsvg);
+    const t = svgEl("text", { class: "lbl", x: 12, y: y - 4 }, hsvg); t.textContent = id;
+    const s = svgEl("text", { x: 12, y: y + 14, style: "font-size:12px" }, hsvg);
+    return { r, s };
+  });
+  const OX = X1 + 6, OC = OX + 41;
+  H.office = svgEl("rect", { class: "box", x: OX, y: 20, width: 82, height: 260, rx: 10 }, hsvg);
+  const o1 = svgEl("text", { class: "lbl", x: OC, y: 44, "text-anchor": "middle" }, hsvg); o1.textContent = "Coastal";
+  const o2 = svgEl("text", { class: "lbl", x: OC, y: 62, "text-anchor": "middle" }, hsvg); o2.textContent = "office";
+  H.big = svgEl("text", { class: "big", x: OC, y: 166, "text-anchor": "middle" }, hsvg); H.big.textContent = "0";
+  const o3 = svgEl("text", { x: OC, y: 188, "text-anchor": "middle", style: "font-size:12px" }, hsvg); o3.textContent = "cases";
+  H.ofNote = svgEl("text", { x: OC, y: 262, "text-anchor": "middle", style: "font-size:12px" }, hsvg);
+  H.pkG = svgEl("g", {}, hsvg);
+}
+function hReset() {
+  H.T = 0; H.round = -1; H.pk = []; H.total = 0; H.counted = 0; H.sent = 0; H.resent = 0; H.lost = 0; H.dropped = 0; H.done = false; H.doneAt = 0;
+  H.uniq = new Set(); H.seen = new Set();
+  H.cl = CLIN.map(([id, w], k) => ({ id, k, w, next: 0, unacked: {}, acked: 0 }));
+  H.timeout = 2 * H.delay + 1;
+  if (H.pkG) H.pkG.innerHTML = "";
+}
+function hSend(kind, k, seq, cases, r) {
+  H.sent += kind === "data" ? 1 : 0;
+  const lab = kind === "ack" ? `ACK ${seq}` : (H.seq ? `#${seq}·${cases}` : String(cases));
+  const mk = (lost) => ({ kind, k, seq, cases, lab, t0: r, t1: r + 1 + Math.floor(Math.random() * H.delay), lost, die: 0.3 + Math.random() * 0.4, jit: (Math.random() - 0.5) * 10, el: null });
+  if (Math.random() < H.loss) { if (kind === "data") H.lost++; H.pk.push(mk(true)); return; }
+  H.pk.push(mk(false));
+  if (Math.random() < H.dup) H.pk.push(mk(false));
+}
+function flash(rect, cls) { if (!rect || reduced) return; rect.classList.add(cls); setTimeout(() => rect.classList.remove(cls), 380); }
+function hRound(r) {
+  // 1. arrivals
+  const arriving = H.pk.filter(p => !p.lost && p.t1 === r);
+  H.pk = H.pk.filter(p => !(p.t1 <= r && !p.lost) && !(p.lost && r - p.t0 > (p.t1 - p.t0) * p.die + 1));
+  arriving.forEach(p => { if (p.el) p.el.remove(); });
+  arriving.sort(() => Math.random() - 0.5).forEach(p => {
+    if (p.kind === "data") {
+      if (H.ack) hSend("ack", p.k, p.seq, 0, r);
+      const key = p.k + "|" + p.seq;
+      if (H.dedup && H.seen.has(key)) { H.dropped++; flash(H.office, "dupf"); H.ofNote.textContent = "dup dropped"; return; }
+      H.seen.add(key); H.uniq.add(key); H.total += p.cases; H.counted++;
+      flash(H.office, "okf"); H.ofNote.textContent = `+${p.cases} · ${CLIN[p.k][0]}`;
+    } else {
+      const c = H.cl[p.k];
+      if (c.unacked[p.seq] != null) { delete c.unacked[p.seq]; c.acked++; }
+    }
+  });
+  // 2. clinics send: resends first, then one new report each
+  H.cl.forEach(c => {
+    if (H.ack) Object.keys(c.unacked).forEach(s => { if (r - c.unacked[s] >= H.timeout) { c.unacked[s] = r; H.resent++; hSend("data", c.k, +s, c.w[s - 1], r); flash(H.clBox[c.k].r, "flash"); } });
+    if (c.next < 12) { c.next++; if (H.ack) c.unacked[c.next] = r; hSend("data", c.k, c.next, c.w[c.next - 1], r); }
+  });
+  const pending = H.cl.some(c => c.next < 12 || (H.ack && Object.keys(c.unacked).length));
+  if (!pending && !H.pk.some(p => !p.lost)) { H.done = true; H.doneAt = performance.now(); H.pk.forEach(p => p.el && p.el.remove()); H.pk = []; }
+}
+function hAdvance(dr) {
+  H.T += dr;
+  while (!H.done && Math.floor(H.T) > H.round) { H.round++; hRound(H.round); }
+}
+function hDrawPackets() {
+  H.pk.forEach(p => {
+    const span = p.t1 - p.t0, f = Math.max(0, Math.min(1, (H.T - p.t0) / span));
+    if (!p.el) {
+      p.el = svgEl("g", { class: "pk" + (p.kind === "ack" ? " ack" : "") }, H.pkG);
+      const w = p.kind === "ack" ? PW + 8 : PW;
+      svgEl("rect", { x: 0, y: -9, width: w, height: 18, rx: 5 }, p.el);
+      const t = svgEl("text", { x: w / 2, y: 4.5, "text-anchor": "middle" }, p.el); t.textContent = p.lab;
+      p.w = w;
+    }
+    let ff = f, op = 1;
+    if (p.lost) {
+      if (f >= p.die) { ff = p.die; p.el.setAttribute("class", "pk lost" + (p.kind === "ack" ? " ack" : "")); op = Math.max(0, 1 - (H.T - (p.t0 + span * p.die)) / 0.8); }
+    }
+    const y = laneY(p.k) + (p.kind === "ack" ? 13 : -8) + p.jit * 0.5;
+    const x = p.kind === "ack" ? (X1 - p.w) - ff * (X1 - X0 - p.w) : X0 + ff * (X1 - X0 - p.w);
+    p.el.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+    p.el.setAttribute("opacity", op.toFixed(2));
+  });
+  H.pk = H.pk.filter(p => { if (p.lost && p.el && +p.el.getAttribute("opacity") <= 0) { p.el.remove(); return false; } return true; });
+}
+function hStats() {
+  H.big.textContent = H.total;
+  $("#h-total").textContent = H.total;
+  const max = TRUTH * 1.6, fill = $("#h-fill");
+  fill.style.width = Math.min(100, H.total / max * 100) + "%";
+  fill.className = "mfill" + (H.done && H.total === TRUTH ? " right" : H.total > TRUTH ? " over" : "");
+  $("#h-truth").style.left = (TRUTH / max * 100) + "%";
+  $("#h-counted").textContent = H.counted + " / 60";
+  $("#h-sent").textContent = H.sent;
+  $("#h-resent").textContent = H.resent;
+  $("#h-lost").textContent = H.lost;
+  $("#h-drop").textContent = H.dropped;
+  H.cl.forEach(c => { H.clBox[c.k].s.textContent = H.ack ? `${c.acked}/12 acked` : `${c.next}/12 sent`; });
+  const st = $("#h-status");
+  if (!H.done) {
+    st.className = "status";
+    st.textContent = `Round ${Math.max(0, H.round)}. ` + (!H.ack && !H.dedup ? "Fire and forget: each report is texted once, and the office adds whatever arrives." : H.ack && !H.dedup ? "Each clinic resends any report whose ACK has not come back within " + H.timeout + " rounds." : !H.ack ? "The office drops repeats, but nobody resends what was lost." : "Resend on timeout, ACK every copy, count each numbered report once.");
+    return;
+  }
+  const missing = 60 - H.uniq.size, extra = H.counted - H.uniq.size, diff = H.total - TRUTH;
+  if (diff === 0) { st.className = "status good"; st.innerHTML = `<b>Exactly right: ${H.total}.</b> At-least-once (resends) plus at-most-once (duplicate suppression) is exactly once. It took ${H.sent} texts for 60 reports.`; return; }
+  st.className = "status bad";
+  let m = `<b>Finished at ${H.total}, ${Math.abs(diff)} ${diff < 0 ? "too low" : "too high"}.</b> `;
+  if (missing) m += `${missing} report${missing > 1 ? "s" : ""} never arrived. `;
+  if (extra) m += `${extra} cop${extra > 1 ? "ies were" : "y was"} counted twice. `;
+  if (!H.ack) m += H.seq ? "Numbers alone change nothing: somebody has to act on them. " : "Turn on ACK and resend. ";
+  else if (!H.dedup) m += "Every report arrived at least once, so now turn on Drop duplicates.";
+  $("#h-status").innerHTML = m;
+}
+function hLoop(ts) {
+  const dt = Math.min(0.05, (ts - (H.last || ts)) / 1000); H.last = ts;
+  if (H.playing && !H.done) hAdvance(dt / ROUND_S);
+  if (H.done && H.playing && performance.now() - H.doneAt > 4500) hReset();
+  hDrawPackets(); hStats();
+  H.raf = H.playing ? requestAnimationFrame(hLoop) : 0;
+  if (!H.raf) H.last = 0;
+}
+function hKick() { if (!H.raf) H.raf = requestAnimationFrame(hLoop); }
+function hInstant() { hReset(); let guard = 0; while (!H.done && guard++ < 400) { H.T = H.round + 1; H.round++; hRound(H.round); } hStats(); }
+function hRestart() {
+  H.loss = +$("#h-loss").value / 100; H.dup = +$("#h-dup").value / 100; H.delay = +$("#h-del").value;
+  $("#h-loss-v").textContent = Math.round(H.loss * 100) + "%"; $("#h-dup-v").textContent = Math.round(H.dup * 100) + "%";
+  $("#h-del-v").textContent = H.delay === 1 ? "1 round, in order" : `1 to ${H.delay} rounds`;
+  $$("#h-toggles button").forEach(b => b.setAttribute("aria-pressed", H[b.dataset.t]));
+  if (H.playing) { hReset(); hKick(); } else hInstant();
+}
+$$("#h-toggles button").forEach(b => b.addEventListener("click", () => {
+  const t = b.dataset.t; H[t] = !H[t];
+  if (t === "seq" && !H.seq) { H.ack = false; H.dedup = false; }
+  if ((t === "ack" || t === "dedup") && H[t]) H.seq = true;
+  hRestart();
+}));
+["h-loss", "h-dup", "h-del"].forEach(id => $("#" + id).addEventListener("change", hRestart));
+["h-loss", "h-dup", "h-del"].forEach(id => $("#" + id).addEventListener("input", () => { $("#h-loss-v").textContent = $("#h-loss").value + "%"; $("#h-dup-v").textContent = $("#h-dup").value + "%"; }));
+$("#h-play").addEventListener("click", () => { H.playing = !H.playing; $("#h-play").textContent = H.playing ? "Pause" : "Play"; if (H.playing && H.done) hReset(); hKick(); });
+$("#h-again").addEventListener("click", () => { if (!H.playing) { H.playing = true; $("#h-play").textContent = "Pause"; } hReset(); hKick(); });
+hStatic();
+let hResizeT = 0;
+addEventListener("resize", () => { clearTimeout(hResizeT); hResizeT = setTimeout(() => { const w = Math.round(Math.max(340, Math.min(480, hsvg.getBoundingClientRect().width))); if (w !== HW) { hStatic(); hStats(); } }, 150); });
+$("#h-play").textContent = H.playing ? "Pause" : "Play";
+hRestart();
+
+/* ---------- Layers ---------- */
+const LAYERS = [
+  { moves: "A frame across one physical hop: the radio link from a clinic phone to the cell tower.", promise: "Nothing beyond the hop. It may detect a damaged frame and drop it.", sms: "The phone's radio getting a text to the nearest tower." },
+  { moves: "Packets, forwarded hop by hop from source to destination across many links.", promise: "Best effort only. A packet may be lost, duplicated, delayed, reordered or (rarely) damaged.", sms: "The SMS network: a text usually arrives, sometimes not, sometimes twice, sometimes out of order." },
+  { moves: "Whatever the application needs, built in the two endpoints from best-effort packets.", promise: "What the application asks for: reliable delivery, ordering, or nothing at all (a video call prefers late frames dropped).", sms: "The clinic app and the office server: sequence numbers, ACKs, resends, duplicate suppression." }
+];
+function layerShow(l) {
+  $$("#layers .layer").forEach(b => b.setAttribute("aria-pressed", +b.dataset.l === l));
+  const L = LAYERS[l];
+  $("#ldetail").innerHTML = `<div><small>Moves</small>${L.moves}</div><div><small>Promises</small>${L.promise}</div><div><small>In SurveilLite</small>${L.sms}</div>`;
+}
+$$("#layers .layer").forEach(b => b.addEventListener("click", () => layerShow(+b.dataset.l)));
+layerShow(1);
+
+/* ---------- Sequence diagram ---------- */
+const XC = 60, XN = 240, XO = 420;
+const SQ = [
+  { note: "Clinic C31 has report 7 for week 7: 13 cases. Press <b>Next step</b>." },
+  { a: [XC, XN, "DATA C31 #7", ""], note: "The clinic texts report 7 and starts a timer. It keeps a copy until an ACK comes back." },
+  { a: [XN, XO, "lost", "lost"], note: "The network loses it. The office never learns that report 7 existed." },
+  { box: [XC, "no ACK: timeout"], note: "The timer runs out with no ACK. The clinic cannot tell a lost report from a lost ACK; either way it sees silence, so it resends." },
+  { a: [XC, XN, "DATA C31 #7 (resend)", ""], note: "Retransmission: the same report, the same sequence number." },
+  { a: [XN, XO, "DATA C31 #7", ""], box: [XO, "count +13"], note: "This copy arrives. The office records (C31, 7) and adds 13 cases." },
+  { a: [XO, XC, "ACK #7", "ack"], note: "The office acknowledges report 7. The clinic stops resending: that is at-least-once delivery." },
+  { a: [XN, XO, "copy of #7", "dup"], box: [XO, "seen: no count"], note: "The network delivers a duplicate of report 7. The office has seen (C31, 7), so it does not count it again: at-most-once." },
+  { a: [XO, XC, "ACK #7 again", "ack"], note: "It still acknowledges the copy, in case the first ACK was lost. Counted once, total correct: exactly once." }
+];
+let sqAt = 0;
+function sqRender() {
+  const svg = $("#sq-svg");
+  let h = `<defs><marker id="sqm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>`;
+  [[XC, "Clinic"], [XN, "Network"], [XO, "Office"]].forEach(([x, n]) => {
+    h += `<rect class="hd" x="${x - 56}" y="6" width="112" height="28" rx="6"/><text class="who" x="${x}" y="25" text-anchor="middle">${n}</text><line class="life" x1="${x}" x2="${x}" y1="34" y2="414"/>`;
+  });
+  let y = 56;
+  for (let i = 1; i <= sqAt; i++) {
+    const s = SQ[i], old = i < sqAt ? " old" : "";
+    if (s.a) {
+      const [x1, x2, lab, cls] = s.a, dir = x2 > x1 ? 1 : -1, xe = cls === "lost" ? (x1 + x2) / 2 : x2 - dir * 2;
+      h += `<g class="${old.trim()}"><line class="ar ${cls}" x1="${x1 + dir * 2}" y1="${y}" x2="${xe}" y2="${y + 22}" marker-end="${cls === "lost" ? "" : "url(#sqm)"}"/>`;
+      if (cls === "lost") { const cx = xe, cy = y + 22; h += `<path d="M${cx - 7},${cy - 7} L${cx + 7},${cy + 7} M${cx + 7},${cy - 7} L${cx - 7},${cy + 7}" stroke="var(--bad)" stroke-width="3"/>`; }
+      h += `<text class="tag-t" x="${(x1 + (cls === "lost" ? xe : x2)) / 2}" y="${y - 4}" text-anchor="middle">${lab}</text></g>`;
+    }
+    if (s.box) {
+      const [x, lab] = s.box, w = lab.length * 8.6 + 16, bx = Math.max(2, Math.min(478 - w, x - w / 2)), by = s.a ? y + 24 : y;
+      h += `<g class="${old.trim()}"><rect class="nt" x="${bx}" y="${by}" width="${w}" height="22" rx="5"/><text class="tag-t" x="${bx + w / 2}" y="${by + 15}" text-anchor="middle">${lab}</text></g>`;
+      y += s.a ? 30 : 8;
+    }
+    y += s.a ? 36 : 36;
+  }
+  svg.innerHTML = h;
+  $("#sq-note").innerHTML = SQ[sqAt].note;
+  $("#sq-step").disabled = sqAt >= SQ.length - 1;
+  $("#sq-step").textContent = sqAt ? `Step ${sqAt} of ${SQ.length - 1}` : "Next step";
+}
+$("#sq-step").addEventListener("click", () => { sqAt = Math.min(SQ.length - 1, sqAt + 1); sqRender(); });
+$("#sq-reset").addEventListener("click", () => { sqAt = 0; sqRender(); });
+sqRender();
+
+/* ---------- Timeout trade-off ---------- */
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const WEEKLY = { "N-CEN": [4, 4, 5, 1, 3, 4, 3, 2, 3, 3, 2, 5], "N-RIV": [1, 1, 3, 2, 2, 0, 2, 1, 2, 0, 2, 2], "N-HIL": [2, 0, 1, 3, 1, 2, 1, 2, 1, 1, 1, 2], "N-LAK": [1, 2, 1, 0, 2, 6, 0, 3, 2, 1, 1, 2], "S-CEN": [2, 5, 4, 5, 2, 9, 1, 3, 4, 0, 1, 5], "S-SAV": [1, 2, 2, 0, 1, 1, 2, 3, 3, 0, 0, 0], "S-COA": [1, 1, 5, 2, 1, 2, 13, 32, 45, 63, 87, 109], "S-HIG": [0, 0, 1, 0, 0, 1, 2, 2, 0, 3, 2, 0] };
+function simReliable(timeout, seed) {
+  const rnd = mulberry(seed), keys = [];
+  Object.keys(WEEKLY).forEach(d => WEEKLY[d].forEach((c, i) => keys.push(d + "|" + (i + 1))));
+  const unacked = new Set(keys), last = {}, seen = new Set();
+  let up = [], down = [], sent = 0, re = 0, dd = 0, now = 0;
+  const send = (q, m) => { if (rnd() < 0.2) return; const n = rnd() < 0.1 ? 2 : 1; for (let i = 0; i < n; i++) q.push([now + 1 + Math.floor(rnd() * 3), m]); };
+  while (unacked.size && now < 3000) {
+    unacked.forEach(k => { if (!(k in last) || now - last[k] >= timeout) { if (k in last) re++; sent++; send(up, k); last[k] = now; } });
+    now++;
+    const ua = up.filter(x => x[0] <= now); up = up.filter(x => x[0] > now);
+    ua.forEach(([, k]) => { send(down, k); if (seen.has(k)) dd++; else seen.add(k); });
+    const da = down.filter(x => x[0] <= now); down = down.filter(x => x[0] > now);
+    da.forEach(([, k]) => unacked.delete(k));
+  }
+  return { sent, re, dd, rounds: now };
+}
+const TO = [];
+for (let t = 1; t <= 14; t++) { const acc = { sent: 0, re: 0, dd: 0, rounds: 0 }; for (let s = 1; s <= 20; s++) { const r = simReliable(t, s * 7919 + t); for (const k in acc) acc[k] += r[k] / 20; } TO.push(acc); }
+function tRender() {
+  const t = +$("#t-to").value, r = TO[t - 1];
+  $("#t-to-v").textContent = t + (t === 1 ? " round" : " rounds");
+  $("#t-tpr").textContent = (r.sent / 96).toFixed(2); $("#t-re").textContent = Math.round(r.re); $("#t-dd").textContent = Math.round(r.dd); $("#t-rd").textContent = Math.round(r.rounds);
+  $("#t-note").textContent = t < 6 ? "Shorter than many round trips: clinics resend reports that were only slow. Totals stay right, but texts are wasted." : t <= 8 ? "About the longest round trip: few wasted resends, and lost reports are noticed reasonably soon." : "Long: almost no wasted texts, but a lost report waits a long time before anyone resends it.";
+  const svg = $("#t-svg"), W = 480, L = 34, R = 470, mid = 90, bw = (R - L) / 14;
+  const maxT = Math.max(...TO.map(x => x.sent / 96)), maxR = Math.max(...TO.map(x => x.rounds));
+  let h = `<text x="${L}" y="12">texts per report</text><text x="${L}" y="${mid + 18}">rounds to finish</text>`;
+  TO.forEach((x, i) => {
+    const on = i === t - 1, X = L + i * bw + 3, w = bw - 6;
+    const h1 = (x.sent / 96) / maxT * 62, h2 = x.rounds / maxR * 62;
+    h += `<rect x="${X}" y="${mid - 6 - h1}" width="${w}" height="${h1}" rx="3" fill="var(--accent)" opacity="${on ? 1 : 0.35}"/>`;
+    h += `<rect x="${X}" y="${172 - h2}" width="${w}" height="${h2}" rx="3" fill="var(--s1)" opacity="${on ? 1 : 0.35}"/>`;
+    h += `<text x="${X + w / 2}" y="186" text-anchor="middle" style="${on ? "fill:var(--ink);font-weight:600" : ""}">${i + 1}</text>`;
+  });
+  svg.innerHTML = h;
+}
+$("#t-to").addEventListener("input", tRender);
+tRender();
+
+/* ---------- Quiz, cards, exercises ---------- */
+const QUIZ = {
+  s1: [
+    { q: "What does the network layer promise about a packet?", o: ["It arrives exactly once", "It arrives in order", "Best effort: it tries, with no guarantee of arrival, order or uniqueness", "It arrives undamaged"], a: 2, why: "The promise is deliberately weak. Stronger guarantees are built where they are needed, in the end-to-end layer." },
+    { q: "Why is the network layer's promise weak on purpose?", o: ["Because strong guarantees are impossible to build", "Because applications need different things, so the network does the common minimum", "To save electricity", "Because SMS is old technology"], a: 1, why: "A weekly report must arrive; a video call prefers late frames dropped. A one-size guarantee in the network would be wrong for some applications." }
+  ],
+  s2: [
+    { q: "With fire and forget, 20% loss and 10% duplication, which way are district totals wrong?", o: ["Always too low", "Always too high", "Either way, leaning low because loss is more common than duplication", "They are right on average, so it does not matter"], a: 2, why: "Losses pull totals down and duplicates push them up. Being right on average is no comfort when one district's outbreak is hidden." }
+  ],
+  s3: [
+    { q: "A clinic sent report 7 and heard nothing before the timeout. What does it know?", o: ["The report was lost", "The ACK was lost", "Nothing certain: the report, or its ACK, was lost or is just slow", "The office is down"], a: 2, why: "Silence looks the same in every case. That is why resending creates duplicates, and why the office must suppress them." },
+    { q: "With sequence numbers, ACKs and resends but no duplicate suppression, the totals are…", o: ["Correct", "Too low", "At or above the truth", "Random"], a: 2, why: "At-least-once means nothing is lost, but channel duplicates and unnecessary resends are counted again." }
+  ],
+  s4: [
+    { q: "The office receives a copy of (C31, 7) it has already counted. What should it do?", o: ["Ignore it silently", "Count it again", "Send an ACK, but do not count it", "Ask the clinic whether it was a resend"], a: 2, why: "The copy may be a resend because the first ACK was lost. Without an ACK, the clinic would keep resending forever." },
+    { q: "Reports for weeks 8 and 7 arrive in that order. What must the office do for correct weekly totals?", o: ["Hold week 8 until week 7 arrives", "Nothing: addition does not care about order", "Reject week 8", "Ask for both again"], a: 1, why: "A sum is the same in any order. Order matters only when one record depends on another, like dose 2 after dose 1." }
+  ],
+  s5: [
+    { q: "What happens if the timeout is much shorter than a typical round trip?", o: ["Totals become wrong", "Clinics resend reports that were only slow, wasting texts; totals stay right", "Fewer texts are sent", "The network loses more"], a: 1, why: "Duplicate suppression keeps the totals right, but every needless resend costs a text." },
+    { q: "Reports and ACKs are each lost 30% of the time. About how many sends does one report need?", o: ["1.3", "About 2", "3", "About 1.1"], a: 1, why: "A send finishes only if both the report and its ACK survive: 0.7 × 0.7 = 0.49. So about 1 / 0.49 ≈ 2 sends per report." }
+  ],
+  s6: [
+    { q: "The office finds a checksum mismatch. What does it do?", o: ["Repairs the digit", "Counts the report anyway", "Drops the message without an ACK, so the clinic's timeout resends it", "Sends a NACK and stops"], a: 2, why: "Detection plus the retransmission already in place equals correction. No new mechanism is needed." },
+    { q: "Why did the sum-of-character-codes checksum miss <code>14</code> becoming <code>41</code>?", o: ["Its modulus is too small", "Addition ignores order, so swapped characters give the same sum", "It only reads letters", "It was computed after the swap"], a: 1, why: "A sum treats the text as a bag of characters. A positional hash weights each position differently, so a swap changes the result." }
+  ],
+  s7: [
+    { q: "Who should compare each clinic's monthly summary with the reports received?", o: ["The SMS gateway, which already does ACKs", "The district office application", "The cell tower", "Nobody, since checksums are enough"], a: 1, why: "Only the endpoint that uses the numbers can know they are right. The gateway cannot see a mistyped count or a row the database dropped." },
+    { q: "Given the end-to-end check, when is a check in a lower layer still worth having?", o: ["Never", "As a performance improvement: catching errors earlier and saving end-to-end retries", "As a replacement for the end-to-end check", "Only for video"], a: 1, why: "Lower-layer checks can help with performance, never with correctness: the end-to-end check is needed anyway." }
+  ],
+  s8: [
+    { q: "Which pair of mechanisms gives exactly-once counting over a best-effort network?", o: ["Checksums and sequence numbers", "Resend on timeout (at-least-once) and duplicate suppression (at-most-once)", "Faster links and bigger buffers", "ACKs alone"], a: 1, why: "At-least-once ensures nothing is lost; at-most-once ensures nothing is counted twice. Both need sequence numbers to name each report." },
+    { q: "A clinic's text arrives with 13 changed to 18 and no checksum is in use. What happens with the full protocol?", o: ["The office detects it and asks for a resend", "It is counted as 18: duplicates are suppressed, damage is not detected", "The ACK is lost", "The gateway fixes it"], a: 1, why: "Sequence numbers and ACKs handle loss and duplication, not damage. A checksum at the endpoints turns damage into a drop and a resend." },
+    { q: "The end-to-end argument applied to the VaxRecords API from module 6: one tablet resends a \"dose given\" after a timeout. Where must the duplicate be caught?", o: ["In the mobile network", "In the VaxRecords service, by recognising the dose's identifier", "In the tablet's radio", "It cannot be caught"], a: 1, why: "Only the service knows what counts as the same dose. It must remember identifiers it has handled, just as the office remembers (clinic, sequence number)." }
+  ]
+};
+const CARDS = [
+  ["The three network layers", "Link (one hop), network (hop by hop, best effort), end-to-end (in the two endpoints, whatever the application needs)."],
+  ["Best effort", "A promise to try to deliver a packet, with no guarantee that it arrives once, in order, or at all."],
+  ["Four ways a best-effort network misbehaves", "Loss, duplication, delay and reordering, and (rarely) damage."],
+  ["Acknowledgement", "A reply telling the sender that a message arrived. The office ACKs every copy."],
+  ["Retransmission", "Sending a message again when no ACK arrives within the timeout."],
+  ["At-least-once", "Every report eventually arrives, achieved by resending until ACKed. The price: duplicates."],
+  ["Duplicate suppression (at-most-once)", "Remember each (clinic, sequence number) counted; ACK repeats but do not count them."],
+  ["Exactly once", "At-least-once plus at-most-once: each report counted once, totals correct."],
+  ["The timeout trade-off", "Too short: needless resends and wasted texts. Too long: lost reports wait before anyone notices."],
+  ["Checksum", "A short value computed from data so a later change can be detected. Mismatch: drop, no ACK, so it is resent."],
+  ["The end-to-end argument", "A function that needs the application's knowledge can be done correctly only at the endpoints; lower-layer checks are only performance aids."]
+];
+
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  exercises: {
+    "ex-dedup": {
+      cases: [
+        { arrivals: [["C31", 7, 13], ["C32", 7, 4], ["C31", 7, 13], ["C31", 8, 32], ["C32", 7, 4]] },
+        { arrivals: [["C31", 1, 5], ["C31", 2, 7], ["C31", 3, 1]] },
+        { arrivals: [["C33", 4, 9], ["C33", 4, 9], ["C33", 4, 9]] },
+        { arrivals: [["C31", 7, 13], ["C32", 7, 13], ["C33", 7, 13]] },
+        { arrivals: [] }
+      ],
+      solution: `class Office:
+    def __init__(self):
+        self.seen = set()
+        self.total = 0
+        self.dropped = 0
+
+    def receive(self, sender, seq, cases):
+        ack = "ACK|" + sender + "|" + str(seq)
+        if (sender, seq) in self.seen:
+            self.dropped += 1
+        else:
+            self.seen.add((sender, seq))
+            self.total += cases
+        return ack
+
+
+arrivals = [["C31", 7, 13], ["C32", 7, 4], ["C31", 7, 13], ["C31", 8, 32], ["C32", 7, 4]]
+office = Office()
+acks = [office.receive(s, q, c) for s, q, c in arrivals]
+print(office.total, office.dropped)
+print(acks)`,
+      hint: ["Use the tuple (sender, seq) as the key: C31 #7 and C32 #7 are different reports.", "Replace the self.total line with: if (sender, seq) in self.seen: add 1 to self.dropped; else: self.seen.add((sender, seq)) and add cases to self.total. Return ack in both cases."]
+    },
+    "ex-checksum": {
+      cases: [
+        "print(add_checksum('DATA|S-COA|7|13'))",
+        "print(verify(add_checksum('DATA|S-COA|7|13')))",
+        "w = add_checksum('DATA|S-COA|7|13')\nprint(verify(w.replace('|13#', '|18#')))",
+        "w = add_checksum('DATA|C31|8|14')\nprint(verify(w.replace('|14#', '|41#')))",
+        "print(verify('DATA|S-COA|7|13'), verify('DATA|S-COA|7|13#12a4'), verify('#'))",
+        "w = add_checksum('ACK|C31|7')\nprint(verify(w[:-1] + str((int(w[-1]) + 1) % 10)))\nprint(verify(add_checksum('A#B')))"
+      ],
+      solution: `def checksum(text):
+    """A stand-in for CRC-32: a polynomial rolling hash."""
+    h = 0
+    for ch in text:
+        h = (h * 31 + ord(ch)) % 1000000007
+    return h
+
+def add_checksum(text):
+    return text + "#" + str(checksum(text))
+
+def verify(wire):
+    text, sep, digits = wire.rpartition("#")
+    if sep == "" or not digits.isdigit():
+        return None
+    if checksum(text) == int(digits):
+        return text
+    return None
+
+
+wire = add_checksum("DATA|S-COA|7|13")
+print(wire)
+print(verify(wire))
+print(verify(wire.replace("|13#", "|18#")))`,
+      hint: ["add_checksum is one line: text + \"#\" + str(checksum(text)).", "In verify: text, sep, digits = wire.rpartition(\"#\"). If sep is empty or not digits.isdigit(), return None. Otherwise return text only when checksum(text) == int(digits)."]
+    },
+    "ex-e2e": {
+      cases: [
+        "print(clinics_with_wrong_totals(records, clinic_totals))",
+        "print(clinics_with_wrong_totals([('C31', 1, 3), ('C31', 2, 4)], {'C31': 7}))",
+        "print(clinics_with_wrong_totals([], {'C35': 0, 'C34': 2}))",
+        "print(clinics_with_wrong_totals([('C33', 1, 5), ('C31', 1, 1)], {'C33': 5, 'C32': 0, 'C31': 2}))",
+        "print(clinics_with_wrong_totals([('C31', 1, 0)], {'C31': 0}))"
+      ],
+      solution: `def clinics_with_wrong_totals(records, clinic_totals):
+    received = {}
+    for clinic_id, week, cases in records:
+        received[clinic_id] = received.get(clinic_id, 0) + cases
+    wrong = []
+    for clinic_id in clinic_totals:
+        if received.get(clinic_id) != clinic_totals[clinic_id]:
+            wrong.append(clinic_id)
+    return sorted(wrong)
+
+
+records = [("C31", 1, 0), ("C31", 2, 14), ("C32", 1, 6), ("C32", 2, 4)]
+clinic_totals = {"C31": 41, "C32": 10, "C33": 0}
+print(clinics_with_wrong_totals(records, clinic_totals))`,
+      hint: ["First loop: received[clinic_id] = received.get(clinic_id, 0) + cases.", "Then a clinic is wrong when received.get(clinic_id) != clinic_totals[clinic_id]. get returns None for a silent clinic, and None != 0, so silence is caught. Return the sorted list."]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

@@ -50,7 +50,7 @@ def build_page(csv_text, disease="cholera"):
         html.append(f"<tr><td>{d.district_name} ({d.region})</td><td>{cases}</td>"
                     f"<td>{rate:.1f}</td><td>{flag}</td></tr>")
     html.append("</table>")
-    # The footer needs the date again, so the format appears a third time.
+    # The footer needs the date again, so the format appears a fourth time.
     html.append(f"<p>Data through {latest.strftime('%Y-%m-%d')}</p>")
     return "\n".join(html)
 

@@ -1,7 +1,7 @@
 ## In one minute
 
 - **Complexity** rarely arrives all at once: SurveilLite starts as one script one person understands, then grows a new data source, a new disease and a second analyst until nobody can describe it in a paragraph.
-- **Propagation of effects**: a small change in one place forces changes far away, as when `dashboard_v0.py` knows the date format in three places and a new upload format breaks all three.
+- **Propagation of effects**: a small change in one place forces changes far away, as when `dashboard_v0.py` knows the date format in four places and a new upload format breaks all of them.
 - **Incommensurate scaling**: parts grow at different rates, so the naive duplicate check in `scaling.py` that compares every pair is instant for one clinic and takes hours for a country.
 - **Modularity**, **abstraction**, **layering** and **hierarchy** are the four techniques for keeping growth under control, for example splitting `build_page()` into `load_reports()`, `compute_incidence()` and `render_page()`.
 - **Design for iteration**: you will not get the design right first time, so make it cheap to change, which is exactly what modularity buys you.
@@ -32,7 +32,7 @@ Version 0 tangles loading, computing and presenting in one function; the modular
 <details markdown="1">
 <summary>What would happen in `dashboard_v0.py` if clinics started uploading dates as "02/03/2026", and why is the modular version easier to fix?</summary>
 
-The date format is hard-coded in three places, so every one of them must be found and changed, and missing one gives a crash or a wrong week. In the modular version only `load_reports()` knows the format, so the fix is a single `date_format` argument.
+The date format is hard-coded in four places, so every one of them must be found and changed, and missing one gives a crash or a wrong week. In the modular version only `load_reports()` knows the format, so the fix is a single `date_format` argument.
 
 </details>
 

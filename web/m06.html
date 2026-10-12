@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Computer System Design, Module 6</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+.qcard { background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.qtop { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.qtop b { color: var(--ink); font-weight: 600; }
+.clock { font-family: var(--mono); font-size: 1.05rem; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 18px; }
+.slider { display: grid; gap: 4px; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.slider span b { color: var(--ink); font-size: 0.95rem; }
+.slider input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
+.qsvg { width: 100%; height: auto; display: block; }
+.qsvg text { font-family: var(--mono); font-size: 15px; fill: var(--muted); }
+.qsvg .area { fill: var(--paper); stroke: var(--rule); stroke-width: 1.5; }
+.qsvg .seat { fill: none; stroke: var(--rule); stroke-width: 1; }
+.qsvg .st { fill: var(--paper); stroke: var(--rule); stroke-width: 1.5; transition: fill .2s, stroke .2s; }
+.qsvg .st.busy { fill: var(--accent-soft); stroke: var(--accent); }
+.qsvg .kid { stroke: var(--sheet); stroke-width: 1.5; }
+.qsvg .kid.wait { fill: var(--s1); }
+.qsvg .kid.serve { fill: var(--accent); }
+.qsvg .kid.leave { fill: var(--ok); }
+.qsvg .door { stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+.qsvg .more { font-size: 15px; font-weight: 600; fill: var(--ink); }
+.spark { width: 100%; height: 56px; display: block; }
+.spark path.l { fill: none; stroke: var(--s1); stroke-width: 2; stroke-linejoin: round; }
+.spark path.a { fill: var(--s1); opacity: .12; }
+.spark line { stroke: var(--rule); }
+.spark text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+.tile { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 8px 12px; display: grid; gap: 2px; min-width: 0; }
+.tile small { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.tile b { font-family: var(--display); font-size: 1.35rem; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.tile.hot { border-color: var(--bad); background: var(--bad-soft); }
+.tile.key { border-color: var(--accent); }
+.law { font-family: var(--mono); font-size: 0.9rem; padding: 10px 12px; border-radius: 8px; background: var(--hl); color: var(--ink); overflow-wrap: anywhere; }
+.bars { display: grid; gap: 8px; }
+.bar-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; font-size: 0.92rem; }
+.bar-row .track { grid-column: 1 / -1; height: 14px; background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; overflow: hidden; }
+.bar-row .fill { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 7px; transition: width .5s ease; }
+.bar-row .fill.net { background: var(--s1); }
+.bar-row .fill.cpu { background: var(--s4); }
+.bar-row .fill.oth { background: var(--muted); }
+.bar-row .fill.tot { background: var(--ink); }
+.bar-row .v { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.choice { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-btn { font: inherit; font-size: 0.88rem; background: var(--paper); color: var(--ink); border: 1.5px solid var(--rule); border-radius: 99px; padding: 5px 12px; cursor: pointer; }
+.chip-btn:hover { border-color: var(--ink); }
+.chip-btn[aria-pressed=true] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.rowgrid { width: 100%; height: auto; display: block; }
+.gantt { width: 100%; height: auto; display: block; }
+.gantt text { font-family: var(--mono); font-size: 12px; fill: var(--muted); }
+.cache-grid { display: grid; grid-template-columns: minmax(70px, auto) repeat(3, minmax(0, 1fr)); gap: 4px; font-family: var(--mono); font-size: 0.78rem; }
+.cache-grid .h { color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.68rem; padding: 4px 2px; }
+.cache-grid .slot { border: 1.5px dashed var(--rule); border-radius: 6px; padding: 4px 6px; text-align: right; min-height: 28px; font-variant-numeric: tabular-nums; transition: background .25s, border-color .25s; }
+.cache-grid .slot.full { border-style: solid; background: var(--paper); }
+.cache-grid .slot.miss { background: var(--accent-soft); border-color: var(--accent); }
+.cache-grid .slot.hit { background: var(--ok-soft); border-color: var(--ok); }
+.cache-grid .slot.stale { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+.dash-line { font-family: var(--mono); font-size: 0.88rem; padding: 10px 12px; border-radius: 8px; background: var(--paper); border: 1px solid var(--rule); }
+.dash-line.bad { background: var(--bad-soft); border-color: var(--bad); }
+.dash-line.good { background: var(--ok-soft); border-color: var(--ok); }
+.calc { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.calc label { display: grid; gap: 4px; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+.calc input { font: inherit; font-size: 1rem; color: var(--ink); background: var(--paper); border: 1.5px solid var(--rule); border-radius: 6px; padding: 6px 8px; width: 100%; min-width: 0; }
+.calc input:disabled { background: var(--hl); color: var(--ink); font-weight: 700; border-color: var(--hl); opacity: 1; }
+</style>
+</head>
+<body data-lesson="m06">
+<div class="shell">
+  <aside class="rail" aria-label="Lesson progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 6</div>
+      <h1>Find the <em>bottleneck</em> first. Everything else is a rounding error.</h1>
+      <p class="lede">Fast systems are made by measuring, not by guessing. This module profiles a slow SurveilLite refresh, fixes it with batching, concurrency and caching, and then uses Little's law to staff a VaxRecords mass vaccination day.</p>
+
+      <div class="qcard" aria-label="Simulated vaccination clinic queue">
+        <div class="qtop">
+          <span>Mass vaccination day · each dose takes <b>2.5 min</b> on average</span>
+          <span style="display:flex;gap:10px;align-items:center"><span class="clock" id="q-clock">08:00</span><button class="btn alt" id="q-play" type="button">Pause</button></span>
+        </div>
+        <div class="sliders">
+          <label class="slider" for="q-lam"><span>Children arriving per hour: <b id="q-lam-v">90</b></span><input id="q-lam" type="range" min="30" max="150" step="6" value="90"></label>
+          <label class="slider" for="q-c"><span>Vaccinators: <b id="q-c-v">4</b></span><input id="q-c" type="range" min="1" max="8" step="1" value="4"></label>
+        </div>
+        <svg class="qsvg" id="q-svg" viewBox="0 0 480 230" role="img" aria-label="Children arriving, waiting, and being vaccinated"></svg>
+        <div class="note" style="font-size:0.8rem;margin-bottom:-10px">Children inside over the day</div>
+        <svg class="spark" id="q-spark" viewBox="0 0 480 56" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div class="tiles">
+          <div class="tile" id="q-t-u"><small>Utilisation</small><b id="q-u">94%</b></div>
+          <div class="tile"><small>Inside now</small><b id="q-now">0</b></div>
+          <div class="tile key"><small>N, counted</small><b id="q-n">0</b></div>
+          <div class="tile key"><small>X × R</small><b id="q-xr">0</b></div>
+          <div class="tile"><small>R, min inside</small><b id="q-r">0</b></div>
+          <div class="tile"><small>Peak inside</small><b id="q-peak">0</b></div>
+        </div>
+        <div class="law" id="q-law" aria-live="polite">Watch the counted average N and the product X × R.</div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>Latency, throughput, overhead and bottleneck; the book's general techniques (batching, concurrency, caching, dallying, speculation); and Little's law.</div>
+        <div><b>You will build</b>A profile reader that finds the bottleneck, a batched writer, a cache that invalidates exactly what changed, and a staffing calculator.</div>
+        <div><b>How it works</b>Guess, then measure. Each technique gets a widget, a cell to predict and run, and a check. The bar fills as you pass them.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="Measure first">
+      <div class="sec-head"><span class="sec-num">01</span><h2>Measure first, then find the bottleneck</h2></div>
+      <p>Four words carry the whole chapter. <b>Latency</b> is how long one request takes, start to finish: the epidemiologist clicking refresh feels latency. <b>Throughput</b> is how many requests finish per unit of time: the district office uploading 40 clinic reports at once cares about throughput. <b>Overhead</b> is work that is not the job itself, such as a network round trip or a disk flush; per item it often dwarfs the item. The <b>bottleneck</b> is the one stage that limits the whole.</p>
+      <p>The book's method is iterative: measure, find the bottleneck, apply one technique, measure again, and stop when the system is fast enough. The SurveilLite refresh in the lab does three things naively. It fetches 40 clinic reports one after another, saves 1,440 report rows to SQLite with a commit after each row, and computes district incidence from scratch 120 times. Before you look at a profile, commit to a guess.</p>
+
+      <div class="panel" id="prof">
+        <div class="panel-head"><span class="tag worked">Worked example</span><span class="note">The lab's cProfile run, on one laptop.</span></div>
+        <p><b>Which stage do you think takes the most time?</b></p>
+        <div class="choice" id="prof-guess">
+          <button class="chip-btn" type="button" data-k="fetch" aria-pressed="false">Fetching 40 reports</button>
+          <button class="chip-btn" type="button" data-k="commit" aria-pressed="false">Saving 1,440 rows</button>
+          <button class="chip-btn" type="button" data-k="inc" aria-pressed="false">120 incidence lookups in pandas</button>
+        </div>
+        <div class="bars" id="prof-bars" hidden></div>
+        <p class="note" id="prof-note"></p>
+        <div class="choice" id="prof-speed" hidden></div>
+      </div>
+
+      <p>Speeding up a stage saves at most the time that stage takes. That is why speeding up anything other than the bottleneck barely moves the total, and why fixing the bottleneck simply moves it somewhere else. Check the arithmetic with the measured numbers.</p>
+      <div class="cell" data-predict="2.75">
+        <div class="predict"><label for="p-s1">Predict the last line:</label><input id="p-s1" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s1" spellcheck="false" aria-label="Python code"># Seconds of tottime measured by cProfile in the lab
+stages = {"fetch 40 clinic reports": 0.81,
+          "1,440 commits to SQLite": 1.91,
+          "120 incidence lookups": 0.29}
+total = sum(stages.values())
+for name in stages:
+    share = stages[name] / total
+    print(f"{name:&lt;26} {stages[name]:5.2f} s  {share:4.0%}")
+print("total", round(total, 2))
+
+# Make the incidence lookups 10 times faster:
+faster = total - stages["120 incidence lookups"] * 0.9
+print(round(faster, 2))</textarea></div>
+      </div>
+      <p class="note"><b>Notice:</b> pandas looks expensive and hardly registers. The commits, which look like one innocent line, cost the most. The profile, not intuition, decides.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Exercise 1 from the lab.</span></div>
+        <p>This is cProfile output from the VaxRecords endpoint that lists every child in a district with their doses. Write <code>bottleneck(profile_text)</code>, which returns <code>(function, tottime)</code> for the row with the largest <code>tottime</code>. <code>function</code> is the last column exactly as printed. Ignore every line before the <code>ncalls</code> header, and rows may have <code>ncalls</code> like <code>2140/12</code>.</p>
+        <div class="cell" id="ex-bottleneck">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-bottleneck" spellcheck="false" aria-label="Python code">PROFILE_OUTPUT = """
+         412958 function calls (409311 primitive calls) in 3.912 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.002    0.002    3.912    3.912 app.py:88(district_children)
+        1    0.031    0.031    3.874    3.874 vax_records.py:52(children_with_doses)
+     2140    0.019    0.000    3.611    0.002 vax_records.py:31(doses_for_child)
+     2141    2.907    0.001    2.907    0.001 {method 'execute' of 'sqlite3.Connection' objects}
+     2140    0.412    0.000    0.598    0.000 {method 'fetchall' of 'sqlite3.Cursor' objects}
+  2140/12    0.071    0.000    0.205    0.017 vax_records.py:19(format_dose)
+    14980    0.104    0.000    0.104    0.000 {built-in method builtins.isinstance}
+        1    0.008    0.008    0.036    0.036 json/encoder.py:183(encode)
+"""
+
+def bottleneck(profile_text):
+    lines = profile_text.splitlines()
+    # 1. find the index of the header line (it starts with "ncalls" after stripping)
+    # 2. split each later line into at most 6 fields: line.split(None, 5)
+    # 3. skip lines with fewer than 6 fields; keep the row with the largest tottime
+    return None
+
+print(bottleneck(PROFILE_OUTPUT))
+</textarea></div>
+        </div>
+        <p class="note">Before you code it, read the table by eye. <code>doses_for_child</code> has a huge <code>cumtime</code> but almost no <code>tottime</code>: it is the caller. <code>execute</code> runs 2,141 times, once per child. That pattern has a name, "N+1 queries", and the next section fixes it.</p>
+      </div>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Batching: pay the overhead once</h2></div>
+      <p>A SQLite <code>commit</code> waits until the disk confirms the data is safe. That wait is a fixed cost per commit, about 1.3 ms on the lab laptop, while the insert itself costs a few microseconds. Committing after every row pays the fixed cost 1,440 times. <b>Batching</b> pays it once for many items: in the lab, one transaction with <code>executemany()</code> saves the same 1,440 rows in 5 ms instead of 2.25 s.</p>
+      <p>Drag the batch size and watch where the time goes. Each colour band in the grid is one transaction; each band ends with one wait for the disk.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><span class="note">1,440 report rows, 1.33 ms per commit, 0.0025 ms per row.</span></div>
+        <label class="slider" for="b-size"><span>Rows per commit: <b id="b-size-v">1</b></span><input id="b-size" type="range" min="0" max="9" step="1" value="0"></label>
+        <svg class="rowgrid" id="b-grid" viewBox="0 0 480 152" role="img" aria-label="1,440 rows grouped into transactions"></svg>
+        <div class="tiles">
+          <div class="tile"><small>Commits</small><b id="b-commits">1440</b></div>
+          <div class="tile key"><small>Total time</small><b id="b-time">0</b></div>
+          <div class="tile"><small>Spent waiting</small><b id="b-wait">0</b></div>
+        </div>
+        <div class="bars"><div class="bar-row"><span>Time relative to one commit per row</span><span class="v" id="b-rel">100%</span><div class="track"><span class="fill" id="b-bar" style="width:100%"></span></div></div></div>
+      </div>
+
+      <div class="cell" data-predict="15">
+        <div class="predict"><label for="p-s2">Predict the last line (commits for batches of 100):</label><input id="p-s2" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s2" spellcheck="false" aria-label="Python code">COMMIT_MS = 1.33     # waiting for the disk to confirm one commit
+ROW_MS = 0.0025      # the insert itself
+ROWS = 1440
+
+def commits_for(rows, batch):
+    return (rows + batch - 1) // batch     # round up: leftovers need a commit too
+
+for batch in [1, 10, 1440]:
+    c = commits_for(ROWS, batch)
+    ms = c * COMMIT_MS + ROWS * ROW_MS
+    print("batch", batch, "->", c, "commits,", round(ms, 1), "ms")
+
+print(commits_for(ROWS, 100))</textarea></div>
+      </div>
+      <p>The same idea fixes the VaxRecords profile from section 1. Instead of one query per child (2,141 queries, 2.9 s), send <b>one</b> query for all the district's doses and group them by child in Python, or use a SQL <code>JOIN</code>. The overhead per query is paid once.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: the loop is written, you add the commits.</span></div>
+        <p>The browser has no SQLite, so <code>FakeDB</code> stands in for it and counts commits (the real lab uses <code>sqlite3</code>). Finish <code>save_batched</code> so it commits once every <code>batch_size</code> rows, and once more for any leftover rows. No row may be left uncommitted, and an empty list needs no commit at all.</p>
+        <div class="cell" id="ex-batch">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-batch" spellcheck="false" aria-label="Python code">class FakeDB:
+    """Stands in for SQLite: each commit waits for the disk."""
+    def __init__(self):
+        self.rows = []         # committed rows
+        self.pending = []      # inserted, not yet committed
+        self.commits = 0
+    def insert(self, row):
+        self.pending.append(row)
+    def commit(self):
+        self.rows.extend(self.pending)
+        self.pending = []
+        self.commits += 1
+
+def save_batched(db, rows, batch_size):
+    for i in range(len(rows)):
+        db.insert(rows[i])
+        # TODO: commit when a batch of batch_size rows is full
+
+    # TODO: commit the leftover rows, if there are any
+
+
+db = FakeDB()
+save_batched(db, list(range(1440)), 100)
+print(len(db.rows), db.commits, len(db.pending))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Concurrency: overlap the waits</h2></div>
+      <p>A fetch from a rural clinic spends nearly all of its 20 ms waiting on the network while the processor sits idle. <b>Concurrency</b> starts several fetches at once so that their waits overlap. It does not make any single fetch faster: latency per fetch is unchanged. It makes the whole set finish sooner: throughput goes up. In the lab, 10 threads fetch the 40 reports in 0.12 s instead of 0.92 s.</p>
+      <p>Drag the number of workers. Each bar is one fetch, always the same length.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><button class="btn alt" id="g-replay" type="button">Replay</button></div>
+        <label class="slider" for="g-w"><span>Workers fetching at once: <b id="g-w-v">1</b></span><input id="g-w" type="range" min="1" max="40" step="1" value="1"></label>
+        <svg class="gantt" id="g-svg" viewBox="0 0 480 210" role="img" aria-label="Timeline of 40 fetches spread over workers"></svg>
+        <div class="tiles">
+          <div class="tile"><small>Each fetch</small><b>20 ms</b></div>
+          <div class="tile key"><small>All 40 done</small><b id="g-total">800 ms</b></div>
+          <div class="tile"><small>Fetches per second</small><b id="g-thr">50</b></div>
+        </div>
+      </div>
+
+      <p>The browser has no threads, so this cell simulates the schedule: each fetch goes to whichever worker is free first, exactly what a thread pool does. The lab uses a real <code>ThreadPoolExecutor</code>.</p>
+      <div class="cell" data-predict="100">
+        <div class="predict"><label for="p-s3">Predict the last line (8 workers, in ms):</label><input id="p-s3" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s3" spellcheck="false" aria-label="Python code">FETCH_MS = 20
+
+def finish_time(n_fetches, workers):
+    free_at = [0] * workers                 # when each worker is next free
+    for i in range(n_fetches):
+        k = free_at.index(min(free_at))     # the first free worker takes it
+        free_at[k] += FETCH_MS              # each fetch still takes 20 ms
+    return max(free_at)
+
+for w in [1, 2, 5, 10, 40]:
+    print(w, "workers:", finish_time(40, w), "ms")
+print(finish_time(40, 8))</textarea></div>
+      </div>
+      <div class="two">
+        <div><span class="eyebrow">Helps</span><h3>Waiting on something else</h3><p>Network round trips, disk reads, a remote service. The processor is idle during the wait, so overlapping waits is nearly free.</p></div>
+        <div><span class="eyebrow">Does not help much</span><h3>Busy computing</h3><p>If the stage is the processor itself, a second worker competes for the same processor. Concurrency also stops helping once the other end (the clinic's server, the disk) is the bottleneck.</p></div>
+      </div>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Caching, and the price of a stale copy</h2></div>
+      <p>A <b>cache</b> keeps a copy of a result close by so you do not compute or fetch it again. It is judged by its <b>hit rate</b>, and it works when requests have locality: a small <b>working set</b> used again and again. The dashboard shows 40 clinics × 3 diseases = 120 incidence figures, but each clinic shows its district's figure, and there are only 8 districts. So the working set is 8 × 3 = 24 values, used 120 times.</p>
+      <p>The price is that a copy can go <b>stale</b>. A cache needs an <b>invalidation</b> rule, or new outbreak reports never reach the page. Build the page, then send a new cholera report from Coastal and build it again, with and without invalidation.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls"><button class="chip-btn" id="c-inv" type="button" aria-pressed="true">Invalidate on new reports: on</button></div>
+        </div>
+        <div class="controls"><button class="btn" id="c-build" type="button">Build the page (120 lookups)</button><button class="btn alt" id="c-new" type="button">New report: Coastal cholera +40</button><button class="btn alt" id="c-reset" type="button">Start over</button></div>
+        <div class="scroll-x"><div class="cache-grid" id="c-grid"></div></div>
+        <div class="tiles">
+          <div class="tile"><small>Hits</small><b id="c-hits">0</b></div>
+          <div class="tile"><small>Misses</small><b id="c-miss">0</b></div>
+          <div class="tile key"><small>Hit rate</small><b id="c-rate">–</b></div>
+        </div>
+        <div class="dash-line" id="c-dash" aria-live="polite">The cache is empty. Build the page.</div>
+      </div>
+
+      <div class="cell" data-predict="0.8">
+        <div class="predict"><label for="p-s4">Predict the hit rate (the last line):</label><input id="p-s4" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s4" spellcheck="false" aria-label="Python code">districts = ["N-CEN", "N-RIV", "N-HIL", "N-LAK", "S-CEN", "S-SAV", "S-COA", "S-HIG"]
+diseases = ["measles", "cholera", "malaria"]
+clinic_district = [d for d in districts for k in range(5)]   # 5 clinics each
+
+cache = {}
+hits = 0
+misses = 0
+for d in clinic_district:              # one page row per clinic and disease
+    for disease in diseases:
+        key = (d, disease)
+        if key in cache:
+            hits += 1
+        else:
+            misses += 1
+            cache[key] = "computed"
+print("lookups:", hits + misses, "hits:", hits, "misses:", misses)
+print(hits / (hits + misses))</textarea></div>
+      </div>
+      <p class="note"><b>Notice:</b> 80% hits, yet the lab's page builds only a little faster with <code>lru_cache</code>. Incidence was never the bottleneck. A brilliant cache on the wrong stage is wasted work, and it adds a staleness bug.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Exercise 2 from the lab, with lists instead of a DataFrame.</span></div>
+        <p>Finish <code>IncidenceCache</code>. <code>incidence</code> must compute each <code>(district, disease)</code> at most once until it changes. <code>add_reports</code> must append the new reports and forget <b>exactly</b> the entries they change: a new cholera report from Riverside must not throw away the cached measles figure for Coastal. The checker counts calls to <code>_compute</code>.</p>
+        <div class="cell" id="ex-cache">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-cache" spellcheck="false" aria-label="Python code">POPULATION = {"N-RIV": 96000, "S-COA": 143000}
+
+class IncidenceCache:
+    def __init__(self, reports, population):
+        self.reports = list(reports)       # (district_id, disease, cases)
+        self.population = population
+        self.computations = 0
+        self._cache = {}                   # (district_id, disease) -> incidence
+
+    def _compute(self, district_id, disease):
+        """The expensive part. Do not change it."""
+        self.computations += 1
+        total = 0
+        for d, dis, cases in self.reports:
+            if d == district_id and dis == disease:
+                total += cases
+        return round(total / self.population[district_id] * 100000, 1)
+
+    def incidence(self, district_id, disease):
+        # TODO: return the cached value, computing it only on a miss
+        return self._compute(district_id, disease)
+
+    def add_reports(self, new_reports):
+        # TODO: append, then invalidate exactly the entries they affect
+        self.reports.extend(new_reports)
+
+
+reports = [("N-RIV", "cholera", 18), ("S-COA", "cholera", 361), ("S-COA", "measles", 15)]
+c = IncidenceCache(reports, POPULATION)
+for i in range(3):
+    print(c.incidence("S-COA", "cholera"), c.incidence("S-COA", "measles"))
+c.add_reports([("S-COA", "cholera", 40)])
+print(c.incidence("S-COA", "cholera"), c.incidence("S-COA", "measles"))
+print("computations:", c.computations)
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="Dallying and speculation">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Dallying and speculation</h2></div>
+      <p>Two more techniques in the book's list play with <i>when</i> work is done, rather than how.</p>
+      <div class="two">
+        <div><span class="eyebrow">Dallying</span><h3>Delay, hoping to batch or skip</h3><p>Write dose records to a buffer and flush every few seconds. Many records share one disk wait, and a record corrected within the window is written once. The cost: a record waits up to one interval, and a crash loses what is still in the buffer.</p></div>
+        <div><span class="eyebrow">Speculation</span><h3>Do it early, betting it will be needed</h3><p>Precompute this week's incidence table as soon as the last clinic reports, before anyone opens the dashboard. The cost: wasted work if nobody looks, or if a late correction arrives.</p></div>
+      </div>
+      <p>Dallying turns a stream of single writes into batches. Dose records arrive at random, about two a second, for one minute, and the buffer is flushed every 5 seconds if it holds anything.</p>
+      <div class="cell" data-predict="12">
+        <div class="predict"><label for="p-s5">Predict the last line (number of flushes):</label><input id="p-s5" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s5" spellcheck="false" aria-label="Python code">import random
+random.seed(3)
+
+arrivals = []
+t = random.expovariate(2)          # about 2 dose records a second
+while t &lt; 60:
+    arrivals.append(t)
+    t += random.expovariate(2)
+
+FLUSH_EVERY = 5
+flushes = 0
+worst_wait = 0
+buffer = []
+i = 0
+for flush_at in range(FLUSH_EVERY, 61, FLUSH_EVERY):
+    while i &lt; len(arrivals) and arrivals[i] &lt;= flush_at:
+        buffer.append(arrivals[i])
+        i += 1
+    if buffer:
+        worst_wait = max(worst_wait, flush_at - buffer[0])
+        flushes += 1               # one disk wait for the whole buffer
+        buffer = []
+print(len(arrivals), "records; worst wait", round(worst_wait, 1), "s")
+print(flushes)</textarea></div>
+      </div>
+      <p>Over a hundred records cost a dozen disk waits, and no record waits more than 5 seconds. Whether 5 seconds is acceptable is a question for the application: fine for a dose register, too slow for an alarm.</p>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Queues and Little's law</h2></div>
+      <p>Every service with a waiting line is a queue: requests at a web server, children at a vaccination clinic. <b>Little's law</b> relates three averages in any stable queue:</p>
+      <div class="callout">N = X × R. The average number inside equals the throughput times the average time each one spends inside.</div>
+      <p>It needs no assumption about how arrivals or service times are distributed, so it is a quick sanity check on any capacity plan. Knowing any two gives the third. The one trap is units: arrivals are usually per hour and times in minutes.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls">
+            <label class="field" for="l-solve">solve for <select id="l-solve"><option value="N">N</option><option value="X">X</option><option value="R">R</option></select></label>
+          </div>
+        </div>
+        <div class="choice" id="l-presets">
+          <button class="chip-btn" type="button" data-p="0" aria-pressed="true">Vaccinators busy</button>
+          <button class="chip-btn" type="button" data-p="1" aria-pressed="false">Seats in the waiting area</button>
+          <button class="chip-btn" type="button" data-p="2" aria-pressed="false">API requests in flight</button>
+        </div>
+        <div class="calc">
+          <label for="l-x">X, arrivals per hour<input id="l-x" type="number" step="any" min="0"></label>
+          <label for="l-r">R, minutes inside<input id="l-r" type="number" step="any" min="0"></label>
+          <label for="l-n">N, average inside<input id="l-n" type="number" step="any" min="0"></label>
+        </div>
+        <div class="law" id="l-work"></div>
+        <p class="note" id="l-note"></p>
+      </div>
+
+      <div class="cell" data-predict="3.75">
+        <div class="predict"><label for="p-s6">Predict the last line (vaccinators busy on average):</label><input id="p-s6" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s6" spellcheck="false" aria-label="Python code">children_per_hour = 90
+minutes_per_dose = 2.5
+
+X = children_per_hour / 60        # per MINUTE, to match R
+R = minutes_per_dose              # a child "inside a vaccinator" stays this long
+print("throughput:", X, "children per minute")
+print(X * R)</textarea></div>
+      </div>
+      <p>Apply the law to the vaccinators alone: 3.75 vaccinators are busy on average. With 4 vaccinators, each is busy 3.75 / 4 = 94% of the time. That fraction is the <b>utilisation</b>. Is 94% a good plan? The next section answers that.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Exercise 3 from the lab.</span></div>
+        <p>Write <code>people_inside(arrivals_per_hour, minutes_inside)</code> using Little's law, then <code>vaccinators_needed(arrivals_per_hour, minutes_per_dose, max_utilisation)</code>: the fewest vaccinators so that each is busy at most <code>max_utilisation</code> of the time.</p>
+        <div class="cell" id="ex-little">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-little" spellcheck="false" aria-label="Python code">import math
+
+def people_inside(arrivals_per_hour, minutes_inside):
+    """Average number inside: N = X x R. Watch the units."""
+    return None
+
+def vaccinators_needed(arrivals_per_hour, minutes_per_dose, max_utilisation=0.8):
+    """Fewest vaccinators so that each is busy at most max_utilisation."""
+    busy = people_inside(arrivals_per_hour, minutes_per_dose)
+    return None
+
+print(people_inside(90, 2.5))
+print(vaccinators_needed(90, 2.5))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="Why utilisation below 1">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Why you plan for utilisation well below 1</h2></div>
+      <p>Little's law tells you the average. It does not tell you how long the line gets. This simulation is the lab's <code>clinic_queue.py</code>: children arrive at random, 90 an hour, each dose takes 2.5 minutes on average, first come first served, for an 8-hour day. It counts the children inside by watching the door (+1 at each arrival, −1 at each departure) and compares that with X × R.</p>
+      <div class="cell" data-limit="12000">
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s7a" spellcheck="false" aria-label="Python code">import random
+
+def simulate(vaccinators, per_hour=90, dose_minutes=2.5, day=480):
+    """Returns (arrive, leave) in minutes for every child."""
+    random.seed(6)
+    free_at = [0.0] * vaccinators       # when each vaccinator is next free
+    visits = []
+    t = 0.0
+    while True:
+        t += random.expovariate(per_hour / 60)       # random arrivals
+        if t > day:
+            break                                    # the doors close
+        k = free_at.index(min(free_at))              # first free vaccinator
+        start = max(t, free_at[k])                   # wait if all are busy
+        free_at[k] = start + random.expovariate(1 / dose_minutes)
+        visits.append((t, free_at[k]))
+    return visits
+
+def count_inside(visits):
+    """Watch the door: +1 at each arrival, -1 at each departure."""
+    events = sorted([(a, 1) for a, l in visits] + [(l, -1) for a, l in visits])
+    inside = 0
+    peak = 0
+    area = 0.0
+    last = 0.0
+    for when, change in events:
+        area += inside * (when - last)
+        last = when
+        inside += change
+        peak = max(peak, inside)
+    return area / last, peak
+
+print("vacc  util  R (min)  N counted  X x R  peak")
+for n in [3, 4, 5, 6, 8]:
+    visits = simulate(n)
+    end = max([l for a, l in visits])
+    X = len(visits) / end                               # children per minute
+    R = sum([l - a for a, l in visits]) / len(visits)   # minutes inside
+    N, peak = count_inside(visits)
+    print(f"{n:&gt;4}  {1.5 * 2.5 / n:&gt;4.0%}  {R:&gt;7.1f}  {N:&gt;9.1f}  {X * R:&gt;5.1f}  {peak:&gt;4}")</textarea></div>
+      </div>
+      <p>Two lessons. First, the counted N matches X × R in every row: Little's law holds whatever the staffing. Over a window that starts and ends empty, the two are the same area counted two ways, which is why the law needs no assumptions. Your browser's random numbers differ from the lab's (the lab prints R = 5.8 minutes for 4 vaccinators), but the shape is the same.</p>
+      <p>Second, look at R. At 47% utilisation a child spends 2.5 minutes inside, the dose and nothing else. At 94%, more than double, and the peak line is long. At 125% (3 vaccinators) the line grows all day and children wait about an hour. Plot it:</p>
+      <div class="cell" data-limit="15000">
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s7b" spellcheck="false" aria-label="Python code">import random
+import pylab
+
+def mean_time_inside(vaccinators, per_hour, dose_minutes=2.5, day=480):
+    random.seed(6)
+    free_at = [0.0] * vaccinators
+    total = 0.0
+    n = 0
+    t = random.expovariate(per_hour / 60)
+    while t &lt;= day:
+        k = free_at.index(min(free_at))
+        start = max(t, free_at[k])
+        free_at[k] = start + random.expovariate(1 / dose_minutes)
+        total += free_at[k] - t
+        n += 1
+        t += random.expovariate(per_hour / 60)
+    return total / n
+
+utils, minutes = [], []
+for per_hour in range(30, 96, 6):             # 4 vaccinators, busier and busier
+    utils.append(per_hour / 60 * 2.5 / 4)
+    minutes.append(mean_time_inside(4, per_hour))
+pylab.plot(utils, minutes, 'ro-', label="4 vaccinators")
+pylab.axhline(2.5, linestyle='--', label="the dose itself")
+pylab.title("Time inside grows fast as utilisation nears 1")
+pylab.xlabel("utilisation")
+pylab.ylabel("minutes inside (R)")
+pylab.legend()
+pylab.show()</textarea></div>
+      </div>
+      <p>This is <code>pylab</code> in a browser subset: <code>plot</code>, <code>axhline</code>, <code>title</code> and friends behave as in matplotlib on these calls, and draw into the output. The curve is flat, then bends sharply upward as utilisation nears 1. Plan for utilisation well below 1, and size the waiting area from N plus room for the peak, not from the arrival rate. Go back to the clinic at the top of the page and try 90 an hour with 3, 4 and 5 vaccinators.</p>
+      <div class="callout" style="font-size:var(--step-0);font-family:var(--body);overflow-wrap:anywhere"><b>Run the full lab.</b> The repository profiles the real slow dashboard with <code>cProfile</code>, fixes it with threads, <code>executemany()</code> and <code>lru_cache</code>, and runs this queue in CPython. Run <code>python lessons/06_performance/slow_dashboard.py</code>, then <code>pytest lessons/06_performance</code>. See <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/06_performance" target="_blank" rel="noopener">lessons/06_performance on GitHub</a>.</div>
+      <div class="quiz" data-quiz="s7"></div>
+    </section>
+
+    <!-- 8 -->
+    <section class="lesson" id="s8" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">08</span><h2>Recall and review</h2></div>
+      <p>Reading something again feels productive but fades fast. Pulling it out of memory is what makes it last. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix ideas from every section. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s8"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through the flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Up next · Module 7</span>
+        <h3>The network as a system component</h3>
+        <p>Clinics text weekly cholera counts over a network that loses, duplicates and reorders messages. You will add sequence numbers, acknowledgements, retransmission and duplicate suppression until the district totals are exactly right, and meet the end-to-end argument.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module. Follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009), Chapter 6. Not affiliated with the authors or MIT. All data is synthetic.</span>
+      <span>Course repository: <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">github.com/Rwunganira/computer_system_design</a>. Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript.</span>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc } = CT;
+const reduced = CT.reduced;
+const NS = "http://www.w3.org/2000/svg";
+const svgEl = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const expo = mean => -Math.log(1 - Math.random()) * mean;
+
+/* ---------- Hero: the clinic queue ---------- */
+const DOSE = 2.5, DAY = 480, SPEED = 12, COLS = 12, ROWS = 8, SEATS = COLS * ROWS;
+const Q = { lam: 90, c: 4, playing: !reduced, raf: 0, last: 0 };
+const qsvg = $("#q-svg");
+function qStatic() {
+  qsvg.innerHTML = "";
+  svgEl("rect", { class: "area", x: 34, y: 22, width: 252, height: 190, rx: 10 }, qsvg);
+  const t1 = svgEl("text", { x: 40, y: 15 }, qsvg); t1.textContent = "waiting area";
+  for (let i = 0; i < SEATS; i++) { const p = seatPos(i); svgEl("circle", { class: "seat", cx: p[0], cy: p[1], r: 6 }, qsvg); }
+  svgEl("line", { class: "door", x1: 34, y1: 104, x2: 34, y2: 132 }, qsvg);
+  const t2 = svgEl("text", { x: 2, y: 150 }, qsvg); t2.textContent = "in";
+  const t3 = svgEl("text", { x: 314, y: 15 }, qsvg); t3.textContent = "vaccinators";
+  const t4 = svgEl("text", { x: 448, y: 150 }, qsvg); t4.textContent = "out";
+  Q.stG = svgEl("g", {}, qsvg);
+  Q.kidG = svgEl("g", {}, qsvg);
+  Q.more = svgEl("text", { class: "more", x: 278, y: 226, "text-anchor": "end" }, qsvg);
+}
+function seatPos(i) { const r = Math.floor(i / COLS), c = COLS - 1 - (i % COLS); return [52 + c * 20, 38 + r * 22]; }
+function stationPos(k) { const gap = 190 / Q.c; return [372, 22 + gap * (k + 0.5)]; }
+function drawStations() {
+  Q.stG.innerHTML = "";
+  const gap = 190 / Q.c, h = Math.min(gap - 6, 40);
+  Q.st.forEach((s, k) => {
+    const y = 22 + gap * (k + 0.5);
+    s.el = svgEl("rect", { class: "st", x: 314, y: y - h / 2, width: 84, height: h, rx: 8 }, Q.stG);
+    const t = svgEl("text", { x: 322, y: y + 4 }, Q.stG); t.textContent = "V" + (k + 1);
+  });
+}
+function newDay() {
+  Q.t = 0; Q.area = 0; Q.lastT = 0; Q.done = 0; Q.sumR = 0; Q.peak = 0; Q.hist = [0]; Q.queue = []; Q.over = false;
+  Q.kids = []; if (Q.kidG) Q.kidG.innerHTML = "";
+  Q.st = Array.from({ length: Q.c }, () => ({ kid: null, end: Infinity, el: null }));
+  Q.nextArr = expo(60 / Q.lam);
+  drawStations();
+}
+function inside() { return Q.queue.length + Q.st.filter(s => s.kid).length; }
+function addKid(kid) {
+  kid.el = svgEl("circle", { class: "kid wait", r: 6, cx: kid.x, cy: kid.y }, Q.kidG);
+  Q.kids.push(kid);
+}
+function startService() {
+  Q.st.forEach((s, k) => {
+    if (!s.kid && Q.queue.length) {
+      const kid = Q.queue.shift(); s.kid = kid; s.end = Q.t + expo(DOSE);
+      kid.state = "serve"; const p = stationPos(k); kid.tx = p[0] + 6; kid.ty = p[1];
+    }
+  });
+  Q.queue.forEach((kid, i) => { if (i < SEATS) { const p = seatPos(i); kid.tx = p[0]; kid.ty = p[1]; kid.hidden = false; } else kid.hidden = true; });
+}
+function advance(dm) {
+  const target = Math.min(Q.t + dm, DAY);
+  while (true) {
+    let k = -1, e = Q.nextArr;
+    Q.st.forEach((s, i) => { if (s.end < e) { e = s.end; k = i; } });
+    if (e > target) break;
+    Q.area += inside() * (e - Q.lastT); Q.lastT = e; Q.t = e;
+    if (k < 0) {
+      addKid({ arr: e, x: 20, y: 118, tx: 20, ty: 118, state: "wait" });
+      Q.queue.push(Q.kids[Q.kids.length - 1]);
+      Q.nextArr = e + expo(60 / Q.lam);
+    } else {
+      const s = Q.st[k], kid = s.kid;
+      kid.state = "leave"; kid.tx = 470; kid.ty = 118; kid.gone = 0;
+      Q.done++; Q.sumR += e - kid.arr; s.kid = null; s.end = Infinity;
+    }
+    startService();
+    Q.peak = Math.max(Q.peak, inside());
+  }
+  Q.area += inside() * (target - Q.lastT); Q.lastT = target; Q.t = target;
+  while (Q.hist.length * 2 <= Q.t) Q.hist.push(inside());
+  if (Q.t >= DAY && !Q.over) { Q.over = true; Q.overAt = performance.now(); }
+}
+function drawKids(dt) {
+  const f = reduced ? 1 : 1 - Math.pow(0.0005, dt);
+  Q.kids = Q.kids.filter(kid => {
+    kid.x += (kid.tx - kid.x) * f; kid.y += (kid.ty - kid.y) * f;
+    if (kid.state === "leave") { kid.gone += dt; if (kid.gone > 0.9 || reduced) { kid.el.remove(); return false; } kid.el.setAttribute("opacity", Math.max(0, 1 - kid.gone / 0.9).toFixed(2)); }
+    kid.el.setAttribute("cx", kid.x.toFixed(1)); kid.el.setAttribute("cy", kid.y.toFixed(1));
+    kid.el.setAttribute("class", "kid " + kid.state);
+    kid.el.style.display = kid.hidden ? "none" : "";
+    return true;
+  });
+  Q.st.forEach(s => s.el && s.el.classList.toggle("busy", !!s.kid));
+  const extra = Q.queue.length - SEATS;
+  Q.more.textContent = extra > 0 ? `+${extra} more waiting` : "";
+}
+const fmt1 = v => (isFinite(v) ? v.toFixed(1) : "–");
+function drawStats() {
+  const hh = 8 + Math.floor(Q.t / 60), mm = Math.floor(Q.t % 60);
+  $("#q-clock").textContent = Q.over ? "17:00 · closed" : `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  const u = Q.lam / 60 * DOSE / Q.c;
+  $("#q-u").textContent = Math.round(u * 100) + "%";
+  $("#q-t-u").classList.toggle("hot", u >= 0.9);
+  $("#q-now").textContent = inside();
+  const N = Q.t > 0 ? Q.area / Q.t : 0, X = Q.t > 0 ? Q.done / Q.t : 0, R = Q.done ? Q.sumR / Q.done : NaN;
+  $("#q-n").textContent = fmt1(N);
+  $("#q-xr").textContent = Q.done ? fmt1(X * R) : "–";
+  $("#q-r").textContent = fmt1(R);
+  $("#q-peak").textContent = Q.peak;
+  let msg = `N = X × R: ${fmt1(N)} ≈ ${(X * 60).toFixed(0)} per hour × ${fmt1(R)} min = ${(X).toFixed(2)}/min × ${fmt1(R)} min. `;
+  if (!Q.done) msg = "Children are arriving. Little's law needs some to leave before it can be checked. ";
+  if (u >= 1) msg += "Utilisation is above 100%: the line grows all day, so N never settles, and X × R (which only counts children who have left) falls behind.";
+  else if (u >= 0.85) msg += "Near 100%: the clinic keeps up on average, but the line swings long at busy moments.";
+  else msg += "Comfortable: most children walk straight to a free vaccinator.";
+  $("#q-law").textContent = msg;
+  // sparkline
+  const sp = $("#q-spark"), max = Math.max(10, ...Q.hist), W = 480, H = 56, sx = i => i * 2 * W / DAY, sy = v => H - 6 - v / max * (H - 16);
+  let d = ""; Q.hist.forEach((v, i) => { d += (i ? "L" : "M") + sx(i).toFixed(1) + "," + sy(v).toFixed(1); });
+  const last = sx(Q.hist.length - 1).toFixed(1);
+  sp.innerHTML = `<line x1="0" x2="${W}" y1="${H - 6}" y2="${H - 6}"/><path class="a" d="${d}L${last},${H - 6}L0,${H - 6}Z"/><path class="l" d="${d}"/>`;
+}
+function loop(ts) {
+  const dt = Math.min(0.05, (ts - (Q.last || ts)) / 1000); Q.last = ts;
+  if (Q.playing && !Q.over) advance(dt * SPEED);
+  if (Q.over && performance.now() - Q.overAt > 3000 && Q.playing) newDay();
+  drawKids(dt); drawStats();
+  Q.raf = (Q.playing || Q.kids.some(k => Math.abs(k.tx - k.x) > 0.5 || k.state === "leave")) ? requestAnimationFrame(loop) : 0;
+  if (!Q.raf) Q.last = 0;
+}
+function kick() { if (!Q.raf) Q.raf = requestAnimationFrame(loop); }
+function qRestart() {
+  Q.lam = +$("#q-lam").value; Q.c = +$("#q-c").value;
+  $("#q-lam-v").textContent = Q.lam; $("#q-c-v").textContent = Q.c;
+  newDay();
+  if (!Q.playing) { advance(240); drawKids(1); }
+  drawStats(); kick();
+}
+$("#q-play").addEventListener("click", () => { Q.playing = !Q.playing; $("#q-play").textContent = Q.playing ? "Pause" : "Play"; if (Q.playing && Q.over) newDay(); kick(); });
+$("#q-lam").addEventListener("input", qRestart);
+$("#q-c").addEventListener("input", qRestart);
+qStatic();
+$("#q-play").textContent = Q.playing ? "Pause" : "Play";
+qRestart();
+
+/* ---------- Profile: guess, then measure ---------- */
+const STAGES = [
+  { k: "commit", name: "1,440 commits to SQLite (waiting for the disk)", s: 1.91, cls: "" },
+  { k: "fetch", name: "40 fetches (waiting on the network)", s: 0.81, cls: "net" },
+  { k: "inc", name: "120 incidence lookups (pandas, computing)", s: 0.29, cls: "cpu" },
+  { k: "other", name: "everything else", s: 0.30, cls: "oth" }
+];
+const prof = { guess: null, fast: null };
+function profRender() {
+  const total = STAGES.reduce((a, s) => a + (s.k === prof.fast ? s.s / 10 : s.s), 0), base = 3.31;
+  $("#prof-bars").innerHTML = STAGES.map(s => { const v = s.k === prof.fast ? s.s / 10 : s.s; return `<div class="bar-row"><span>${s.name}${s.k === prof.fast ? " <b>×10 faster</b>" : ""}</span><span class="v">${v.toFixed(2)} s</span><div class="track"><span class="fill ${s.cls}" style="width:${v / base * 100}%"></span></div></div>`; }).join("")
+    + `<div class="bar-row"><span><b>Whole refresh</b></span><span class="v">${total.toFixed(2)} s</span><div class="track"><span class="fill tot" style="width:${total / base * 100}%"></span></div></div>`;
+  const speeds = STAGES.filter(s => s.k !== "other");
+  $("#prof-speed").innerHTML = `<span class="note" style="flex-basis:100%">Now make one stage 10 times faster:</span>` + speeds.map(s => `<button class="chip-btn" type="button" data-k="${s.k}" aria-pressed="${prof.fast === s.k}">${s.k === "commit" ? "the commits" : s.k === "fetch" ? "the fetches" : "the lookups"}</button>`).join("");
+  $$("#prof-speed button").forEach(b => b.addEventListener("click", () => { prof.fast = prof.fast === b.dataset.k ? null : b.dataset.k; profRender(); }));
+  let note = prof.guess === "commit" ? "<b>You guessed right.</b> The commits take 1.9 of 3.3 seconds. " : `<b>Most people guess that.</b> The profile says the commits take 1.9 of 3.3 seconds, more than everything else together. `;
+  if (prof.fast) { const saved = base - total; note = `Saved ${saved.toFixed(2)} s of ${base.toFixed(2)} s (${Math.round(saved / base * 100)}%). ` + (prof.fast === "commit" ? "Fixing the bottleneck pays, and now the fetches are the bottleneck." : "Barely moved: this was not the bottleneck."); }
+  $("#prof-note").innerHTML = note;
+}
+$$("#prof-guess button").forEach(b => b.addEventListener("click", () => {
+  prof.guess = b.dataset.k; $$("#prof-guess button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  $("#prof-bars").hidden = false; $("#prof-speed").hidden = false; profRender();
+}));
+
+/* ---------- Batching ---------- */
+const BATCHES = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1440];
+const bGrid = $("#b-grid");
+(function () {
+  let h = "";
+  for (let i = 0; i < 1440; i++) { const c = i % 60, r = Math.floor(i / 60); h += `<rect x="${c * 8}" y="${r * 6.3}" width="7" height="5.4" rx="1"/>`; }
+  bGrid.innerHTML = h;
+})();
+function bRender() {
+  const b = BATCHES[+$("#b-size").value], commits = Math.ceil(1440 / b), wait = commits * 1.33, ms = wait + 1440 * 0.0025, slow = 1440 * 1.33 + 1440 * 0.0025;
+  $("#b-size-v").textContent = b.toLocaleString();
+  $("#b-commits").textContent = commits.toLocaleString();
+  $("#b-time").textContent = ms >= 100 ? (ms / 1000).toFixed(2) + " s" : ms.toFixed(1) + " ms";
+  $("#b-wait").textContent = Math.round(wait / ms * 100) + "%";
+  $("#b-rel").textContent = (ms / slow * 100).toFixed(ms / slow < 0.01 ? 2 : 0) + "%";
+  $("#b-bar").style.width = Math.max(0.4, ms / slow * 100) + "%";
+  const rects = bGrid.children;
+  for (let i = 0; i < 1440; i++) { const k = Math.floor(i / b); rects[i].setAttribute("fill", b === 1 ? (i % 2 ? "var(--accent)" : "var(--s1)") : (k % 2 ? "var(--accent)" : "var(--s1)")); rects[i].setAttribute("opacity", b === 1440 ? "0.9" : "0.85"); }
+}
+$("#b-size").addEventListener("input", bRender);
+bRender();
+
+/* ---------- Concurrency gantt ---------- */
+const gsvg = $("#g-svg");
+let gAnim = 0;
+function gRender(animate) {
+  const w = +$("#g-w").value, total = Math.ceil(40 / w) * 20;
+  $("#g-w-v").textContent = w; $("#g-total").textContent = total + " ms"; $("#g-thr").textContent = Math.round(40 / total * 1000);
+  const L = 8, R = 472, T = 8, B = 180, sx = ms => L + ms / 800 * (R - L), lane = (B - T) / w;
+  let h = `<line x1="${L}" x2="${R}" y1="${B + 4}" y2="${B + 4}" stroke="var(--rule)"/>`;
+  [0, 200, 400, 600, 800].forEach(v => { h += `<text x="${sx(v)}" y="${B + 20}" text-anchor="${v === 0 ? "start" : v === 800 ? "end" : "middle"}">${v} ms</text>`; });
+  for (let i = 0; i < 40; i++) {
+    const lw = i % w, round = Math.floor(i / w), y = T + lw * lane, hh = Math.max(1.5, lane - (lane > 6 ? 2 : 0.6));
+    h += `<rect class="gb" data-s="${round * 20}" x="${sx(round * 20) + 0.5}" y="${y}" width="${sx(20) - sx(0) - 1}" height="${hh}" rx="${Math.min(3, hh / 2)}" fill="var(--s1)"/>`;
+  }
+  h += `<line id="g-now" x1="${L}" x2="${L}" y1="${T - 4}" y2="${B + 4}" stroke="var(--accent)" stroke-width="2"/>`;
+  h += `<line x1="${sx(total)}" x2="${sx(total)}" y1="${T - 4}" y2="${B + 4}" stroke="var(--ink)" stroke-dasharray="4 3"/>`;
+  gsvg.innerHTML = h;
+  cancelAnimationFrame(gAnim);
+  const now = $("#g-now", gsvg), bars = $$(".gb", gsvg);
+  const paint = ms => { now.setAttribute("x1", sx(ms)); now.setAttribute("x2", sx(ms)); bars.forEach(b => b.setAttribute("opacity", +b.dataset.s < ms ? "1" : "0.18")); };
+  if (!animate || reduced) { paint(total); return; }
+  const t0 = performance.now(), dur = 1400 * total / 800 + 200;
+  const step = ts => { const ms = Math.min(total, (ts - t0) / dur * total); paint(ms); if (ms < total) gAnim = requestAnimationFrame(step); };
+  gAnim = requestAnimationFrame(step);
+}
+$("#g-w").addEventListener("input", () => gRender(false));
+$("#g-w").addEventListener("change", () => gRender(true));
+$("#g-replay").addEventListener("click", () => gRender(true));
+gRender(false);
+
+/* ---------- Cache ---------- */
+const DIST = [["N-CEN", 182000], ["N-RIV", 96000], ["N-HIL", 74000], ["N-LAK", 121000], ["S-CEN", 205000], ["S-SAV", 88000], ["S-COA", 143000], ["S-HIG", 67000]];
+const DIS = ["measles", "cholera", "malaria"];
+const BASE = { "N-CEN": [15, 39, 838], "N-RIV": [1, 18, 467], "N-HIL": [3, 17, 342], "N-LAK": [10, 21, 582], "S-CEN": [26, 41, 1007], "S-SAV": [6, 15, 444], "S-COA": [15, 361, 716], "S-HIG": [4, 11, 297] };
+const C = { inv: true, cases: null, cache: {}, hits: 0, miss: 0, busy: false, extra: 0 };
+const inc = (d, j) => C.cases[d][j] / DIST.find(x => x[0] === d)[1] * 1e5;
+function cReset() { C.cases = JSON.parse(JSON.stringify(BASE)); C.cache = {}; C.hits = 0; C.miss = 0; C.extra = 0; cDraw(); $("#c-dash").className = "dash-line"; $("#c-dash").textContent = "The cache is empty. Build the page."; }
+function cDraw(flash) {
+  let h = `<div class="h"></div>` + DIS.map(x => `<div class="h">${x}</div>`).join("");
+  DIST.forEach(([d]) => {
+    h += `<div class="h">${d}</div>`;
+    DIS.forEach((x, j) => {
+      const key = d + "|" + j, v = C.cache[key];
+      const stale = v != null && Math.abs(v - inc(d, j)) > 0.01;
+      const cls = flash && flash.key === key ? flash.cls : v == null ? "" : stale ? "full stale" : "full";
+      h += `<div class="slot ${cls}" data-key="${key}">${v == null ? "" : v.toFixed(1)}</div>`;
+    });
+  });
+  $("#c-grid").innerHTML = h;
+  $("#c-hits").textContent = C.hits; $("#c-miss").textContent = C.miss;
+  $("#c-rate").textContent = C.hits + C.miss ? Math.round(C.hits / (C.hits + C.miss) * 100) + "%" : "–";
+}
+async function cBuild() {
+  if (C.busy) return; C.busy = true; C.hits = 0; C.miss = 0;
+  const order = []; DIST.forEach(([d]) => { for (let k = 0; k < 5; k++) DIS.forEach((x, j) => order.push([d, j])); });
+  for (let i = 0; i < order.length; i++) {
+    const [d, j] = order[i], key = d + "|" + j, hit = key in C.cache;
+    if (hit) C.hits++; else { C.miss++; C.cache[key] = inc(d, j); }
+    if (!reduced && i % 2 === 0) { cDraw({ key, cls: hit ? "full hit" : "full miss" }); await new Promise(r => setTimeout(r, 22)); }
+  }
+  cDraw(); C.busy = false;
+  const shown = C.cache["S-COA|1"], truth = inc("S-COA", 1), dash = $("#c-dash");
+  if (Math.abs(shown - truth) > 0.01) { dash.className = "dash-line bad"; dash.innerHTML = `Dashboard shows Coastal cholera <b>${shown.toFixed(1)}</b> per 100,000. The truth is <b>${truth.toFixed(1)}</b>. A stale cache is hiding a rising outbreak.`; }
+  else { dash.className = "dash-line good"; dash.innerHTML = `Dashboard shows Coastal cholera <b>${shown.toFixed(1)}</b> per 100,000, which is correct. ${C.miss} computed, ${C.hits} reused.`; }
+}
+$("#c-build").addEventListener("click", cBuild);
+$("#c-new").addEventListener("click", () => {
+  if (C.busy) return;
+  C.cases["S-COA"][1] += 40; C.extra += 40;
+  if (C.inv) delete C.cache["S-COA|1"];
+  cDraw();
+  const dash = $("#c-dash"); dash.className = "dash-line";
+  dash.innerHTML = C.inv ? `A new report adds 40 cholera cases in Coastal (now ${C.cases["S-COA"][1]}). Only the Coastal cholera entry is forgotten; the other 23 stay. Build the page again.` : `A new report adds 40 cholera cases in Coastal (now ${C.cases["S-COA"][1]}), but nothing tells the cache. The red slot is now stale. Build the page again.`;
+});
+$("#c-inv").addEventListener("click", () => { C.inv = !C.inv; const b = $("#c-inv"); b.setAttribute("aria-pressed", C.inv); b.textContent = "Invalidate on new reports: " + (C.inv ? "on" : "off"); });
+$("#c-reset").addEventListener("click", () => { if (!C.busy) cReset(); });
+cReset();
+
+/* ---------- Little's law calculator ---------- */
+const PRESETS = [
+  { x: 90, r: 2.5, note: "A child is \"inside a vaccinator\" for the 2.5-minute dose. So N is the number of vaccinators busy on average: 3.75. Four vaccinators would each be 94% busy." },
+  { x: 90, r: 5.8, note: "In the lab's simulation with 4 vaccinators, a child spends 5.8 minutes inside (dose plus waiting). So about 8.7 children are inside on average: seats for the average, plus room for the peak." },
+  { x: 144000, r: 0.004, note: "The same law for VaxRecords: 40 requests a second is 144,000 an hour; 240 ms each is 0.004 minutes. About 9.6 requests are in flight at once, which sizes the worker pool." }
+];
+let lp = 0;
+function lRender(fromPreset) {
+  const solve = $("#l-solve").value;
+  if (fromPreset) { const p = PRESETS[lp]; $("#l-x").value = p.x; $("#l-r").value = p.r; $("#l-n").value = +(p.x / 60 * p.r).toFixed(4); $("#l-note").textContent = p.note; }
+  ["x", "r", "n"].forEach(k => { $("#l-" + k).disabled = k.toUpperCase() === solve; });
+  let X = +$("#l-x").value, R = +$("#l-r").value, N = +$("#l-n").value, line;
+  if (solve === "N") { N = X / 60 * R; $("#l-n").value = +N.toFixed(4); line = `N = (${X} per hour ÷ 60) × ${R} min = ${+(X / 60).toFixed(4)} per min × ${R} min = ${+N.toFixed(3)}`; }
+  else if (solve === "X") { X = R > 0 ? N / R * 60 : NaN; $("#l-x").value = +X.toFixed(3); line = `X = N ÷ R = ${N} ÷ ${R} min = ${+(N / R).toFixed(4)} per min = ${+X.toFixed(2)} per hour`; }
+  else { R = X > 0 ? N / (X / 60) : NaN; $("#l-r").value = +R.toFixed(4); line = `R = N ÷ X = ${N} ÷ (${X} ÷ 60 per min) = ${+R.toFixed(3)} min`; }
+  $("#l-work").textContent = line;
+}
+$$("#l-presets button").forEach(b => b.addEventListener("click", () => { lp = +b.dataset.p; $$("#l-presets button").forEach(x => x.setAttribute("aria-pressed", x === b)); $("#l-solve").value = "N"; lRender(true); }));
+$("#l-solve").addEventListener("change", () => lRender(false));
+["x", "r", "n"].forEach(k => $("#l-" + k).addEventListener("input", () => lRender(false)));
+lRender(true);
+
+/* ---------- Quiz, cards, exercises ---------- */
+const QUIZ = {
+  s1: [
+    { q: "A refresh takes 3.3 s: 1.9 s of commits, 0.8 s of network waits, 0.3 s computing incidence, 0.3 s other. You make the incidence code 100 times faster. About how long does the refresh take now?", o: ["About 0.03 s", "About 3.0 s", "About 1.6 s", "About 0.3 s"], a: 1, why: "You can save at most the 0.3 s that stage takes, so the total drops from 3.3 to about 3.0 s. The bottleneck (the commits) is untouched." },
+    { q: "The district office uploads 40 clinic reports at once and wants all of them stored within a minute. Which measure is it asking about?", o: ["Latency of one upload", "Throughput", "Overhead", "Hit rate"], a: 1, why: "Requests finished per unit of time is throughput. A single user waiting for one click to finish feels latency." },
+    { q: "In a cProfile table, <code>doses_for_child</code> has cumtime 3.6 s and tottime 0.02 s. What does that tell you?", o: ["It is the bottleneck: rewrite its body", "Almost all of its time is spent in functions it calls", "The profiler is broken", "It is called only once"], a: 1, why: "tottime is time inside the function itself; cumtime includes what it calls. A big gap means the cost is in its callees, here the 2,141 calls to execute()." }
+  ],
+  s2: [
+    { q: "Why does one transaction for 1,440 rows take 5 ms when 1,440 commits take 2.25 s?", o: ["executemany uses a faster insert algorithm", "The fixed wait for the disk is paid once instead of 1,440 times", "Batched rows are compressed", "Fewer rows end up in the table"], a: 1, why: "The inserts were always cheap. The cost was per-commit overhead: waiting for the disk to confirm. Batching shares that overhead across all rows." },
+    { q: "A VaxRecords endpoint runs one SQL query per child: 2,141 queries for one district. Which fix applies the same technique?", o: ["Add more threads", "Cache each child's doses forever", "One query for all the district's doses, grouped by child in Python", "Buy a faster disk"], a: 2, why: "This is the N+1 query pattern. One query pays the per-query overhead once; grouping in Python (or a JOIN) is cheap." }
+  ],
+  s3: [
+    { q: "Fetching 40 reports with 10 workers instead of 1. What happens to the latency of a single fetch?", o: ["It drops to 2 ms", "It stays about 20 ms", "It rises to 200 ms", "It drops to 0.5 ms"], a: 1, why: "Concurrency overlaps waits; it does not shorten them. Each fetch still waits 20 ms on the network. The set of 40 finishes about 10 times sooner." },
+    { q: "Which stage would gain least from running more workers at once?", o: ["Fetching reports from 40 remote clinics", "Reading files from a slow network disk", "Computing incidence in Python on one busy processor", "Calling a remote lab-results service"], a: 2, why: "The other three are waiting on something else, so overlapping waits is nearly free. A stage that is busy computing competes for the same processor." }
+  ],
+  s4: [
+    { q: "The page shows each district once (8 districts × 3 diseases = 24 lookups) instead of each clinic. What hit rate does a fresh cache get?", o: ["80%", "96%", "0%", "50%"], a: 2, why: "Every one of the 24 lookups is the first use of its key, so every lookup misses. Caching pays only when the same item is used again." },
+    { q: "A new cholera report arrives from Coastal, but the incidence cache is never invalidated. What is the danger?", o: ["The page gets slower", "The cache fills up and crashes", "The dashboard keeps showing the old, lower incidence, hiding a rising outbreak", "Nothing, because caches always stay correct"], a: 2, why: "A cache is a copy. Without an invalidation rule the copy goes stale, and here stale means a missed outbreak signal." }
+  ],
+  s5: [
+    { q: "SurveilLite computes this week's incidence table as soon as the last clinic reports, before anyone opens the dashboard. Which technique is that?", o: ["Dallying", "Batching", "Speculation", "Caching"], a: 2, why: "Doing work before it is asked for, betting it will be needed, is speculation. Its cost is wasted work if nobody looks or a late correction arrives." },
+    { q: "VaxRecords buffers dose records and flushes them every 5 seconds. What new risk does this dallying add?", o: ["Records may be written twice", "A crash loses records still in the buffer, and each record is delayed up to 5 s", "The disk wears out faster", "Records arrive out of order"], a: 1, why: "Delay is the price of dallying. Whatever sits in the buffer is not yet durable, so the application must decide whether that is acceptable." }
+  ],
+  s6: [
+    { q: "A clinic sees 120 children an hour and each spends 15 minutes inside. On average how many are inside?", o: ["1,800", "8", "30", "120"], a: 2, why: "Convert to per minute first: 120 / 60 = 2 per minute. N = 2 × 15 = 30. Multiplying 120 by 15 mixes hours and minutes." },
+    { q: "What does Little's law assume about arrivals and service times?", o: ["Arrivals are Poisson", "Service times are exponential", "Nothing about their distributions, only that the system is stable", "That there is one server"], a: 2, why: "The law relates averages in any stable system. That generality is what makes it a quick sanity check on any capacity plan." }
+  ],
+  s7: [
+    { q: "90 children an hour, 2.5 minutes each. Why is 4 vaccinators risky even though only 3.75 are busy on average?", o: ["Little's law does not apply to clinics", "At 94% utilisation, random bursts build long lines that take a long time to clear", "Vaccinators get tired", "4 is less than 3.75"], a: 1, why: "As utilisation approaches 1 there is almost no spare capacity to drain a burst, so waiting time and the peak line grow very fast." },
+    { q: "With 3 vaccinators (125% utilisation), what happens over the day?", o: ["Waits are long but steady", "The line grows all day; children end up waiting about an hour", "The clinic keeps up because arrivals are random", "Little's law predicts 3 children inside"], a: 1, why: "More work arrives than can be done, so the queue has no steady state and grows until the doors close." }
+  ],
+  s8: [
+    { q: "You have one afternoon to speed up a slow SurveilLite page. What do you do first?", o: ["Add caching everywhere", "Rewrite the pandas code", "Profile it to find the bottleneck", "Add threads"], a: 2, why: "The bottleneck is rarely where you guess. In the lab, pandas looked expensive and hardly registered; the commits did." },
+    { q: "Match the problem to the technique: 1,440 commits, 40 network waits, 120 repeated computations.", o: ["Caching, batching, concurrency", "Batching, concurrency, caching", "Concurrency, caching, batching", "Batching, caching, concurrency"], a: 1, why: "Per-item overhead calls for batching, waits call for concurrency (overlap), repeated work calls for caching." },
+    { q: "An API handles 50 requests a second and each takes 200 ms. How many requests are in flight on average?", o: ["10", "250", "0.25", "4"], a: 0, why: "Little's law with matching units: 50 per second × 0.2 seconds = 10." }
+  ]
+};
+const CARDS = [
+  ["Latency vs throughput", "Latency: how long one request takes. Throughput: how many requests finish per unit of time."],
+  ["Bottleneck", "The one stage that limits the whole. Speeding up anything else barely helps; fixing it moves the bottleneck elsewhere."],
+  ["The book's iterative method", "Measure, find the bottleneck, apply one technique, measure again; stop when fast enough."],
+  ["tottime vs cumtime", "tottime: time inside the function itself. cumtime: including everything it calls."],
+  ["Batching", "Pay a fixed overhead once for many items: one transaction for 1,440 inserts, one query instead of N+1."],
+  ["Concurrency", "Overlap waits. Each fetch is just as slow; the whole set finishes sooner."],
+  ["Caching and hit rate", "Keep a copy close by. Works when the working set is small and reused: 24 values used 120 times, 80% hits."],
+  ["Invalidation", "The rule for forgetting cached copies that new data changed. Without it, outbreaks stay invisible."],
+  ["Dallying vs speculation", "Dallying delays work hoping to batch or skip it. Speculation does work early, betting it will be needed."],
+  ["Little's law", "N = X × R: average number inside = throughput × average time inside. No assumptions about distributions."],
+  ["Utilisation", "Average busy servers ÷ servers. As it nears 1, waits grow very fast; above 1 the queue grows without limit."]
+];
+
+const PROFILE = `PROFILE_OUTPUT = """
+         412958 function calls (409311 primitive calls) in 3.912 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.002    0.002    3.912    3.912 app.py:88(district_children)
+        1    0.031    0.031    3.874    3.874 vax_records.py:52(children_with_doses)
+     2140    0.019    0.000    3.611    0.002 vax_records.py:31(doses_for_child)
+     2141    2.907    0.001    2.907    0.001 {method 'execute' of 'sqlite3.Connection' objects}
+     2140    0.412    0.000    0.598    0.000 {method 'fetchall' of 'sqlite3.Cursor' objects}
+  2140/12    0.071    0.000    0.205    0.017 vax_records.py:19(format_dose)
+    14980    0.104    0.000    0.104    0.000 {built-in method builtins.isinstance}
+        1    0.008    0.008    0.036    0.036 json/encoder.py:183(encode)
+"""
+`;
+const SLOW_PROFILE = `P2 = """Dashboard refresh: 120 lines in 3.31 s (40 fetches)
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     1440    1.914    0.001    1.914    0.001 {method 'commit' of 'sqlite3.Connection' objects}
+       40    0.809    0.020    0.809    0.020 {built-in method time.sleep}
+     1441    0.110    0.000    0.110    0.000 {method 'execute' of 'sqlite3.Connection' objects}
+59088/57808    0.022    0.000    0.035    0.000 {built-in method builtins.isinstance}
+"""
+print(bottleneck(P2))`;
+const RECUR_PROFILE = `P3 = """
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.002    0.002    1.912    1.912 app.py:88(district_children)
+  2140/12    0.871    0.000    1.205    0.017 vax_records.py:19(format_dose)
+      300    0.104    0.000    0.104    0.000 {built-in method builtins.isinstance}
+"""
+print(bottleneck(P3))`;
+
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  execLimit: 8000,
+  exercises: {
+    "ex-bottleneck": {
+      cases: [
+        "print(bottleneck(PROFILE_OUTPUT))",
+        SLOW_PROFILE,
+        RECUR_PROFILE,
+        'print(bottleneck("""   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.500    0.500    0.500    0.500 report.py:7(main)\n"""))',
+        'print(bottleneck(PROFILE_OUTPUT)[1] + 1)'
+      ],
+      solution: PROFILE + `
+def bottleneck(profile_text):
+    lines = profile_text.splitlines()
+    start = 0
+    for i in range(len(lines)):
+        if lines[i].strip().startswith("ncalls"):
+            start = i
+            break
+    best = None
+    for line in lines[start + 1:]:
+        fields = line.split(None, 5)
+        if len(fields) < 6:
+            continue
+        tottime = float(fields[1])
+        function = fields[5]
+        if best is None or tottime > best[1]:
+            best = (function, tottime)
+    return best
+
+print(bottleneck(PROFILE_OUTPUT))`,
+      hint: ["Loop over the lines with an index until one, after strip(), starts with \"ncalls\". Only the lines after it are rows.", "For each later line: fields = line.split(None, 5). If len(fields) < 6, skip it. Otherwise tottime = float(fields[1]) and function = fields[5]; keep the pair with the largest tottime."]
+    },
+    "ex-batch": {
+      cases: [
+        "db = FakeDB()\nsave_batched(db, list(range(1440)), 100)\nprint(len(db.rows), db.commits, len(db.pending))",
+        "db = FakeDB()\nsave_batched(db, list(range(1440)), 1440)\nprint(len(db.rows), db.commits, len(db.pending))",
+        "db = FakeDB()\nsave_batched(db, list(range(1440)), 1)\nprint(len(db.rows), db.commits, len(db.pending))",
+        "db = FakeDB()\nsave_batched(db, list(range(7)), 3)\nprint(db.rows, db.commits, len(db.pending))",
+        "db = FakeDB()\nsave_batched(db, [], 50)\nprint(len(db.rows), db.commits, len(db.pending))"
+      ],
+      solution: `class FakeDB:
+    """Stands in for SQLite: each commit waits for the disk."""
+    def __init__(self):
+        self.rows = []
+        self.pending = []
+        self.commits = 0
+    def insert(self, row):
+        self.pending.append(row)
+    def commit(self):
+        self.rows.extend(self.pending)
+        self.pending = []
+        self.commits += 1
+
+def save_batched(db, rows, batch_size):
+    for i in range(len(rows)):
+        db.insert(rows[i])
+        if (i + 1) % batch_size == 0:
+            db.commit()
+    if len(rows) % batch_size != 0:
+        db.commit()
+
+db = FakeDB()
+save_batched(db, list(range(1440)), 100)
+print(len(db.rows), db.commits, len(db.pending))`,
+      hint: ["After inserting row i, i + 1 rows have been inserted. A batch is full when (i + 1) % batch_size == 0.", "After the loop, commit once more only if len(rows) % batch_size != 0. That also gives zero commits for an empty list."]
+    },
+    "ex-cache": {
+      cases: [
+        "c = IncidenceCache(reports, POPULATION)\nfor i in range(3):\n    print(c.incidence('S-COA', 'cholera'), c.incidence('S-COA', 'measles'))\nprint(c.computations)",
+        "c = IncidenceCache(reports, POPULATION)\nc.incidence('S-COA', 'cholera')\nc.add_reports([('S-COA', 'cholera', 40)])\nprint(c.incidence('S-COA', 'cholera'), c.computations)",
+        "c = IncidenceCache(reports, POPULATION)\nc.incidence('S-COA', 'measles')\nc.incidence('N-RIV', 'cholera')\nc.add_reports([('N-RIV', 'cholera', 40)])\nprint(c.incidence('S-COA', 'measles'), c.incidence('N-RIV', 'cholera'), c.computations)",
+        "c = IncidenceCache(reports, POPULATION)\nc.add_reports([('S-COA', 'malaria', 5)])\nprint(c.incidence('S-COA', 'malaria'), c.incidence('S-COA', 'malaria'), c.computations)",
+        "c = IncidenceCache(reports, POPULATION)\nc.incidence('S-COA', 'cholera')\nc.add_reports([('S-COA', 'cholera', 1), ('S-COA', 'cholera', 2), ('N-RIV', 'cholera', 1)])\nprint(c.incidence('S-COA', 'cholera'), c.incidence('S-COA', 'cholera'), c.computations)"
+      ],
+      solution: `POPULATION = {"N-RIV": 96000, "S-COA": 143000}
+
+class IncidenceCache:
+    def __init__(self, reports, population):
+        self.reports = list(reports)
+        self.population = population
+        self.computations = 0
+        self._cache = {}
+
+    def _compute(self, district_id, disease):
+        self.computations += 1
+        total = 0
+        for d, dis, cases in self.reports:
+            if d == district_id and dis == disease:
+                total += cases
+        return round(total / self.population[district_id] * 100000, 1)
+
+    def incidence(self, district_id, disease):
+        key = (district_id, disease)
+        if key not in self._cache:
+            self._cache[key] = self._compute(district_id, disease)
+        return self._cache[key]
+
+    def add_reports(self, new_reports):
+        self.reports.extend(new_reports)
+        for d, dis, cases in new_reports:
+            if (d, dis) in self._cache:
+                del self._cache[(d, dis)]
+
+
+reports = [("N-RIV", "cholera", 18), ("S-COA", "cholera", 361), ("S-COA", "measles", 15)]
+c = IncidenceCache(reports, POPULATION)
+for i in range(3):
+    print(c.incidence("S-COA", "cholera"), c.incidence("S-COA", "measles"))
+c.add_reports([("S-COA", "cholera", 40)])
+print(c.incidence("S-COA", "cholera"), c.incidence("S-COA", "measles"))
+print("computations:", c.computations)`,
+      hint: ["In incidence: key = (district_id, disease). If the key is not in self._cache, compute and store it. Then return self._cache[key].", "In add_reports, after extending: for d, dis, cases in new_reports, delete (d, dis) from self._cache if it is there. Do not clear the whole cache: the checker counts computations."]
+    },
+    "ex-little": {
+      cases: ["print(people_inside(90, 2.5))", "print(vaccinators_needed(90, 2.5))", "print(vaccinators_needed(90, 2.5, 0.95))", "print(vaccinators_needed(120, 3, 0.75))", "print(vaccinators_needed(60, 4, 0.8))", "print(people_inside(120, 15), vaccinators_needed(100, 3, 0.8))"],
+      solution: `import math
+
+def people_inside(arrivals_per_hour, minutes_inside):
+    """Average number inside: N = X x R. Watch the units."""
+    return arrivals_per_hour / 60 * minutes_inside
+
+def vaccinators_needed(arrivals_per_hour, minutes_per_dose, max_utilisation=0.8):
+    """Fewest vaccinators so that each is busy at most max_utilisation."""
+    busy = people_inside(arrivals_per_hour, minutes_per_dose)
+    return math.ceil(busy / max_utilisation)
+
+print(people_inside(90, 2.5))
+print(vaccinators_needed(90, 2.5))`,
+      hint: ["people_inside: convert arrivals to per minute (divide by 60), then multiply by minutes inside.", "busy vaccinators ÷ max_utilisation is the number needed, but it must be a whole number of people: round up with math.ceil."]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

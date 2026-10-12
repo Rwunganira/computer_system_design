@@ -24,7 +24,7 @@ The book lists symptoms you can check for in your own code:
 - **Emergent properties.** Behaviour that no single part has. Each clinic's report is fine; together
   they double-count a district because two clinics share a catchment.
 - **Propagation of effects.** A small change in one place forces changes far away. Change the date
-  format in the upload and three unrelated lines of `dashboard_v0.py` break.
+  format in the upload and four lines of `dashboard_v0.py` break.
 - **Incommensurate scaling.** Parts of the system grow at different rates. A duplicate check that
   compares every pair of reports is instant for one clinic and takes hours for a country.
 - **Trade-offs.** Every design choice gives something up: speed for accuracy, flexibility for simplicity.
@@ -46,7 +46,7 @@ make it cheap to change. That is exactly what modularity buys you in exercise 2.
 ## The examples
 
 `dashboard_v0.py` is SurveilLite as one function. It works. Read it and count how many places know
-the date format (three), the column names, the alert threshold and the HTML layout. Each of those is
+the date format (four), the column names, the alert threshold and the HTML layout. Each of those is
 an interconnection that a future change must find.
 
 `scaling.py` times two duplicate-report checks. The naive one compares every pair; the set-based one

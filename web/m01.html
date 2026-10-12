@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Computer System Design, Module 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+/* hero: propagation of effects */
+.pe-card { background: var(--code-bg); color: var(--code-fg); border-radius: 14px; padding: 20px 20px 16px; display: grid; gap: 14px; min-width: 0; }
+.pe-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.8rem; color: var(--code-muted); }
+.pe-top b { color: var(--code-fg); font-weight: 600; }
+.pe-card .btn-ghost[aria-pressed="true"] { background: var(--tok-kw); border-color: var(--tok-kw); color: var(--code-bg); }
+.pe-chg { display: flex; gap: 6px; flex-wrap: wrap; }
+.pe-chg .btn-ghost { text-align: left; }
+.pe-code { min-width: 0; font-family: var(--mono); font-size: 0.76rem; line-height: 1.55; border-radius: 8px; padding: 8px 0; overflow-x: auto; background: color-mix(in srgb, var(--code-fg) 4%, transparent); }
+.pe-code .w { width: max-content; min-width: 100%; }
+.pe-code .ln { display: grid; grid-template-columns: 26px max-content; white-space: pre; padding-right: 14px; border-left: 3px solid transparent; transition: background .35s, opacity .35s; min-width: 100%; }
+.pe-code .ln i { font-style: normal; color: var(--code-muted); opacity: .6; text-align: right; padding-right: 8px; user-select: none; }
+.pe-code .ln.dim { opacity: .32; }
+.pe-code .ln.red { background: color-mix(in srgb, var(--bad) 30%, transparent); border-left-color: var(--bad); opacity: 1; }
+.pe-code .ln.amb { background: color-mix(in srgb, var(--tok-num) 20%, transparent); border-left-color: var(--tok-num); opacity: 1; }
+.pe-code .ln.new { animation: pe-flash .7s ease-out; }
+@keyframes pe-flash { 0% { background: color-mix(in srgb, var(--bad) 75%, transparent); } }
+.pe-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pe-stats div { background: color-mix(in srgb, var(--code-fg) 7%, transparent); border-radius: 8px; padding: 8px 10px; font-family: var(--mono); font-size: 0.7rem; color: var(--code-muted); line-height: 1.3; }
+.pe-stats b { display: block; font-family: var(--display); font-size: 1.5rem; color: var(--code-fg); line-height: 1.1; }
+.pe-stats .r b { color: var(--bad); } .pe-stats .a b { color: var(--tok-num); }
+.pe-msg { font-family: var(--mono); font-size: 0.82rem; min-height: 2.6em; }
+.pe-msg b { color: var(--tok-kw); font-weight: 600; }
+@media (max-width: 560px) { .pe-card { padding: 16px 14px 14px; } .pe-stats b { font-size: 1.2rem; } }
+/* interconnection graph */
+.ic svg { max-width: 460px; margin: 0 auto; }
+.ic .e { stroke: var(--accent); stroke-width: 1.2; opacity: .45; transition: opacity .3s; }
+.ic .nd circle { fill: var(--sheet); stroke: var(--ink); stroke-width: 1.5; }
+.ic .nd.newn circle { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2.5; }
+.ic text.nl { font-size: 13px; fill: var(--ink); }
+.big-n { display: flex; gap: 18px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.big-n b { display: block; font-family: var(--display); font-size: 1.8rem; color: var(--ink); line-height: 1.1; }
+.big-n .acc b { color: var(--accent); }
+/* hierarchy */
+.hier { display: grid; gap: 10px; }
+.hier .lvl { display: grid; gap: 8px; }
+.hier .lvl.reg { grid-template-columns: 1fr 1fr; }
+.hier .box { border: 1.5px solid var(--rule); border-radius: 8px; padding: 6px 10px; background: var(--paper); font-family: var(--mono); font-size: 0.8rem; display: flex; justify-content: space-between; gap: 8px; transition: border-color .3s, background .3s; }
+.hier .box b { font-variant-numeric: tabular-nums; }
+.hier .box.on { border-color: var(--accent); background: var(--accent-soft); }
+.hier .box.hot b { color: var(--bad); }
+.hier .dists { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.hier .cl { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 4px; }
+.hier .cl span { font-family: var(--mono); font-size: 0.66rem; padding: 0 4px; border-radius: 4px; background: var(--sheet); border: 1px solid var(--rule); color: var(--muted); }
+.hier .dbox { border: 1.5px solid var(--rule); border-radius: 8px; padding: 6px 8px; background: var(--paper); font-family: var(--mono); font-size: 0.78rem; transition: border-color .3s, background .3s; min-width: 0; }
+.hier .dbox .top span { white-space: nowrap; }
+.hier .dbox .top { display: flex; justify-content: space-between; gap: 6px; }
+.hier .dbox.on { border-color: var(--accent); background: var(--accent-soft); }
+.hier .dbox.hot .top b { color: var(--bad); }
+/* scaling race */
+.race { display: grid; gap: 12px; }
+.race .row { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 10px; align-items: center; font-family: var(--mono); font-size: 0.8rem; }
+.race .track { position: relative; height: 26px; background: var(--paper); border-radius: 6px; overflow: hidden; }
+.race .fill { position: absolute; inset: 0 auto 0 0; border-radius: 6px; transition: width .6s cubic-bezier(.2,.8,.2,1); }
+.race .fill.n2 { background: var(--bad); }
+.race .fill.n1 { background: var(--ok); }
+.race .track span { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-weight: 600; color: var(--ink); mix-blend-mode: normal; white-space: nowrap; }
+.race .ticks { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 10px; font-family: var(--mono); font-size: 0.66rem; color: var(--muted); }
+.race .ticks div { display: flex; justify-content: space-between; }
+.race input[type=range] { width: 100%; accent-color: var(--accent); }
+</style>
+</head>
+<body data-lesson="m01">
+<div class="shell">
+  <aside class="rail" aria-label="Lesson progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 1</div>
+      <h1>Complexity is rarely designed. It <em>grows</em>, one reasonable change at a time.</h1>
+      <p class="lede">SurveilLite starts as one function that one person understands, and it works. Then the requests arrive. Pick one below and watch how far it reaches into version 0, then into the modular version.</p>
+
+      <div class="pe-card" aria-label="Which lines of the dashboard a change request touches">
+        <div class="pe-top">
+          <span>A change request arrives for <b id="pe-file">dashboard_v0.py</b></span>
+          <div class="controls" role="group" aria-label="Version">
+            <button class="btn-ghost" type="button" data-ver="v0" aria-pressed="true">version 0</button>
+            <button class="btn-ghost" type="button" data-ver="mod" aria-pressed="false">modular</button>
+            <button class="btn-ghost" type="button" id="pe-play">Pause</button>
+          </div>
+        </div>
+        <div class="pe-chg" id="pe-chg" role="group" aria-label="Change requests"></div>
+        <div class="pe-code" id="pe-code"></div>
+        <div class="pe-stats" id="pe-stats"></div>
+        <div class="pe-msg" id="pe-msg" aria-live="polite"></div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>The signs and sources of complexity from Chapter 1, and the four techniques that keep it under control: modularity, abstraction, layering and hierarchy.</div>
+        <div><b>You will build</b>A loader that gives the date format one home, a modular dashboard that prints exactly the same page, and a duplicate finder that scales.</div>
+        <div><b>How it works</b>Count interconnections, sort real symptoms by cause, break the dashboard on purpose, then split it and time it. Each check you pass fills the bar.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="Signs of complexity">
+      <div class="sec-head"><span class="sec-num">01</span><h2>Signs of complexity</h2></div>
+      <p>Chapter 1 of Saltzer and Kaashoek argues that the main enemy of a system designer is complexity, and that it rarely arrives all at once. A dashboard starts as one script. Then a second data source arrives, a new disease, a district that reports late, a second analyst. Nothing was designed badly; it simply grew.</p>
+      <p>The book gives symptoms you can check for in your own code:</p>
+      <ul>
+        <li><b>Many components</b> and <b>many interconnections</b> between them.</li>
+        <li><b>Irregularities</b>: special cases such as "district X reports on Tuesdays" or "this clinic sends totals, not counts".</li>
+        <li><b>No short description</b>: you cannot explain what the system does in a paragraph.</li>
+        <li><b>A large team</b>, or too many people with partial understanding.</li>
+      </ul>
+      <p>The first symptom is the one that bites fastest. Components grow one at a time, but the ways they can affect each other grow much faster. Add components below and count the possible interconnections when anything may talk to anything.</p>
+
+      <div class="panel ic">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls"><button class="btn" id="ic-add" type="button">Add a component</button><button class="btn alt" id="ic-rem" type="button">Remove</button><button class="btn alt" id="ic-mode" type="button" aria-pressed="false">Layer them</button></div>
+        </div>
+        <svg class="viz" id="ic-svg" viewBox="0 0 440 300" role="img" aria-label="Components of SurveilLite as nodes, with every possible interconnection drawn as a line"></svg>
+        <div class="big-n"><div><b id="ic-n">3</b>components</div><div class="acc"><b id="ic-e">3</b>possible interconnections</div></div>
+        <p class="note" id="ic-note"></p>
+      </div>
+
+      <p>Now check the count yourself. The loop below visits every pair of SurveilLite components once.</p>
+      <div class="cell" data-predict="28 possible interconnections">
+        <div class="predict"><label for="p-s1">Predict the last line:</label><input id="p-s1" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s1" spellcheck="false" aria-label="Python code">components = ["CSV upload", "parser", "incidence", "alerts",
+              "HTML page", "SMS intake", "map", "export"]
+links = 0
+for i in range(len(components)):
+    for j in range(i + 1, len(components)):
+        links += 1
+print(len(components), "components")
+print(links, "possible interconnections")</textarea></div>
+      </div>
+      <p>Eight components, 28 pairs: n × (n − 1) ÷ 2. Doubling the components roughly quadruples the pairs. Keep that shape in mind; it comes back in section 5.</p>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2" data-short="Where it comes from">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Where complexity comes from</h2></div>
+      <p>The book names four sources. Each has a SurveilLite version you will meet in this course.</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Source</th><th>Meaning</th><th>In SurveilLite</th></tr></thead>
+        <tbody>
+          <tr><td><b>Emergent properties</b></td><td>behaviour of the whole that no single part has</td><td>each clinic's report is fine; together they double-count a district because two clinics share a catchment</td></tr>
+          <tr><td><b>Propagation of effects</b></td><td>a small change in one place forces changes far away</td><td>change the date format in the upload and several unrelated lines of <code>dashboard_v0.py</code> break</td></tr>
+          <tr><td><b>Incommensurate scaling</b></td><td>parts of the system grow at different rates</td><td>a duplicate check that compares every pair is instant for one clinic and takes hours for a country</td></tr>
+          <tr><td><b>Trade-offs</b></td><td>every design choice gives something up</td><td>speed for accuracy, flexibility for simplicity</td></tr>
+        </tbody>
+      </table></div>
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Name the source of complexity in each report from the field.</span></div>
+        <div class="sorter" id="sorter"></div>
+      </div>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3" data-short="Propagation of effects">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Propagation of effects</h2></div>
+      <p>Here is SurveilLite version 0, the lab's <code>dashboard_v0.py</code>, running in your browser. One function, <code>build_page()</code>, loads the CSV, finds the latest week, sums the last four weeks, computes incidence, decides on alerts and lays out the page. It works, and it flags the Coastal cholera outbreak.</p>
+      <p>Three jobs in it know the date format: finding the latest week, filtering the last four weeks, and printing the date in the header and footer. The last line of the cell sends the same reports with dates written day first, <code>23/03/2026</code>, as clinics in one region now do. Before you run it, decide which line fails first.</p>
+      <div class="cell" data-limit="8000">
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s3" spellcheck="false" aria-label="Python code"># ---- stand-ins for the csv and datetime modules (Skulpt has neither) ----
+def read_csv(text):
+    lines = text.strip().split("\n")
+    header = lines[0].split(",")
+    return [dict(zip(header, line.split(","))) for line in lines[1:]]
+
+BEFORE = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+
+def strptime(text, fmt):
+    """Like datetime.strptime, but returns a day number."""
+    sep = fmt[2]
+    codes = fmt.replace("%", "").split(sep)
+    parts = text.split(sep)
+    if len(parts) != 3 or not all(p.isdigit() for p in parts):
+        raise ValueError(f"time data '{text}' does not match format '{fmt}'")
+    v = dict(zip(codes, [int(p) for p in parts]))
+    return v["Y"] * 365 + BEFORE[v["m"] - 1] + v["d"]
+
+def strftime(day, fmt):
+    y = (day - 1) // 365
+    rest = day - y * 365
+    m = 12
+    while BEFORE[m - 1] &gt;= rest:
+        m = m - 1
+    d = rest - BEFORE[m - 1]
+    return fmt.replace("%Y", str(y)).replace("%m", str(m).zfill(2)).replace("%d", str(d).zfill(2))
+
+# ---- the lab's weekly cholera totals, uploaded as CSV ----
+DISTRICTS = [
+    ("N-CEN", "Central",   "North", 182000), ("N-RIV", "Riverside", "North",  96000),
+    ("N-HIL", "Hillview",  "North",  74000), ("N-LAK", "Lakeshore", "North", 121000),
+    ("S-CEN", "Central",   "South", 205000), ("S-SAV", "Savanna",   "South",  88000),
+    ("S-COA", "Coastal",   "South", 143000), ("S-HIG", "Highlands", "South",  67000),
+]
+CHOLERA = {
+    "N-CEN": [4, 4, 5, 1, 3, 4, 3, 2, 3, 3, 2, 5],  "N-RIV": [1, 1, 3, 2, 2, 0, 2, 1, 2, 0, 2, 2],
+    "N-HIL": [2, 0, 1, 3, 1, 2, 1, 2, 1, 1, 1, 2],  "N-LAK": [1, 2, 1, 0, 2, 6, 0, 3, 2, 1, 1, 2],
+    "S-CEN": [2, 5, 4, 5, 2, 9, 1, 3, 4, 0, 1, 5],  "S-SAV": [1, 2, 2, 0, 1, 1, 2, 3, 3, 0, 0, 0],
+    "S-COA": [1, 1, 5, 2, 1, 2, 13, 32, 45, 63, 87, 109], "S-HIG": [0, 0, 1, 0, 0, 1, 2, 2, 0, 3, 2, 0],
+}
+def sample_csv(date_format="%Y-%m-%d"):
+    first = strptime("2026-01-05", "%Y-%m-%d")
+    lines = ["district_id,week_start,disease,cases"]
+    for d in CHOLERA:
+        for w in range(12):
+            lines.append(f"{d},{strftime(first + 7 * w, date_format)},cholera,{CHOLERA[d][w]}")
+    return "\n".join(lines)
+
+# ---- SurveilLite version 0: everything in one place ----
+def build_page(csv_text, disease="cholera"):
+    rows = read_csv(csv_text)
+    # Find the latest week. (Knows the date format.)
+    latest = max(strptime(r["week_start"], "%Y-%m-%d") for r in rows)
+    # Sum cases per district for the last four weeks. (Knows the date format
+    # again, and the column names, and the disease spelling.)
+    totals = {}
+    for r in rows:
+        week = strptime(r["week_start"], "%Y-%m-%d")
+        if r["disease"] == disease and latest - week &lt; 28:
+            totals[r["district_id"]] = totals.get(r["district_id"], 0) + int(r["cases"])
+    page = [f"{disease.title()} incidence, 4 weeks to {strftime(latest, '%Y-%m-%d')}"]
+    for district_id, name, region, pop in DISTRICTS:
+        cases = totals.get(district_id, 0)
+        rate = cases / pop * 100000
+        flag = "ALERT" if rate &gt; 10 else ""     # threshold buried in presentation code
+        label = f"{name} ({region})"
+        page.append(f"{label:18} {cases:4} {rate:7.1f}  {flag}")
+    # The footer needs the date again, so the format appears a third time.
+    page.append(f"Data through {strftime(latest, '%Y-%m-%d')}")
+    return "\n".join(page)
+
+print(build_page(sample_csv()))
+print()
+print("Now the day-first upload:")
+print(build_page(sample_csv("%d/%m/%Y")))</textarea></div>
+      </div>
+      <p>The page printed, then the day-first upload crashed on the very first parse, while finding the latest week. That is the lucky case: a crash is visible. Fix that line alone and the second parse crashes next. Change the format to <code>2026/03/23</code> instead and you get the same <code>ValueError</code>. A format that happened to parse but meant something different, such as month and day swapped, would not crash at all: it would quietly pick the wrong four weeks. The browser uses small stand-ins for <code>csv</code> and <code>datetime</code>, which Skulpt lacks; the lab uses the real modules and fails in the same places.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example, based on the lab's exercise 1.</span></div>
+        <p>Give the date format exactly one home. Finish <code>load_reports(csv_text, date_format)</code> so it parses the week with <code>date_format</code> and turns the case count into a number. After this, a new upload format is a one-argument change, and no other function ever sees a date string.</p>
+        <div class="cell" id="ex-load">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-load" spellcheck="false" aria-label="Python code"># ---- stand-ins from above (no need to edit) ----
+def read_csv(text):
+    lines = text.strip().split("\n")
+    header = lines[0].split(",")
+    return [dict(zip(header, line.split(","))) for line in lines[1:]]
+BEFORE = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+def strptime(text, fmt):
+    sep = fmt[2]
+    codes = fmt.replace("%", "").split(sep)
+    parts = text.split(sep)
+    if len(parts) != 3 or not all(p.isdigit() for p in parts):
+        raise ValueError(f"time data '{text}' does not match format '{fmt}'")
+    v = dict(zip(codes, [int(p) for p in parts]))
+    return v["Y"] * 365 + BEFORE[v["m"] - 1] + v["d"]
+def strftime(day, fmt):
+    y = (day - 1) // 365
+    rest = day - y * 365
+    m = 12
+    while BEFORE[m - 1] &gt;= rest:
+        m = m - 1
+    d = rest - BEFORE[m - 1]
+    return fmt.replace("%Y", str(y)).replace("%m", str(m).zfill(2)).replace("%d", str(d).zfill(2))
+# ---- your code ----
+
+def load_reports(csv_text, date_format="%Y-%m-%d"):
+    """Parse an upload. The ONLY function that knows the date format."""
+    reports = []
+    for r in read_csv(csv_text):
+        reports.append({
+            "district_id": r["district_id"],
+            "week": None,          # TODO: a day number, parsed with date_format
+            "disease": r["disease"],
+            "cases": r["cases"],   # TODO: a number, not text
+        })
+    return reports
+
+upload = "district_id,week_start,disease,cases\nS-COA,23/03/2026,cholera,109\nS-COA,16/03/2026,cholera,87"
+for r in load_reports(upload, "%d/%m/%Y"):
+    print(r)
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4" data-short="Modularity and friends">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Modularity, abstraction, layering, hierarchy</h2></div>
+      <p>The rest of the book elaborates four techniques for keeping growth under control. You will use all of them in this course.</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Technique</th><th>Meaning</th><th>In SurveilLite</th></tr></thead>
+        <tbody>
+          <tr><td><b>Modularity</b></td><td>split the system into parts that interact only through defined interfaces</td><td>load, compute and present as separate functions</td></tr>
+          <tr><td><b>Abstraction</b></td><td>hide how a module works behind what it does</td><td>call <code>compute_incidence()</code> without knowing it uses pandas</td></tr>
+          <tr><td><b>Layering</b></td><td>build each layer only on the one below it</td><td>HTML on incidence tables on parsed reports on CSV</td></tr>
+          <tr><td><b>Hierarchy</b></td><td>group modules into larger modules</td><td>clinic, district, region, nation</td></tr>
+        </tbody>
+      </table></div>
+      <p>Hierarchy is the one you already use as an epidemiologist. Nobody reads 40 clinic reports at once: you read 2 regions, then the 4 districts of the region that looks odd, then that district's 5 clinics. Each level stays small enough to understand. Roll up the last four weeks of cholera, one level at a time.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls"><button class="btn" id="hi-step" type="button">Roll up one level</button><button class="btn alt" id="hi-reset" type="button">Start over</button></div>
+        </div>
+        <div class="hier" id="hier"></div>
+        <p class="note" id="hi-note"></p>
+      </div>
+
+      <p>Modularity is the technique that fixes version 0. The lab splits <code>build_page()</code> into <code>load_reports()</code>, <code>compute_incidence()</code> and <code>render_page()</code>. The test for the split is strict: the modular version must print <em>exactly</em> the same page. That is what lets you refactor with confidence. The book adds a fifth habit, <b>design for iteration</b>: you will not get the design right first time, so make it cheap to change. Modularity is what buys you that.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Based on the lab's exercise 2.</span></div>
+        <p>Write <code>compute_incidence(reports, disease, weeks=4, threshold=10)</code>. It receives reports already loaded by <code>load_reports()</code> (week is a day number, cases an int) and returns <code>(latest, table)</code>, where <code>table</code> has one row per district in <code>DISTRICTS</code> order: <code>(district_id, name, region, cases, rate, alert)</code>. Count only the last <code>weeks</code> weeks (<code>latest - week &lt; 7 * weeks</code>), and set <code>alert</code> when <code>rate &gt; threshold</code>. The alert rule now lives with the computation, and <code>render_page()</code> only presents.</p>
+        <div class="cell" id="ex-split">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-split" spellcheck="false" aria-label="Python code">DISTRICTS = [
+    ("N-CEN", "Central",   "North", 182000), ("N-RIV", "Riverside", "North",  96000),
+    ("N-HIL", "Hillview",  "North",  74000), ("N-LAK", "Lakeshore", "North", 121000),
+    ("S-CEN", "Central",   "South", 205000), ("S-SAV", "Savanna",   "South",  88000),
+    ("S-COA", "Coastal",   "South", 143000), ("S-HIG", "Highlands", "South",  67000),
+]
+BEFORE = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+def show_date(day):          # display only: a day number as YYYY-MM-DD
+    y = (day - 1) // 365
+    rest = day - y * 365
+    m = 12
+    while BEFORE[m - 1] &gt;= rest:
+        m = m - 1
+    return f"{y}-{str(m).zfill(2)}-{str(rest - BEFORE[m - 1]).zfill(2)}"
+
+def render_page(incidence, disease):
+    """Presentation only. Given; do not edit."""
+    latest, table = incidence
+    page = [f"{disease.title()} incidence, 4 weeks to {show_date(latest)}"]
+    for district_id, name, region, cases, rate, alert in table:
+        flag = "ALERT" if alert else ""
+        label = f"{name} ({region})"
+        page.append(f"{label:18} {cases:4} {rate:7.1f}  {flag}")
+    page.append(f"Data through {show_date(latest)}")
+    return "\n".join(page)
+
+def R(district_id, week, disease, cases):      # one loaded report
+    return {"district_id": district_id, "week": week, "disease": disease, "cases": cases}
+
+# ---- your code ----
+def compute_incidence(reports, disease, weeks=4, threshold=10):
+    latest = max(r["week"] for r in reports)
+    table = []
+    # TODO: sum this disease's cases per district over the last `weeks` weeks,
+    #       then add one (district_id, name, region, cases, rate, alert) row
+    #       per district, in DISTRICTS order.
+    return latest, table
+
+D = 739572   # the day number of 2026-03-23
+sample = [R("S-COA", D, "cholera", 109), R("S-COA", D - 7, "cholera", 87),
+          R("N-CEN", D - 14, "cholera", 3), R("S-COA", D - 70, "cholera", 2)]
+print(render_page(compute_incidence(sample, "cholera"), "cholera"))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="Incommensurate scaling">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Incommensurate scaling</h2></div>
+      <p>A report is a <b>duplicate</b> if an earlier report has the same clinic, week and disease: a clinic pressed "send" twice. The lab's <code>scaling.py</code> finds duplicates two ways. The naive check compares every report with every other report. The set-based check remembers each key it has seen. Count the naive comparisons as the input doubles, and predict the ratio.</p>
+      <div class="cell" data-predict="4.0" data-limit="12000">
+        <div class="predict"><label for="p-s5">Predict the last line:</label><input id="p-s5" autocomplete="off" placeholder="how many times more work?"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s5" spellcheck="false" aria-label="Python code">import random
+
+def make_reports(n, seed=1):
+    """n report keys (report_id, clinic, week, disease), about 1% resent."""
+    random.seed(seed)
+    diseases = ("measles", "cholera", "malaria")
+    reports = [(i + 1, "C" + str(i % 40 + 1).zfill(2), i // 120, diseases[i // 40 % 3])
+               for i in range(n)]
+    for k in range(n // 100):
+        r = random.choice(reports)
+        reports.append((len(reports) + 1,) + r[1:])
+    return reports
+
+def count_naive(reports):
+    comparisons = 0
+    for i in range(len(reports)):
+        for j in range(i + 1, len(reports)):
+            comparisons += 1
+            if reports[i][1:] == reports[j][1:]:
+                break
+    return comparisons
+
+previous = None
+for n in (250, 500, 1000):
+    reports = make_reports(n)
+    c = count_naive(reports)
+    print(f"{len(reports):5} reports: {c:8} naive comparisons, {len(reports):5} set lookups")
+    if previous:
+        ratio = round(c / previous, 1)
+    previous = c
+print(ratio)</textarea></div>
+      </div>
+      <p>Each doubling of the input makes the naive check about <b>4 times</b> slower and the set check only 2 times. Work that grows with n² and work that grows with n are <b>incommensurate</b>: at one clinic's scale you cannot tell them apart, and at a country's scale one of them never finishes. Drag the slider from one clinic to a national year of reports.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <label class="field" for="rc-t">naive takes <input id="rc-t" type="number" value="0.5" min="0.001" step="any"> s at 4,000 reports</label>
+        </div>
+        <div style="display:grid;gap:4px"><label class="field" for="rc-n">reports: <b id="rc-nl" style="color:var(--ink)">4,000</b></label><input id="rc-n" type="range" min="0" max="7" step="1" value="3" style="width:100%;accent-color:var(--accent)"></div>
+        <div class="race">
+          <div class="row"><span>naive n²</span><div class="track"><div class="fill n2" id="rc-a"></div><span id="rc-at"></span></div></div>
+          <div class="row"><span>set n</span><div class="track"><div class="fill n1" id="rc-b"></div><span id="rc-bt"></span></div></div>
+          <div class="ticks"><span></span><div id="rc-ticks" style="position:relative;height:1.3em;display:block"></div></div>
+        </div>
+        <p class="note" id="rc-note"></p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">The lab's exercise 3, first half.</span></div>
+        <p>Write <code>predict_seconds(measured_seconds, measured_n, target_n, exponent)</code>: the predicted running time at <code>target_n</code> for an algorithm whose time grows as n<sup>exponent</sup>.</p>
+        <div class="cell" id="ex-predict">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-predict" spellcheck="false" aria-label="Python code">def predict_seconds(measured_seconds, measured_n, target_n, exponent):
+    # TODO: scale the measured time by how much bigger the input is,
+    #       raised to the exponent
+    return measured_seconds
+
+# 1 second at 10,000 reports, quadratic: how long for 1,000,000?
+print(predict_seconds(1.0, 10000, 1000000, 2))
+</textarea></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">The lab's exercise 3, second half.</span></div>
+        <p>This <code>find_duplicate_reports()</code> is correct, and on the sample it is instant. The checker also runs it on 60,600 reports, where comparing every pair would take hours. Rewrite it with a set of keys you have seen so it returns the same ids, the later reports that repeat an earlier <code>(clinic, week, disease)</code>, in a second or so.</p>
+        <div class="cell" id="ex-dups">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-dups" spellcheck="false" aria-label="Python code">import random
+def make_reports(n, seed=1):
+    random.seed(seed)
+    diseases = ("measles", "cholera", "malaria")
+    reports = [(i + 1, "C" + str(i % 40 + 1).zfill(2), i // 120, diseases[i // 40 % 3])
+               for i in range(n)]
+    for k in range(n // 100):
+        r = random.choice(reports)
+        reports.append((len(reports) + 1,) + r[1:])
+    return reports
+
+def find_duplicate_reports(reports):
+    """report_ids of reports that repeat an earlier (clinic, week, disease)."""
+    dups = []
+    for i in range(len(reports)):
+        for j in range(i):                      # compare with every earlier report
+            if reports[i][1:] == reports[j][1:]:
+                dups.append(reports[i][0])
+                break
+    return dups
+
+sample = [(1, "C31", 9, "cholera"), (2, "C32", 9, "cholera"), (3, "C31", 9, "cholera"),
+          (4, "C31", 9, "measles"), (5, "C31", 9, "cholera")]
+print(find_duplicate_reports(sample))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6" data-short="Trade-offs and iteration">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Trade-offs and design for iteration</h2></div>
+      <p>The fourth source of complexity is the one you cannot remove. Every design choice gives something up. The set-based duplicate check trades memory for time: it keeps every key it has seen. The modular dashboard trades a little indirection for changes that land in one place. Refreshing the incidence table every minute keeps it current but loads the database; refreshing nightly is cheap but stale.</p>
+      <p>Because you cannot see every trade-off in advance, the book's advice is to <b>design for iteration</b>: expect to change the design, and make change cheap. Look back at the hero. Version 0 is not wrong; it is expensive to change, because every request reopens the one function that does everything. The modular version is not finished either; the "4 weeks" in the page header still has to follow the window by hand. Iteration is how you find those leftovers.</p>
+      <div class="two">
+        <div><span class="eyebrow">Version 0</span><h3>Cheap to write, costly to change</h3><p>One function, 19 lines. Every request means re-reading all of it, and a slip in the HTML can break the alert rule.</p></div>
+        <div><span class="eyebrow">Modular</span><h3>A little more code, changes land in one place</h3><p>Three functions with narrow interfaces. A new date format touches <code>load_reports()</code>; a new alert rule touches <code>compute_incidence()</code>; a redesign touches <code>render_page()</code>.</p></div>
+      </div>
+      <div class="callout" style="overflow-wrap:anywhere"><b>Run the full lab.</b> The repository version uses Flask, pandas and real timing: run <code>python lessons/01_complexity/dashboard_v0.py --serve</code> and <code>python lessons/01_complexity/scaling.py</code>, then <code>pytest lessons/01_complexity</code> until it passes. See <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/01_complexity">lessons/01_complexity on GitHub</a>.</div>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Recall and review</h2></div>
+      <p>Reading something again feels productive but fades fast. Pulling it out of memory is what makes it last. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix ideas from every section. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s7"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through the flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Up next · Module 2</span>
+        <h3>Elements of computer systems</h3>
+        <p>Every system is built from three kinds of element: memory, interpreters and communication links. You will build a small interpreter for outbreak case definitions and see why a system's speed depends on which element it waits for.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module. Follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009), Chapter 1. Not affiliated with the authors or MIT. All data is synthetic.</span>
+      <span>Course repository: <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">github.com/Rwunganira/computer_system_design</a>. Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript.</span>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc, highlight } = CT;
+const reduced = CT.reduced;
+
+/* ---------- hero: which lines does a change touch? ---------- */
+const V0 = [
+  'def build_page(csv_text, disease="cholera"):',
+  '    rows = list(csv.DictReader(io.StringIO(csv_text)))',
+  '    latest = max(datetime.strptime(r["week_start"], "%Y-%m-%d") for r in rows)',
+  '    totals = {}',
+  '    for r in rows:',
+  '        week = datetime.strptime(r["week_start"], "%Y-%m-%d")',
+  '        if r["disease"] == disease and (latest - week).days < 28:',
+  '            totals[r["district_id"]] = totals.get(r["district_id"], 0) + int(r["cases"])',
+  '    html = [f"<h1>{disease.title()} incidence, 4 weeks to {latest.strftime(\'%Y-%m-%d\')}</h1>",',
+  '            "<table><tr><th>District</th><th>Cases</th><th>Per 100k</th><th></th></tr>"]',
+  '    for d in DISTRICTS.itertuples():',
+  '        cases = totals.get(d.district_id, 0)',
+  '        rate = cases / d.population * 100_000',
+  '        flag = "ALERT" if rate > 10 else ""',
+  '        html.append(f"<tr><td>{d.district_name} ({d.region})</td><td>{cases}</td>"',
+  '                    f"<td>{rate:.1f}</td><td>{flag}</td></tr>")',
+  '    html.append("</table>")',
+  '    html.append(f"<p>Data through {latest.strftime(\'%Y-%m-%d\')}</p>")',
+  '    return "\\n".join(html)'
+];
+const MOD = [
+  'def load_reports(csv_text, date_format="%Y-%m-%d"):',
+  '    df = pd.read_csv(io.StringIO(csv_text))',
+  '    df["week_start"] = pd.to_datetime(df["week_start"], format=date_format)',
+  '    df["cases"] = df["cases"].astype(int)',
+  '    return df',
+  '',
+  'def compute_incidence(reports, districts, disease, weeks=4):',
+  '    latest = reports["week_start"].max()',
+  '    recent = reports[(reports["disease"] == disease)',
+  '                     & ((latest - reports["week_start"]).dt.days < 7 * weeks)]',
+  '    cases = recent.groupby("district_id")["cases"].sum()',
+  '    out = districts[["district_id", "district_name", "region", "population"]].copy()',
+  '    out["cases"] = out["district_id"].map(cases).fillna(0).astype(int)',
+  '    out["rate"] = out["cases"] / out["population"] * 100_000',
+  '    out["alert"] = out["rate"] > 10',
+  '    out.attrs["latest"] = latest',
+  '    return out.drop(columns="population")',
+  '',
+  'def render_page(incidence, disease):',
+  '    latest = incidence.attrs["latest"].strftime("%Y-%m-%d")',
+  '    html = [f"<h1>{disease.title()} incidence, 4 weeks to {latest}</h1>", TABLE_HEAD]',
+  '    for r in incidence.itertuples():',
+  '        flag = "ALERT" if r.alert else ""',
+  '        html.append(f"<tr><td>{r.district_name} ({r.region})</td>...</tr>")',
+  '    html.append(f"<p>Data through {latest}</p>")',
+  '    return "\\n".join(html)'
+];
+const FUNCS = { v0: [["build_page", 0, 18]], mod: [["load_reports", 0, 4], ["compute_incidence", 6, 16], ["render_page", 18, 25]] };
+const CHANGES = [
+  { label: "Uploads arrive as 23/03/2026", v0: { red: [2, 5], amb: [8, 17] }, mod: { red: [0], amb: [19] },
+    msg: { v0: "Both parses crash with a <b>ValueError</b>. Header and footer also mention the format, so you must check them too.", mod: "Pass <b>date_format=\"%d/%m/%Y\"</b> to load_reports. Nothing downstream ever sees a date string." } },
+  { label: "Alert at 5 per 100k, not 10", v0: { red: [13], amb: [] }, mod: { red: [14], amb: [] },
+    msg: { v0: "One line, but it sits <b>inside the HTML loop</b>: a public health rule hidden in presentation code.", mod: "One line in <b>compute_incidence</b>, where the decision belongs and a test can reach it." } },
+  { label: "Show 8 weeks, not 4", v0: { red: [6], amb: [8] }, mod: { red: [6], amb: [20] },
+    msg: { v0: "The window is <b>28 days</b> in the filter and \"4 weeks\" in the header: two lines that must agree.", mod: "Pass <b>weeks=8</b>. The header text in render_page still says 4: modularity makes the leftover visible, not gone." } },
+  { label: "Page in French", v0: { red: [8, 9, 13, 14, 15, 17], amb: [] }, mod: { red: [20, 22, 23, 24], amb: [] },
+    msg: { v0: "Six lines, interleaved with the computation. The <b>ALERT</b> text even shares a line with the threshold.", mod: "Four lines, all in <b>render_page</b>. The numbers cannot change by accident." } }
+];
+const pe = { ver: "v0", ch: 0, timer: null, playing: !reduced, tick: 0, prev: "" };
+$("#pe-chg").innerHTML = CHANGES.map((c, i) => `<button class="btn-ghost" type="button" data-ch="${i}" aria-pressed="false">${esc(c.label)}</button>`).join("");
+function peRender() {
+  const lines = pe.ver === "v0" ? V0 : MOD, c = CHANGES[pe.ch], hit = c[pe.ver];
+  const touched = FUNCS[pe.ver].filter(([, a, b]) => hit.red.concat(hit.amb).some(l => l >= a && l <= b));
+  const inTouched = l => touched.some(([, a, b]) => l >= a && l <= b);
+  const key = pe.ver + pe.ch;
+  $("#pe-code").innerHTML = `<div class="w">` + lines.map((l, i) => {
+    const cls = hit.red.includes(i) ? "red" : hit.amb.includes(i) ? "amb" : inTouched(i) ? "" : "dim";
+    return `<div class="ln ${cls}${cls === "red" && key !== pe.prev ? " new" : ""}"><i>${l ? i + 1 : ""}</i><span>${l ? highlight(l).trimEnd() : " "}</span></div>`;
+  }).join("") + `</div>`;
+  pe.prev = key;
+  const reread = touched.reduce((s, [, a, b]) => s + b - a + 1, 0);
+  $("#pe-stats").innerHTML = `<div class="r"><b>${hit.red.length}</b>lines to change</div><div class="a"><b>${hit.amb.length}</b>more to check</div><div><b>${reread}</b>lines to re-read in ${touched.map(t => t[0]).join(", ")}</div>`;
+  $("#pe-msg").innerHTML = c.msg[pe.ver];
+  $("#pe-file").textContent = pe.ver === "v0" ? "dashboard_v0.py" : "the modular version";
+  $$("[data-ch]").forEach(b => b.setAttribute("aria-pressed", +b.dataset.ch === pe.ch));
+  $$("[data-ver]").forEach(b => b.setAttribute("aria-pressed", b.dataset.ver === pe.ver));
+  $("#pe-play").textContent = pe.playing ? "Pause" : "Play";
+}
+function peTick() { if (pe.ver === "v0") pe.ver = "mod"; else { pe.ver = "v0"; pe.ch = (pe.ch + 1) % CHANGES.length; } peRender(); }
+function peLoop() { clearInterval(pe.timer); if (pe.playing) pe.timer = setInterval(peTick, 3200); peRender(); }
+$$("[data-ch]").forEach(b => b.addEventListener("click", () => { pe.ch = +b.dataset.ch; pe.playing = false; peLoop(); }));
+$$("[data-ver]").forEach(b => b.addEventListener("click", () => { pe.ver = b.dataset.ver; pe.playing = false; peLoop(); }));
+$("#pe-play").addEventListener("click", () => { pe.playing = !pe.playing; peLoop(); });
+peLoop();
+
+/* ---------- interconnection graph ---------- */
+const IC_NAMES = ["CSV upload", "parser", "incidence", "alerts", "HTML page", "SMS intake", "map", "export", "analyst 2's script", "late-report fix", "district merge", "API"];
+const ic = { n: 3, layered: false };
+function icRender() {
+  const n = ic.n, cx = 220, cy = 150, R = 100;
+  const pts = Array.from({ length: n }, (_, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; return [cx + R * Math.cos(a), cy + R * Math.sin(a), a]; });
+  let edges = "";
+  let count = 0;
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    if (ic.layered && j !== i + 1) continue;
+    count++;
+    edges += `<line class="e" x1="${pts[i][0].toFixed(1)}" y1="${pts[i][1].toFixed(1)}" x2="${pts[j][0].toFixed(1)}" y2="${pts[j][1].toFixed(1)}"/>`;
+  }
+  const nodes = pts.map(([x, y, a], i) => {
+    const lx = x + 24 * Math.cos(a), ly = y + 24 * Math.sin(a) + 4;
+    const anc = Math.abs(Math.cos(a)) < 0.3 ? "middle" : Math.cos(a) > 0 ? "start" : "end";
+    return `<g class="nd${i === n - 1 && n > 3 ? " newn" : ""}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9"/><text class="nl" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anc}">${esc(IC_NAMES[i])}</text></g>`;
+  }).join("");
+  $("#ic-svg").innerHTML = edges + nodes;
+  $("#ic-n").textContent = n; $("#ic-e").textContent = count;
+  $("#ic-add").disabled = n >= IC_NAMES.length; $("#ic-rem").disabled = n <= 2;
+  $("#ic-mode").textContent = ic.layered ? "Let anything talk" : "Layer them";
+  $("#ic-mode").setAttribute("aria-pressed", ic.layered);
+  const all = n * (n - 1) / 2;
+  $("#ic-note").innerHTML = ic.layered
+    ? `Layered, each component talks only to its neighbour: <b>${count}</b> interconnections instead of ${all}. That is what layering and modularity buy.`
+    : n >= 8 ? `<b>${n}</b> components, <b>${all}</b> possible interconnections. Every one is a place where a change in one component might break another.` : `Each new component can interact with every one already there. Keep adding.`;
+}
+$("#ic-add").addEventListener("click", () => { ic.n++; icRender(); });
+$("#ic-rem").addEventListener("click", () => { ic.n--; icRender(); });
+$("#ic-mode").addEventListener("click", () => { ic.layered = !ic.layered; icRender(); });
+icRender();
+
+/* ---------- source sorter ---------- */
+const sortItems = [
+  { text: "Each of two clinics reports correctly, but they share a catchment, so the district's total counts some patients twice.", ans: 0, why: "No single report is wrong; the error exists only in the combination. That is an emergent property." },
+  { text: "Clinics in the South switch to day/month/year dates, and the dashboard crashes in a function about incidence.", ans: 1, why: "A small change at the upload forced changes far away, in code that is not about uploads at all." },
+  { text: "The duplicate check takes a tenth of a second for one clinic and most of a day for the whole country.", ans: 2, why: "The data grew linearly; the check's work grew with its square. Parts growing at different rates is incommensurate scaling." },
+  { text: "Refreshing the incidence table every minute keeps it current but overloads the database; nightly is cheap but stale.", ans: 3, why: "Neither option is free: you give up freshness or capacity. That is a trade-off." },
+  { text: "Renaming the cases column forces edits in the loader, the alert code and the chart.", ans: 1, why: "One rename ripples into three distant places: propagation of effects." }
+];
+const kinds = ["Emergent property", "Propagation", "Incommensurate scaling", "Trade-off"];
+$("#sorter").innerHTML = sortItems.map((it, i) => `<div class="sort-item" data-i="${i}"><p>${esc(it.text)}</p><div class="opts">${kinds.map((k, j) => `<button class="opt" type="button" data-j="${j}">${k}</button>`).join("")}</div></div>`).join("");
+$$(".sort-item").forEach(el => {
+  const it = sortItems[+el.dataset.i];
+  $$(".opt", el).forEach(b => b.addEventListener("click", () => {
+    const j = +b.dataset.j, ok = j === it.ans;
+    b.classList.add(ok ? "right" : "wrong");
+    let w = $(".why", el); if (!w) { w = document.createElement("div"); el.appendChild(w); }
+    w.className = "why " + (ok ? "ok" : "no"); w.textContent = (ok ? "Right. " : "Not quite. ") + it.why;
+    if (ok) $$(".opt", el).forEach(x => x.disabled = true);
+  }));
+});
+
+/* ---------- hierarchy roll-up (last 4 weeks of cholera, from course/data.py) ---------- */
+const CLIN = [3,3,2,2,3, 0,3,1,1,1, 0,1,1,0,3, 0,1,2,2,1, 1,0,3,4,2, 0,1,1,1,0, 60,63,61,59,61, 1,2,0,1,1];
+const HD = [["N-CEN", "North"], ["N-RIV", "North"], ["N-HIL", "North"], ["N-LAK", "North"], ["S-CEN", "South"], ["S-SAV", "South"], ["S-COA", "South"], ["S-HIG", "South"]];
+const HPOP = { "N-CEN": 182000, "N-RIV": 96000, "N-HIL": 74000, "N-LAK": 121000, "S-CEN": 205000, "S-SAV": 88000, "S-COA": 143000, "S-HIG": 67000 };
+let hiAt = 0;
+const HNOTES = [
+  "40 clinic reports: too many to read at once. Press <b>Roll up one level</b>.",
+  "Each district sums its 5 clinics. Eight numbers, one per district; Coastal stands out.",
+  "Each region sums its 4 districts. Two numbers: the South is the one to open.",
+  "The nation sums its 2 regions. One number for the minister; the hierarchy above lets an analyst drill back down in three small steps: 2 regions, 4 districts, 5 clinics."
+];
+function hiRender() {
+  const dsum = HD.map((d, i) => CLIN.slice(i * 5, i * 5 + 5).reduce((a, b) => a + b, 0));
+  const rsum = r => HD.reduce((s, d, i) => s + (d[1] === r ? dsum[i] : 0), 0);
+  const nat = rsum("North") + rsum("South");
+  const regions = ["North", "South"].map(r => `<div style="display:grid;gap:6px;min-width:0;align-content:start">
+      <div class="box${hiAt >= 2 ? " on" : ""}${hiAt >= 2 && r === "South" ? " hot" : ""}"><span>${r}</span><b>${hiAt >= 2 ? rsum(r) : "?"}</b></div>
+      <div class="dists">${HD.map((d, i) => d[1] !== r ? "" : `<div class="dbox${hiAt >= 1 ? " on" : ""}${hiAt >= 1 && dsum[i] / HPOP[d[0]] * 1e5 > 10 ? " hot" : ""}"><div class="top"><span>${d[0]}</span><b>${hiAt >= 1 ? dsum[i] : "?"}</b></div><div class="cl">${CLIN.slice(i * 5, i * 5 + 5).map(v => `<span>${v}</span>`).join("")}</div></div>`).join("")}</div>
+    </div>`).join("");
+  $("#hier").innerHTML = `<div class="box${hiAt >= 3 ? " on" : ""}"><span>Nation</span><b>${hiAt >= 3 ? nat : "?"}</b></div><div class="lvl reg">${regions}</div>`;
+  $("#hi-note").innerHTML = HNOTES[hiAt];
+  $("#hi-step").disabled = hiAt >= 3;
+}
+$("#hi-step").addEventListener("click", () => { hiAt++; hiRender(); });
+$("#hi-reset").addEventListener("click", () => { hiAt = 0; hiRender(); });
+hiRender();
+
+/* ---------- scaling race ---------- */
+const RN = [500, 1000, 4000, 16000, 60000, 250000, 1000000, 4000000];
+const RLAB = ["one clinic's year", "two clinics", "a district", "a region", "a small country", "a large country", "a national year of weekly reports", "four national years"];
+function human(s) {
+  if (s < 1e-3) return (s * 1e6).toFixed(0) + " µs";
+  if (s < 1) return (s * 1e3).toFixed(s < 0.01 ? 1 : 0) + " ms";
+  if (s < 120) return s.toFixed(s < 10 ? 1 : 0) + " s";
+  if (s < 7200) return (s / 60).toFixed(0) + " min";
+  if (s < 172800) return (s / 3600).toFixed(1) + " hours";
+  if (s < 3e6) return (s / 86400).toFixed(1) + " days";
+  return (s / 86400 / 365).toFixed(1) + " years";
+}
+function rcRender() {
+  const t0 = Math.max(0.001, parseFloat($("#rc-t").value) || 0.5), n = RN[+$("#rc-n").value];
+  const naive = t0 * (n / 4000) ** 2, set = t0 / 1000 * (n / 4000);
+  const lo = Math.log10(1e-3), hi = Math.log10(604800);
+  const pos = s => Math.max(1.5, Math.min(100, (Math.log10(Math.max(s, 1e-4)) - lo) / (hi - lo) * 100));
+  $("#rc-a").style.width = pos(naive) + "%"; $("#rc-b").style.width = pos(set) + "%";
+  $("#rc-at").textContent = human(naive) + (naive > 604800 ? " (off the chart)" : "");
+  $("#rc-bt").textContent = human(set);
+  $("#rc-nl").textContent = `${n.toLocaleString("en-US")} (${RLAB[+$("#rc-n").value]})`;
+  $("#rc-note").innerHTML = `The bars use a log scale: each tick is a factor of 1,000 or more. At ${n.toLocaleString("en-US")} reports the naive check is <b>${human(naive)}</b> and the set check <b>${human(set)}</b>, a gap of ${Math.round(naive / set).toLocaleString("en-US")} times. The set check is assumed to be 1,000 times faster at 4,000 reports, as in <code>scaling.py</code>.`;
+}
+$("#rc-ticks").innerHTML = [[1e-3, "1 ms", "0"], [1, "1 s", "-50%"], [3600, "1 h", "-50%"], [604800, "1 week", "-100%"]].map(([v, l, tx]) => `<span style="position:absolute;left:${(Math.log10(v) + 3) / (Math.log10(604800) + 3) * 100}%;transform:translateX(${tx});white-space:nowrap">${l}</span>`).join("");
+$("#rc-n").addEventListener("input", rcRender); $("#rc-t").addEventListener("input", rcRender);
+rcRender();
+
+const QUIZ = {
+  s1: [
+    { q: "A system has 10 components, any of which may interact with any other. How many possible interconnections?", o: ["10", "20", "45", "100"], a: 2, why: "10 × 9 ÷ 2 = 45 pairs. Components grow linearly; possible interactions grow roughly with the square." },
+    { q: "Which is a sign of complexity in the book's sense?", o: ["The code uses many libraries", "Nobody can explain what the system does in a paragraph", "The code is long", "The system is fast"], a: 1, why: "No short description is one of the book's symptoms. Length alone is not; a long but regular program can still be simple." }
+  ],
+  s2: [
+    { q: "Each clinic's weekly report passes validation, yet the district total is too high. Which source of complexity is this?", o: ["Propagation of effects", "Emergent property", "Trade-off", "Incommensurate scaling"], a: 1, why: "The error belongs to the combination, not to any single part: two clinics sharing a catchment double-count when summed." },
+    { q: "Why is \"trade-offs\" different from the other three sources?", o: ["It only affects performance", "It can be avoided with better design", "It cannot be eliminated; every choice gives something up, so you choose deliberately", "It only appears in large teams"], a: 2, why: "Good design reduces propagation and contains scaling, but trade-offs remain. The skill is choosing which cost you pay." }
+  ],
+  s3: [
+    { q: "In <code>dashboard_v0.py</code>, a clinic uploads <code>23/03/2026</code>. Which line fails first?", o: ["The footer that prints the date", "The line that finds the latest week, with a ValueError", "The incidence calculation, with ZeroDivisionError", "Nothing fails; the page is just wrong"], a: 1, why: "Finding the latest week is the first place that parses a date, and %Y-%m-%d cannot read 23/03/2026." },
+    { q: "After your <code>load_reports()</code>, what does a new upload format cost?", o: ["Edits in every function that uses dates", "One argument: <code>load_reports(text, \"%d/%m/%Y\")</code>", "A new version of the dashboard", "Nothing; it detects the format itself"], a: 1, why: "Giving the format one home turns a scattered change into a single argument. Guessing formats automatically is risky: 03/04 is March or April." }
+  ],
+  s4: [
+    { q: "Why move the alert threshold from the HTML loop into <code>compute_incidence()</code>?", o: ["It runs faster there", "A public health rule should sit with the computation, behind an interface, where it can be found, tested and changed without touching layout", "HTML cannot contain comparisons", "So the page has fewer lines"], a: 1, why: "In version 0, changing the outbreak rule meant editing presentation code and risking the layout. Now the rule has one home." },
+    { q: "Calling <code>compute_incidence()</code> without knowing it uses pandas is an example of…", o: ["Hierarchy", "Abstraction", "Layering", "Emergence"], a: 1, why: "Abstraction hides how a module works behind what it does. You could swap pandas for plain loops and no caller would notice." }
+  ],
+  s5: [
+    { q: "The naive check takes 1 second on 10,000 reports. About how long on 1,000,000?", o: ["100 seconds", "About 17 minutes", "About 3 hours", "About 4 days"], a: 2, why: "100 times more reports means 100² = 10,000 times more work: 10,000 seconds, nearly three hours." },
+    { q: "Why does the set-based check grow only linearly?", o: ["Sets are sorted", "Each report does one membership test and one insert, each taking about constant time", "It skips most reports", "It uses less memory"], a: 1, why: "A set answers \"have I seen this key?\" in roughly constant time, so n reports cost about n steps. It pays for that with memory: a trade-off." }
+  ],
+  s6: [
+    { q: "What does \"design for iteration\" ask of you?", o: ["Get the design right before writing code", "Write each module twice", "Expect to change the design, and make changes cheap", "Use loops instead of recursion"], a: 2, why: "You will not get the design right first time. Modularity is what makes the second and third versions affordable." }
+  ],
+  s7: [
+    { q: "Version 0 knows the date format in three jobs. Which technique removes that propagation?", o: ["Hierarchy", "Modularity: give the format one home in <code>load_reports()</code>", "Faster hardware", "A set"], a: 1, why: "Splitting the function so only the loader sees date strings turns a scattered change into one argument." },
+    { q: "Doubling the reports makes the naive duplicate check about how much slower?", o: ["2 times", "4 times", "8 times", "It stays the same"], a: 1, why: "Work grows with n², and (2n)² = 4n². The set check gets only 2 times slower." },
+    { q: "An analyst reads the national cholera total, then the South, then Coastal, then its 5 clinics. Which technique is she using?", o: ["Layering", "Abstraction", "Hierarchy", "Trade-off"], a: 2, why: "Grouping clinics into districts, regions and a nation keeps each level small enough to understand." }
+  ]
+};
+const CARDS = [
+  ["Four signs of complexity", "Many components and interconnections; irregularities; no short description; a large team."],
+  ["Emergent property", "Behaviour of the whole system that no single part has on its own."],
+  ["Propagation of effects", "A small change in one place forcing changes in many distant places."],
+  ["Incommensurate scaling", "Parts of a system growing at different rates, so a design that worked at one size breaks at another."],
+  ["Modularity", "Dividing a system into parts that interact only through defined interfaces."],
+  ["Abstraction", "Hiding how a module works behind a description of what it does."],
+  ["Layering", "Building each layer of a system only on the layer directly below it."],
+  ["Hierarchy", "Grouping modules into larger modules, so each level stays small enough to understand."],
+  ["Design for iteration", "You will not get it right first time, so make the design cheap to change."],
+  ["n components, any-to-any", "n × (n − 1) ÷ 2 possible interconnections."],
+  ["Naive vs set duplicate check", "Naive compares every pair: work grows with n². A set remembers keys: work grows with n."],
+  ["predict_seconds", "measured × (target_n ÷ measured_n) ** exponent"]
+];
+
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  exercises: {
+    "ex-load": {
+      cases: [
+        'r = load_reports(upload, "%d/%m/%Y")\nprint(r[0]["week"] - r[1]["week"], r[0]["cases"] + r[1]["cases"])',
+        'r = load_reports("district_id,week_start,disease,cases\\nN-CEN,2026-01-05,cholera,4")\nprint(r[0])',
+        'r = load_reports("district_id,week_start,disease,cases\\nN-HIL,03.09.2026,measles,1", "%m.%d.%Y")\nprint(strftime(r[0]["week"], "%Y-%m-%d"), r[0]["cases"] * 10)',
+        'r = load_reports(upload, "%d/%m/%Y")\nprint(strftime(max(x["week"] for x in r), "%d %m %Y"))'
+      ],
+      solution: "def read_csv(text):\n    lines = text.strip().split(\"\\n\")\n    header = lines[0].split(\",\")\n    return [dict(zip(header, line.split(\",\"))) for line in lines[1:]]\nBEFORE = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]\ndef strptime(text, fmt):\n    sep = fmt[2]\n    codes = fmt.replace(\"%\", \"\").split(sep)\n    parts = text.split(sep)\n    if len(parts) != 3 or not all(p.isdigit() for p in parts):\n        raise ValueError(f\"time data '{text}' does not match format '{fmt}'\")\n    v = dict(zip(codes, [int(p) for p in parts]))\n    return v[\"Y\"] * 365 + BEFORE[v[\"m\"] - 1] + v[\"d\"]\ndef strftime(day, fmt):\n    y = (day - 1) // 365\n    rest = day - y * 365\n    m = 12\n    while BEFORE[m - 1] >= rest:\n        m = m - 1\n    d = rest - BEFORE[m - 1]\n    return fmt.replace(\"%Y\", str(y)).replace(\"%m\", str(m).zfill(2)).replace(\"%d\", str(d).zfill(2))\n\ndef load_reports(csv_text, date_format=\"%Y-%m-%d\"):\n    reports = []\n    for r in read_csv(csv_text):\n        reports.append({\n            \"district_id\": r[\"district_id\"],\n            \"week\": strptime(r[\"week_start\"], date_format),\n            \"disease\": r[\"disease\"],\n            \"cases\": int(r[\"cases\"]),\n        })\n    return reports\n\nupload = \"district_id,week_start,disease,cases\\nS-COA,23/03/2026,cholera,109\\nS-COA,16/03/2026,cholera,87\"\nfor r in load_reports(upload, \"%d/%m/%Y\"):\n    print(r)",
+      hint: ["The week is strptime(r[\"week_start\"], date_format): the format comes from the argument, never from a string written inside the function body.", "The count arrives as text, so \"109\" + \"87\" would glue strings together. Use int(r[\"cases\"])."]
+    },
+    "ex-split": {
+      cases: [
+        'print(render_page(compute_incidence(sample, "cholera"), "cholera"))',
+        'rep = [R("S-COA", D, "cholera", 20), R("S-COA", D - 28, "cholera", 500), R("N-CEN", D - 21, "cholera", 30), R("S-HIG", D, "measles", 40)]\nprint(render_page(compute_incidence(rep, "cholera"), "cholera"))',
+        'rep = [R("S-HIG", D, "measles", 9), R("S-HIG", D - 7, "cholera", 9)]\nlatest, table = compute_incidence(rep, "measles", threshold=5)\nfor row in table:\n    print(row[0], row[3], round(row[4], 1), row[5])',
+        'rep = [R("N-RIV", D, "cholera", 4), R("N-RIV", D - 49, "cholera", 6), R("N-RIV", D - 56, "cholera", 100)]\nlatest, table = compute_incidence(rep, "cholera", weeks=8)\nprint(latest == D, table[1][3], table[1][5])',
+        'latest, table = compute_incidence(sample, "cholera")\nprint(len(table), [row[0] for row in table if row[5]])'
+      ],
+      solution: "DISTRICTS = [\n    (\"N-CEN\", \"Central\",   \"North\", 182000), (\"N-RIV\", \"Riverside\", \"North\",  96000),\n    (\"N-HIL\", \"Hillview\",  \"North\",  74000), (\"N-LAK\", \"Lakeshore\", \"North\", 121000),\n    (\"S-CEN\", \"Central\",   \"South\", 205000), (\"S-SAV\", \"Savanna\",   \"South\",  88000),\n    (\"S-COA\", \"Coastal\",   \"South\", 143000), (\"S-HIG\", \"Highlands\", \"South\",  67000),\n]\nBEFORE = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]\ndef show_date(day):          # display only: a day number as YYYY-MM-DD\n    y = (day - 1) // 365\n    rest = day - y * 365\n    m = 12\n    while BEFORE[m - 1] >= rest:\n        m = m - 1\n    return f\"{y}-{str(m).zfill(2)}-{str(rest - BEFORE[m - 1]).zfill(2)}\"\n\ndef render_page(incidence, disease):\n    latest, table = incidence\n    page = [f\"{disease.title()} incidence, 4 weeks to {show_date(latest)}\"]\n    for district_id, name, region, cases, rate, alert in table:\n        flag = \"ALERT\" if alert else \"\"\n        label = f\"{name} ({region})\"\n        page.append(f\"{label:18} {cases:4} {rate:7.1f}  {flag}\")\n    page.append(f\"Data through {show_date(latest)}\")\n    return \"\\n\".join(page)\n\ndef R(district_id, week, disease, cases):\n    return {\"district_id\": district_id, \"week\": week, \"disease\": disease, \"cases\": cases}\n\ndef compute_incidence(reports, disease, weeks=4, threshold=10):\n    latest = max(r[\"week\"] for r in reports)\n    totals = {}\n    for r in reports:\n        if r[\"disease\"] == disease and latest - r[\"week\"] < 7 * weeks:\n            totals[r[\"district_id\"]] = totals.get(r[\"district_id\"], 0) + r[\"cases\"]\n    table = []\n    for district_id, name, region, pop in DISTRICTS:\n        cases = totals.get(district_id, 0)\n        rate = cases / pop * 100000\n        table.append((district_id, name, region, cases, rate, rate > threshold))\n    return latest, table\n\nD = 739572\nsample = [R(\"S-COA\", D, \"cholera\", 109), R(\"S-COA\", D - 7, \"cholera\", 87),\n          R(\"N-CEN\", D - 14, \"cholera\", 3), R(\"S-COA\", D - 70, \"cholera\", 2)]\nprint(render_page(compute_incidence(sample, \"cholera\"), \"cholera\"))",
+      hint: ["First loop: for r in reports, keep it when r[\"disease\"] == disease and latest - r[\"week\"] < 7 * weeks, and add r[\"cases\"] to totals[r[\"district_id\"]] (use totals.get(..., 0)).", "Second loop: for district_id, name, region, pop in DISTRICTS: cases = totals.get(district_id, 0); rate = cases / pop * 100000; table.append((district_id, name, region, cases, rate, rate > threshold))."]
+    },
+    "ex-predict": {
+      cases: [
+        'print(predict_seconds(1.0, 10000, 1000000, 2))',
+        'print(round(predict_seconds(0.5, 4000, 1000000, 2), 1))',
+        'print(round(predict_seconds(0.002, 4000, 1000000, 1), 3))',
+        'print(predict_seconds(3.0, 1000, 1000, 2))',
+        'print(round(predict_seconds(8.0, 2000, 1000, 2), 2))'
+      ],
+      solution: "def predict_seconds(measured_seconds, measured_n, target_n, exponent):\n    return measured_seconds * (target_n / measured_n) ** exponent\n\nprint(predict_seconds(1.0, 10000, 1000000, 2))",
+      hint: ["How many times bigger is the target? target_n / measured_n.", "Raise that ratio to the exponent and multiply: measured_seconds * (target_n / measured_n) ** exponent."]
+    },
+    "ex-dups": {
+      cases: [
+        'print(find_duplicate_reports(sample))',
+        'print(find_duplicate_reports([]), find_duplicate_reports([(1, "C01", 0, "measles")]))',
+        'print(find_duplicate_reports(make_reports(500)))',
+        'd = find_duplicate_reports(make_reports(60000))\nprint(len(d), d[:3], d[-1])'
+      ],
+      limit: 10000,
+      solution: "import random\ndef make_reports(n, seed=1):\n    random.seed(seed)\n    diseases = (\"measles\", \"cholera\", \"malaria\")\n    reports = [(i + 1, \"C\" + str(i % 40 + 1).zfill(2), i // 120, diseases[i // 40 % 3])\n               for i in range(n)]\n    for k in range(n // 100):\n        r = random.choice(reports)\n        reports.append((len(reports) + 1,) + r[1:])\n    return reports\n\ndef find_duplicate_reports(reports):\n    seen = set()\n    dups = []\n    for report_id, clinic_id, week, disease in reports:\n        key = (clinic_id, week, disease)\n        if key in seen:\n            dups.append(report_id)\n        seen.add(key)\n    return dups\n\nsample = [(1, \"C31\", 9, \"cholera\"), (2, \"C32\", 9, \"cholera\"), (3, \"C31\", 9, \"cholera\"),\n          (4, \"C31\", 9, \"measles\"), (5, \"C31\", 9, \"cholera\")]\nprint(find_duplicate_reports(sample))",
+      hint: ["Keep seen = set() outside the loop. For each report, build key = (clinic_id, week, disease).", "If key in seen, append the report_id to dups; then seen.add(key). One pass, no inner loop."]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

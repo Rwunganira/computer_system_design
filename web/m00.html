@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Computer System Design, Module 0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+/* hero: weekly reports arriving */
+.wk-card { background: var(--code-bg); color: var(--code-fg); border-radius: 14px; padding: 20px 20px 16px; display: grid; gap: 14px; min-width: 0; }
+.wk-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.8rem; color: var(--code-muted); }
+.wk-top b { color: var(--code-fg); font-weight: 600; }
+.wk-ctl { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.wk-ctl .grp { display: flex; gap: 6px; flex-wrap: wrap; }
+.wk-card .btn-ghost[aria-pressed="true"] { background: var(--tok-kw); border-color: var(--tok-kw); color: var(--code-bg); }
+.wk-grid { display: grid; grid-template-columns: 52px repeat(12, minmax(0, 1fr)) 50px; gap: 3px; font-family: var(--mono); font-size: 0.72rem; align-items: center; }
+.wk-grid .h { color: var(--code-muted); text-align: center; font-size: 0.64rem; }
+.wk-grid .h.tot { text-align: right; }
+.wk-lab { font: inherit; color: var(--code-fg); background: none; border: 0; padding: 0; text-align: left; cursor: pointer; white-space: nowrap; }
+.wk-lab:hover, .wk-lab.sel { color: var(--tok-kw); }
+.wk-c { height: 24px; border-radius: 4px; display: grid; place-items: center; font-variant-numeric: tabular-nums; border: 1px solid color-mix(in srgb, var(--code-fg) 12%, transparent); transition: background .45s ease; overflow: hidden; }
+.wk-c.wait { border-style: dashed; color: transparent; }
+.wk-c.new { animation: wk-pop .55s ease-out; }
+.wk-c.sel { border-color: var(--tok-kw); }
+@keyframes wk-pop { from { transform: scale(.5); opacity: .2; } }
+.wk-tot { text-align: right; font-variant-numeric: tabular-nums; color: var(--code-fg); font-weight: 600; }
+.wk-bar { height: 34px; display: flex; align-items: flex-end; }
+.wk-bar span { display: block; width: 100%; background: var(--tok-fn); border-radius: 3px 3px 0 0; transition: height .45s ease; min-height: 1px; }
+.wk-nat { color: var(--code-muted); font-size: 0.64rem; line-height: 1.15; }
+.wk-msg { font-family: var(--mono); font-size: 0.82rem; color: var(--code-fg); background: color-mix(in srgb, var(--code-fg) 7%, transparent); border-radius: 8px; padding: 8px 12px; min-height: 3.2em; }
+.wk-msg b { color: var(--tok-kw); font-weight: 600; }
+@media (max-width: 560px) {
+  .wk-card { padding: 16px 14px 14px; }
+  .wk-grid { grid-template-columns: 42px repeat(12, minmax(0, 1fr)) 38px; gap: 2px; font-size: 0.66rem; }
+  .wk-c { font-size: 0; height: 20px; }
+}
+/* formula widget */
+.calc { display: grid; gap: 6px; font-family: var(--mono); font-size: 0.88rem; }
+.calc div { display: flex; justify-content: space-between; gap: 12px; padding: 6px 10px; background: var(--paper); border-radius: 6px; flex-wrap: wrap; }
+.calc div span { color: var(--muted); }
+.calc div b { font-variant-numeric: tabular-nums; }
+.calc div.on { background: var(--hl); }
+.calc div.out b { color: var(--accent); }
+/* halves widget */
+.halves td.num, .halves th.num { text-align: right; }
+.halves .barcell { width: 34%; }
+.halves .hb { height: 10px; border-radius: 3px; background: var(--accent); transition: width .5s ease; }
+.halves tr.win td { background: var(--hl); font-weight: 700; }
+.halves td.dim { color: var(--rule); }
+.steps { display: flex; gap: 6px; flex-wrap: wrap; }
+.steps span { font-family: var(--mono); font-size: 0.72rem; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--rule); color: var(--muted); }
+.steps span.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.sort-item .opts.pair { grid-template-columns: 1fr 1fr; }
+</style>
+</head>
+<body data-lesson="m00">
+<div class="shell">
+  <aside class="rail" aria-label="Lesson progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 0</div>
+      <h1>A dashboard is only as good as its numbers, so start with data you can <em>reproduce</em>.</h1>
+      <p class="lede">Every module in this course works on the same two fictional health systems and the same synthetic data. This module sets that data up, computes incidence per 100,000, and finds the cholera outbreak hidden in it.</p>
+
+      <div class="wk-card" aria-label="Weekly case reports arriving by district">
+        <div class="wk-top"><span>Weekly reports arriving from <b>40 clinics</b> in <b>8 districts</b></span><span>week <b id="wk-week">0</b> of 12 · <b id="wk-date">2026-01-05</b></span></div>
+        <div class="wk-ctl">
+          <div class="grp" role="group" aria-label="Disease">
+            <button class="btn-ghost" type="button" data-dz="cholera" aria-pressed="true">cholera</button>
+            <button class="btn-ghost" type="button" data-dz="measles" aria-pressed="false">measles</button>
+            <button class="btn-ghost" type="button" data-dz="malaria" aria-pressed="false">malaria</button>
+          </div>
+          <div class="grp">
+            <button class="btn-ghost" type="button" id="wk-mode" aria-pressed="false">per 100k</button>
+            <button class="btn-ghost" type="button" id="wk-step">Step</button>
+            <button class="btn-ghost" type="button" id="wk-play">Pause</button>
+          </div>
+        </div>
+        <div class="wk-grid" id="wk-grid"></div>
+        <div class="wk-msg" id="wk-msg" aria-live="polite"></div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>What SurveilLite and VaxRecords are, why the course data comes from a fixed seed, and what "working" means for each system.</div>
+        <div><b>You will build</b>A function that turns weekly reports into incidence per 100,000 for every district, and one that finds the district with an outbreak.</div>
+        <div><b>How it works</b>Watch the reports arrive above, step through the formulas, predict each output, then write the code. Each check you pass fills the bar.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="Two systems">
+      <div class="sec-head"><span class="sec-num">01</span><h2>Two systems, one dataset</h2></div>
+      <p>A textbook about system design is easy to read and hard to use, because its examples are about systems you have never built. This course anchors every chapter of Saltzer and Kaashoek in two small health systems that you will build, break and repair, module by module.</p>
+      <div class="two">
+        <div><span class="eyebrow">SurveilLite</span><h3>A disease surveillance dashboard</h3><p>Forty clinics in eight districts report weekly counts of measles, cholera and malaria. The dashboard turns them into incidence per 100,000 people by district and flags outbreaks.</p></div>
+        <div><span class="eyebrow">VaxRecords</span><h3>A vaccination records API</h3><p>Health workers record each dose they give. The API keeps each child's vaccination history and each clinic's stock of vaccine.</p></div>
+      </div>
+      <p>Both run on one data module, <code>course/data.py</code>. It is short, and you will call it in almost every module:</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Name</th><th>Returns</th></tr></thead>
+        <tbody>
+          <tr><td><code>DISTRICTS</code></td><td>8 districts in 2 regions, with population</td></tr>
+          <tr><td><code>clinics()</code></td><td>40 clinics, 5 per district</td></tr>
+          <tr><td><code>case_reports()</code></td><td>one row per clinic, week and disease, with a case count</td></tr>
+          <tr><td><code>population(n)</code></td><td><code>n</code> synthetic children with names, birth dates and districts</td></tr>
+          <tr><td><code>vaccinations(people)</code></td><td>the doses those children received</td></tr>
+        </tbody>
+      </table></div>
+      <p>The eight districts sit in two regions, North and South. Both regions have a district called <b>Central</b>. That is deliberate: names are not unique, and Module 3 is about exactly that problem. Each district therefore has an identifier, such as <code>S-COA</code> for Coastal in the South.</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>district_id</th><th>Name</th><th>Region</th><th style="text-align:right">Population</th></tr></thead>
+        <tbody id="dist-table"></tbody>
+      </table></div>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2" data-short="Same seed, same data">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Same seed, same data</h2></div>
+      <p>All the data is <b>synthetic</b>: no real patients, clinics or places. It is generated by a pseudo-random number generator, which is not random at all. Given the same starting value, the <b>seed</b>, it produces the same sequence of numbers every time.</p>
+      <p>That is what makes the course work. When your incidence table disagrees with the test, the difference is a real finding about your code, not noise from a different draw. Predict the last line before you run this.</p>
+      <div class="cell" data-predict="True False">
+        <div class="predict"><label for="p-s2">Predict the last line:</label><input id="p-s2" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s2" spellcheck="false" aria-label="Python code">import random
+
+random.seed(42)
+first = [random.randint(0, 9) for i in range(8)]
+random.seed(42)
+second = [random.randint(0, 9) for i in range(8)]
+random.seed(43)
+third = [random.randint(0, 9) for i in range(8)]
+
+print(first)
+print(second)
+print(third)
+print(first == second, first == third)</textarea></div>
+      </div>
+      <p>Every generator in <code>course/data.py</code> takes a <code>seed</code> argument with a fixed default: <code>case_reports(seed=42)</code>, <code>population(seed=7)</code>, <code>vaccinations(seed=11)</code>. Call one twice and you get identical tables. Pass a different seed and you get a different, equally plausible season.</p>
+      <p class="note"><b>Notice:</b> the code on this page runs in your browser in Skulpt, whose random generator is not CPython's. The seed still fixes the sequence, but the numbers differ from the ones the repository's lab prints. The hero chart above uses the lab's exact numbers.</p>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3" data-short="Building the reports">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Building the weekly reports</h2></div>
+      <p>Each clinic serves one fifth of its district's population, its <b>catchment</b>. Each disease has a baseline weekly rate per 100,000 people: measles 0.8, cholera 1.5, malaria 40. The generator turns a rate into an <b>expected</b> count for one clinic in one week, then draws an actual count from a Poisson distribution around it.</p>
+      <p>One district gets an outbreak. From week index 6 (the seventh week), cholera's expected count in Coastal is multiplied by 8, then 16, then 24, and so on. Choose a district, disease and week below and watch the expected count build up.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls">
+            <label class="field" for="ex-d">district <select id="ex-d" style="width:auto"></select></label>
+            <label class="field" for="ex-z">disease <select id="ex-z" style="width:auto"><option>cholera</option><option>measles</option><option>malaria</option></select></label>
+            <label class="field" for="ex-w">week <select id="ex-w" style="width:auto"></select></label>
+          </div>
+        </div>
+        <div class="calc" id="calc"></div>
+        <div class="controls"><button class="btn" id="calc-step" type="button">Next step</button><button class="btn alt" id="calc-reset" type="button">Start over</button><span class="note" id="calc-note"></span></div>
+      </div>
+
+      <p>Here is the same generator in plain Python. In the repository, <code>course/data.py</code> builds a pandas <code>DataFrame</code> with a real date column and a <code>report_id</code>; in the browser there is no pandas, so each report is a tuple <code>(clinic_id, district_id, week, disease, cases)</code> and the week is a number from 0 to 11. The logic is line for line the same. How many report rows will it make?</p>
+      <div class="cell" data-predict="1440 report rows">
+        <div class="predict"><label for="p-s3">Predict the last line:</label><input id="p-s3" autocomplete="off" placeholder="e.g. 100 report rows"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s3" spellcheck="false" aria-label="Python code">import random
+import math
+
+DISTRICTS = [
+    ("N-CEN", "Central",   "North", 182000),
+    ("N-RIV", "Riverside", "North",  96000),
+    ("N-HIL", "Hillview",  "North",  74000),
+    ("N-LAK", "Lakeshore", "North", 121000),
+    ("S-CEN", "Central",   "South", 205000),
+    ("S-SAV", "Savanna",   "South",  88000),
+    ("S-COA", "Coastal",   "South", 143000),
+    ("S-HIG", "Highlands", "South",  67000),
+]
+BASE_RATE = {"measles": 0.8, "cholera": 1.5, "malaria": 40.0}   # weekly, per 100,000
+
+def poisson(lam):
+    """A Poisson draw by Knuth's method (the standard library has none)."""
+    limit, k, p = math.exp(-lam), 0, 1.0
+    while True:
+        p = p * random.random()
+        if p &lt;= limit:
+            return k
+        k = k + 1
+
+def case_reports(weeks=12, seed=42, outbreak=("S-COA", "cholera", 6)):
+    random.seed(seed)
+    rows = []
+    for week in range(weeks):
+        for i, (district_id, name, region, pop) in enumerate(DISTRICTS):
+            for k in range(5):                      # five clinics per district
+                clinic_id = "C" + str(i * 5 + k + 1).zfill(2)
+                for disease in BASE_RATE:
+                    expected = BASE_RATE[disease] * (pop / 5) / 100000
+                    if outbreak and district_id == outbreak[0] and disease == outbreak[1] and week &gt;= outbreak[2]:
+                        expected = expected * 8 * (week - outbreak[2] + 1)
+                    rows.append((clinic_id, district_id, week, disease, poisson(expected)))
+    return rows
+
+reports = case_reports()
+print("Cholera cases by district and week (spot anything?):")
+for district_id, name, region, pop in DISTRICTS:
+    weekly = [0] * 12
+    for clinic_id, d, week, disease, cases in reports:
+        if d == district_id and disease == "cholera":
+            weekly[week] += cases
+    print(f"{district_id:6}", " ".join(f"{n:3}" for n in weekly))
+print(len(reports), "report rows")</textarea></div>
+      </div>
+      <p>Three nested loops multiply: 12 weeks, 40 clinics and 3 diseases give 12 × 40 × 3 rows. The table you just printed is the browser's version of the hero chart. The counts differ a little from the lab's, but the outbreak sits in the same place, because the generator puts it there.</p>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4" data-short="Incidence per 100k">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Incidence per 100,000</h2></div>
+      <p>Raw counts mislead: Central South has 205,000 people and Highlands 67,000, so Central South should report about three times as many cases in a quiet week. SurveilLite divides by population and reports <b>incidence per 100,000</b>:</p>
+      <div class="callout">incidence = cases ÷ population × 100,000</div>
+      <p>The formula is the easy part. The design question is what to do with a district that reported <em>no</em> cases. The obvious loop only creates an entry when it sees a case. Predict how many districts end up in the table.</p>
+      <div class="cell" data-predict="2 of 8 districts">
+        <div class="predict"><label for="p-s4">Predict the last line:</label><input id="p-s4" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s4" spellcheck="false" aria-label="Python code">reports = [
+    ("C31", "S-COA", 6, "cholera", 13),
+    ("C01", "N-CEN", 6, "cholera", 4),
+    ("C21", "S-CEN", 6, "measles", 2),
+]
+totals = {}
+for clinic_id, district_id, week, disease, cases in reports:
+    if disease == "cholera":
+        totals[district_id] = totals.get(district_id, 0) + cases
+print(totals)
+print(len(totals), "of 8 districts")</textarea></div>
+      </div>
+      <p>Six districts are simply absent. On a dashboard, a missing row reads as "no data": did Hillview report zero cholera, or did its report never arrive? An epidemiologist cannot tell. Listing every district with an explicit 0 makes the absence of cases a fact the system states, not a gap the reader has to guess about.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: the structure is given, you fill the gaps.</span></div>
+        <p>Complete <code>incidence_per_100k(reports, disease)</code>. It must return a dictionary with <b>every</b> district in <code>DISTRICTS</code>, mapping its id to cases per 100,000. The checker calls it with other reports and other diseases, including one nobody reported.</p>
+        <div class="cell" id="ex-incidence">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-incidence" spellcheck="false" aria-label="Python code">DISTRICTS = [
+    ("N-CEN", "Central",   "North", 182000),
+    ("N-RIV", "Riverside", "North",  96000),
+    ("N-HIL", "Hillview",  "North",  74000),
+    ("N-LAK", "Lakeshore", "North", 121000),
+    ("S-CEN", "Central",   "South", 205000),
+    ("S-SAV", "Savanna",   "South",  88000),
+    ("S-COA", "Coastal",   "South", 143000),
+    ("S-HIG", "Highlands", "South",  67000),
+]
+
+def incidence_per_100k(reports, disease):
+    cases = {}
+    for district_id, name, region, pop in DISTRICTS:
+        cases[district_id] = 0                 # every district starts at zero
+    for clinic_id, district_id, week, dz, n in reports:
+        pass  # TODO: add n to cases[district_id] when dz is the disease asked for
+    rates = {}
+    for district_id, name, region, pop in DISTRICTS:
+        pass  # TODO: rates[district_id] = cases per 100,000 people
+    return rates
+
+sample = [("C31", "S-COA", 6, "cholera", 13), ("C32", "S-COA", 7, "cholera", 32)]
+r = incidence_per_100k(sample, "cholera")
+print(r.get("S-COA"), r.get("N-CEN"))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="Finding the outbreak">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Finding the outbreak</h2></div>
+      <p>Which district has a problem? The tempting answer is the one with the most cases. Run this on the lab's real weekly totals and predict which district has the most malaria.</p>
+      <div class="cell" data-predict="most malaria: S-CEN">
+        <div class="predict"><label for="p-s5">Predict the last line:</label><input id="p-s5" autocomplete="off" placeholder="most malaria: ..."></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s5" spellcheck="false" aria-label="Python code"># Weekly district totals from course/data.py, weeks 1 to 12
+MALARIA = {
+    "N-CEN": [69, 80, 63, 70, 68, 70, 79, 70, 63, 73, 66, 67],
+    "N-RIV": [42, 37, 34, 43, 51, 33, 41, 42, 39, 38, 36, 31],
+    "N-HIL": [24, 34, 35, 32, 27, 21, 22, 31, 26, 34, 28, 28],
+    "N-LAK": [53, 66, 55, 55, 44, 46, 42, 39, 38, 45, 48, 51],
+    "S-CEN": [87, 91, 78, 70, 85, 73, 84, 69, 87, 95, 92, 96],
+    "S-SAV": [27, 41, 35, 45, 29, 32, 51, 42, 30, 36, 30, 46],
+    "S-COA": [59, 43, 65, 64, 51, 64, 61, 64, 62, 62, 60, 61],
+    "S-HIG": [22, 31, 28, 25, 28, 28, 27, 21, 26, 23, 19, 19],
+}
+for d in MALARIA:
+    print(d, sum(MALARIA[d]))
+most = max(MALARIA, key=lambda d: sum(MALARIA[d]))
+print("most malaria:", most)</textarea></div>
+      </div>
+      <p>Central South has the most malaria every season, because it has the most people. Nothing unusual is happening there. An <b>outbreak is a change over time</b>, not a large total. So compare each district with itself: split the reporting period into a first and second half, and look for the district whose cases grew the most.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls">
+            <label class="field" for="hv-z">disease <select id="hv-z" style="width:auto"><option>cholera</option><option>malaria</option><option>measles</option></select></label>
+            <button class="btn" id="hv-step" type="button">Next step</button><button class="btn alt" id="hv-reset" type="button">Start over</button>
+          </div>
+        </div>
+        <div class="steps" id="hv-steps"><span>1 split weeks</span><span>2 first half</span><span>3 second half</span><span>4 ratio</span><span>5 pick largest</span></div>
+        <div class="scroll-x"><table class="data halves" id="hv-table"><thead><tr><th>District</th><th class="num">1st half</th><th class="num">2nd half</th><th class="num">Ratio</th><th class="barcell"></th></tr></thead><tbody></tbody></table></div>
+        <p class="note" id="hv-note">Press <b>Next step</b> to start.</p>
+      </div>
+
+      <p>Why add 1 to each half? A district with zero cases in the first half would divide by zero, and a district going from 0 to 1 case would get an infinite ratio. Adding 1 to both sides keeps small counts from dominating. It is a common epidemiological smoothing trick, and it is what the lab's solution does.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Based on <code>outbreak_district()</code> in the lab.</span></div>
+        <p>Finish <code>outbreak_district(reports, disease)</code>: sum each district's cases in the first and second half of the weeks, and return the district id with the largest <code>(second + 1) / (first + 1)</code>. The generator from section 3 is included so you can test it; the checker also moves the outbreak to other districts and diseases.</p>
+        <div class="cell" id="ex-outbreak">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-outbreak" spellcheck="false" aria-label="Python code"># ---- the generator from section 3 (no need to edit) ----
+import random
+import math
+DISTRICTS = [("N-CEN", "Central", "North", 182000), ("N-RIV", "Riverside", "North", 96000),
+             ("N-HIL", "Hillview", "North", 74000), ("N-LAK", "Lakeshore", "North", 121000),
+             ("S-CEN", "Central", "South", 205000), ("S-SAV", "Savanna", "South", 88000),
+             ("S-COA", "Coastal", "South", 143000), ("S-HIG", "Highlands", "South", 67000)]
+BASE_RATE = {"measles": 0.8, "cholera": 1.5, "malaria": 40.0}
+def poisson(lam):
+    limit, k, p = math.exp(-lam), 0, 1.0
+    while True:
+        p = p * random.random()
+        if p &lt;= limit:
+            return k
+        k = k + 1
+def case_reports(weeks=12, seed=42, outbreak=("S-COA", "cholera", 6)):
+    random.seed(seed)
+    rows = []
+    for week in range(weeks):
+        for i, (district_id, name, region, pop) in enumerate(DISTRICTS):
+            for k in range(5):
+                clinic_id = "C" + str(i * 5 + k + 1).zfill(2)
+                for disease in BASE_RATE:
+                    expected = BASE_RATE[disease] * (pop / 5) / 100000
+                    if outbreak and district_id == outbreak[0] and disease == outbreak[1] and week &gt;= outbreak[2]:
+                        expected = expected * 8 * (week - outbreak[2] + 1)
+                    rows.append((clinic_id, district_id, week, disease, poisson(expected)))
+    return rows
+# ---- your code ----
+
+def outbreak_district(reports, disease):
+    weeks = sorted(set(r[2] for r in reports if r[3] == disease))
+    half = len(weeks) // 2
+    early = weeks[:half]
+    first, second = {}, {}
+    # TODO: for each report of this disease, add its cases to first[district]
+    #       if its week is in early, otherwise to second[district]
+    # TODO: return the district with the largest (second + 1) / (first + 1)
+    return None
+
+print(outbreak_district(case_reports(), "cholera"))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6" data-short="What working means">
+      <div class="sec-head"><span class="sec-num">06</span><h2>What "working" means</h2></div>
+      <p>Before you design a system, decide what it must do and what failure looks like. The two running systems fail in different ways, and the rest of the book is organised around those failures.</p>
+      <div class="two">
+        <div><span class="eyebrow">SurveilLite</span><h3>A wrong number is worse than a slow page</h3><p>An epidemiologist may send a response team on the strength of an incidence figure. A page that loads in eight seconds is annoying; a page that silently double-counts a district is dangerous.</p></div>
+        <div><span class="eyebrow">VaxRecords</span><h3>A lost record is a missed or repeated dose</h3><p>If a dose record disappears, a child may be vaccinated twice, or not at all. The chapters on fault tolerance, atomicity and consistency are about exactly these failures.</p></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">For each failure, decide how serious it is for a public health team.</span></div>
+        <div class="sorter" id="sorter"></div>
+      </div>
+
+      <h3>How each module works</h3>
+      <p>Every module folder in the repository follows the same loop, and every page of this site mirrors it:</p>
+      <ol>
+        <li><code>README.md</code>: the chapter's ideas in plain language, and what to read in the book.</li>
+        <li><code>predict.md</code>: questions to answer <em>before</em> running anything.</li>
+        <li>One or more runnable examples. Run them, read them, change them.</li>
+        <li><code>exercises.py</code>: functions marked <code>TODO</code>, checked by <code>pytest</code> until they pass.</li>
+        <li><code>solutions.py</code>: one worked answer, checked with <code>COURSE_SOLUTIONS=1 pytest</code>.</li>
+      </ol>
+      <p>Setting up the lab on your own machine takes five commands from the repository root:</p>
+      <div class="mini-code" aria-label="Setup commands"><div>python3 -m venv .venv</div><div>source .venv/bin/activate</div><div>pip install -r requirements.txt</div><div>pip install -e .</div><div>python -m course.data</div><div>pytest lessons/00_setup</div></div>
+      <p>The last command fails until you complete the module's exercises. The lab versions of the functions you wrote here take pandas <code>DataFrame</code>s instead of lists of tuples, and the lab also asks for <code>invalid_district_reports()</code>, which finds rows whose district id is not one of the eight.</p>
+      <div class="callout" style="overflow-wrap:anywhere"><b>Run the full lab.</b> The repository version runs the real <code>course/data.py</code> with pandas: run <code>python lessons/00_setup/tour.py</code>, then <code>pytest lessons/00_setup</code> until it passes. See <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/00_setup">lessons/00_setup on GitHub</a>.</div>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Recall and review</h2></div>
+      <p>Reading something again feels productive but fades fast. Pulling it out of memory is what makes it last. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix ideas from every section. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s7"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through the flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Up next · Module 1</span>
+        <h3>Complexity</h3>
+        <p>SurveilLite's first dashboard is one function that works. You will count how many lines break when the date format changes, split it into modules, and watch a duplicate check that is instant for one clinic take hours for a country.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module. Follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009); this setup module prepares the running case used from Chapter 1 onward. Not affiliated with the authors or MIT. All data is synthetic.</span>
+      <span>Course repository: <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">github.com/Rwunganira/computer_system_design</a>. Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript.</span>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc } = CT;
+const reduced = CT.reduced;
+
+/* ---------- shared data: the lab's exact weekly district totals ---------- */
+const DIST = [
+  ["N-CEN", "Central", "North", 182000], ["N-RIV", "Riverside", "North", 96000], ["N-HIL", "Hillview", "North", 74000], ["N-LAK", "Lakeshore", "North", 121000],
+  ["S-CEN", "Central", "South", 205000], ["S-SAV", "Savanna", "South", 88000], ["S-COA", "Coastal", "South", 143000], ["S-HIG", "Highlands", "South", 67000]
+];
+const POP = Object.fromEntries(DIST.map(d => [d[0], d[3]]));
+const NAME = Object.fromEntries(DIST.map(d => [d[0], `${d[1]} (${d[2]})`]));
+const DATA = {
+  measles: { "N-CEN": [1,3,1,1,0,1,0,1,1,1,1,4], "N-RIV": [0,0,0,1,0,0,0,0,0,0,0,0], "N-HIL": [0,0,0,0,0,0,0,1,1,1,0,0], "N-LAK": [0,0,0,0,1,1,1,2,0,1,3,1], "S-CEN": [2,1,1,1,1,2,3,2,3,4,2,4], "S-SAV": [1,1,1,0,1,0,1,0,0,1,0,0], "S-COA": [0,1,1,1,3,2,0,3,3,0,0,1], "S-HIG": [0,0,0,0,0,0,1,0,3,0,0,0] },
+  cholera: { "N-CEN": [4,4,5,1,3,4,3,2,3,3,2,5], "N-RIV": [1,1,3,2,2,0,2,1,2,0,2,2], "N-HIL": [2,0,1,3,1,2,1,2,1,1,1,2], "N-LAK": [1,2,1,0,2,6,0,3,2,1,1,2], "S-CEN": [2,5,4,5,2,9,1,3,4,0,1,5], "S-SAV": [1,2,2,0,1,1,2,3,3,0,0,0], "S-COA": [1,1,5,2,1,2,13,32,45,63,87,109], "S-HIG": [0,0,1,0,0,1,2,2,0,3,2,0] },
+  malaria: { "N-CEN": [69,80,63,70,68,70,79,70,63,73,66,67], "N-RIV": [42,37,34,43,51,33,41,42,39,38,36,31], "N-HIL": [24,34,35,32,27,21,22,31,26,34,28,28], "N-LAK": [53,66,55,55,44,46,42,39,38,45,48,51], "S-CEN": [87,91,78,70,85,73,84,69,87,95,92,96], "S-SAV": [27,41,35,45,29,32,51,42,30,36,30,46], "S-COA": [59,43,65,64,51,64,61,64,62,62,60,61], "S-HIG": [22,31,28,25,28,28,27,21,26,23,19,19] }
+};
+const RATE = { measles: 0.8, cholera: 1.5, malaria: 40 };
+const weekDate = w => { const d = new Date(Date.UTC(2026, 0, 5 + 7 * w)); return d.toISOString().slice(0, 10); };
+const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
+const sum = a => a.reduce((s, x) => s + x, 0);
+
+$("#dist-table").innerHTML = DIST.map(d => `<tr><td><code>${d[0]}</code></td><td>${d[1]}</td><td>${d[2]}</td><td style="text-align:right">${d[3].toLocaleString("en-US")}</td></tr>`).join("");
+
+/* ---------- hero: reports arriving week by week ---------- */
+const wk = { dz: "cholera", shown: 0, rate: false, sel: null, timer: null, playing: !reduced, hold: 0 };
+function val(d, w) { const c = DATA[wk.dz][d][w]; return wk.rate ? c / POP[d] * 1e5 : c; }
+function wkRender(fresh) {
+  const ids = DIST.map(d => d[0]);
+  const all = ids.flatMap(d => DATA[wk.dz][d].map((_, w) => val(d, w)));
+  const mx = Math.max(...all) || 1;
+  const nat = Array.from({ length: 12 }, (_, w) => sum(ids.map(d => DATA[wk.dz][d][w])));
+  const natMax = Math.max(...nat) || 1;
+  let h = `<span class="h"></span>` + Array.from({ length: 12 }, (_, w) => `<span class="h">${w + 1}</span>`).join("") + `<span class="h tot">${wk.rate ? "/100k" : "total"}</span>`;
+  h += `<span class="wk-nat">national</span>` + nat.map((n, w) => `<div class="wk-bar" title="Week ${w + 1}: ${n} cases nationally"><span style="height:${w < wk.shown ? Math.max(2, n / natMax * 100) : 0}%"></span></div>`).join("") + `<span class="wk-tot">${sum(nat.slice(0, wk.shown))}</span>`;
+  ids.forEach(d => {
+    const sel = wk.sel === d;
+    h += `<button class="wk-lab${sel ? " sel" : ""}" type="button" data-d="${d}" aria-label="${NAME[d]}">${d}</button>`;
+    for (let w = 0; w < 12; w++) {
+      const on = w < wk.shown, v = val(d, w);
+      const p = on ? Math.round(8 + 80 * Math.sqrt(v / mx)) : 0;
+      h += `<span class="wk-c${on ? "" : " wait"}${on && fresh && w === wk.shown - 1 ? " new" : ""}${sel ? " sel" : ""}" style="${on ? `background:color-mix(in srgb, var(--tok-kw) ${p}%, transparent)` : ""}">${on ? (wk.rate ? (v >= 10 ? Math.round(v) : f1(v)) : v) : ""}</span>`;
+    }
+    const tot = sum(DATA[wk.dz][d].slice(0, wk.shown));
+    h += `<span class="wk-tot">${wk.rate ? f1(tot / POP[d] * 1e5) : tot}</span>`;
+  });
+  $("#wk-grid").innerHTML = h;
+  $$(".wk-lab").forEach(b => b.addEventListener("click", () => { wk.sel = wk.sel === b.dataset.d ? null : b.dataset.d; wkRender(false); }));
+  $("#wk-week").textContent = wk.shown;
+  $("#wk-date").textContent = weekDate(Math.max(0, wk.shown - 1));
+  $("#wk-msg").innerHTML = wkMessage(nat);
+}
+function wkMessage(nat) {
+  const w = wk.shown - 1;
+  if (wk.sel) {
+    const d = wk.sel, s = DATA[wk.dz][d].slice(0, Math.max(1, wk.shown));
+    return `<b>${NAME[d]}</b>, population ${POP[d].toLocaleString("en-US")}: ${sum(s)} ${wk.dz} cases so far, ${f1(sum(s) / POP[d] * 1e5)} per 100,000. Tap the name again to clear.`;
+  }
+  if (w < 0) return `Press <b>Step</b> or wait: one week of reports arrives at a time.`;
+  let best = null, bestR = 0;
+  DIST.forEach(([d]) => { const base = sum(DATA[wk.dz][d].slice(0, 6)) / 6, v = DATA[wk.dz][d][w], r = (v + 1) / (base + 1); if (r > bestR) { bestR = r; best = d; } });
+  const v = DATA[wk.dz][best][w], prev = w > 0 ? nat[w - 1] : null;
+  let m = `Week ${w + 1}: ${nat[w]} ${wk.dz} cases nationally${prev != null ? ` (${nat[w] >= prev ? "+" : ""}${nat[w] - prev} on last week)` : ""}. `;
+  if (bestR >= 3 && w >= 6) m += `<b>${NAME[best]}</b> reports ${v}, about ${Math.round(v / Math.max(1, sum(DATA[wk.dz][best].slice(0, 6)) / 6))} times its usual week. That is an outbreak.`;
+  else m += `No district is far above its own usual level.`;
+  return m;
+}
+function wkStep() {
+  if (wk.shown < 12) { wk.shown++; wkRender(true); }
+  else if (wk.playing && ++wk.hold > 3) { wk.hold = 0; wk.shown = 0; wkRender(false); }
+}
+function wkLoop() { clearInterval(wk.timer); if (wk.playing) wk.timer = setInterval(wkStep, 900); $("#wk-play").textContent = wk.playing ? "Pause" : "Play"; }
+$("#wk-step").addEventListener("click", () => { wk.playing = false; wkLoop(); if (wk.shown >= 12) { wk.shown = 0; wkRender(false); } else wkStep(); });
+$("#wk-play").addEventListener("click", () => { wk.playing = !wk.playing; if (wk.playing && wk.shown >= 12) { wk.shown = 0; } wkLoop(); wkRender(false); });
+$("#wk-mode").addEventListener("click", e => { wk.rate = !wk.rate; e.currentTarget.setAttribute("aria-pressed", wk.rate); wkRender(false); });
+$$("[data-dz]").forEach(b => b.addEventListener("click", () => { wk.dz = b.dataset.dz; $$("[data-dz]").forEach(x => x.setAttribute("aria-pressed", x === b)); wkRender(false); }));
+if (reduced) wk.shown = 12;
+wkRender(false); wkLoop();
+
+/* ---------- expected-count calculator ---------- */
+$("#ex-d").innerHTML = DIST.map(d => `<option value="${d[0]}"${d[0] === "S-COA" ? " selected" : ""}>${d[0]}</option>`).join("");
+$("#ex-w").innerHTML = Array.from({ length: 12 }, (_, w) => `<option value="${w}"${w === 8 ? " selected" : ""}>${w + 1}</option>`).join("");
+let calcAt = 0;
+function calcRows() {
+  const d = $("#ex-d").value, z = $("#ex-z").value, w = +$("#ex-w").value, pop = POP[d];
+  const catch_ = pop / 5, base = RATE[z] * catch_ / 1e5;
+  const ob = d === "S-COA" && z === "cholera" && w >= 6, mult = ob ? 8 * (w - 6 + 1) : 1;
+  const exp1 = base * mult, actual = DATA[z][d][w];
+  return [
+    ["population of " + d, pop.toLocaleString("en-US"), ""],
+    ["catchment = population ÷ 5", catch_.toLocaleString("en-US"), "One clinic serves a fifth of the district."],
+    [`expected per clinic = ${RATE[z]} × catchment ÷ 100,000`, base.toFixed(3), `The baseline ${z} rate is ${RATE[z]} per 100,000 per week.`],
+    [ob ? `outbreak multiplier = 8 × (${w} − 6 + 1)` : "outbreak multiplier", "× " + mult, ob ? `Week index ${w} is ${w - 6 + 1} week${w > 6 ? "s" : ""} into the Coastal cholera outbreak.` : "Only cholera in Coastal from week index 6 gets a multiplier."],
+    ["expected for 5 clinics", (exp1 * 5).toFixed(2), "Each clinic's count is a Poisson draw around its expected value."],
+    [`observed in course/data.py, week ${w + 1}`, String(actual), actual > exp1 * 5 * 1.5 + 2 ? "Above expected, as random draws sometimes are." : "Close to expected: Poisson noise around the mean."]
+  ];
+}
+function calcRender() {
+  const rows = calcRows();
+  $("#calc").innerHTML = rows.slice(0, calcAt).map((r, i) => `<div class="${i === calcAt - 1 ? "on" : ""}${i === rows.length - 1 ? " out" : ""}"><span>${esc(r[0])}</span><b>${esc(r[1])}</b></div>`).join("") || `<div><span>Press Next step to build the expected count.</span><b></b></div>`;
+  $("#calc-note").textContent = calcAt ? rows[calcAt - 1][2] : "";
+  $("#calc-step").disabled = calcAt >= rows.length;
+}
+$("#calc-step").addEventListener("click", () => { calcAt++; calcRender(); });
+$("#calc-reset").addEventListener("click", () => { calcAt = 0; calcRender(); });
+["#ex-d", "#ex-z", "#ex-w"].forEach(s => $(s).addEventListener("change", () => { calcAt = Math.max(calcAt, 1); calcRender(); }));
+calcRender();
+
+/* ---------- halves step-through ---------- */
+let hvAt = 0;
+const hvNotes = [
+  "Press <b>Next step</b> to start.",
+  "There are 12 weeks, so <code>half = 12 // 2 = 6</code>. Weeks 1 to 6 are the first half; weeks 7 to 12 the second.",
+  "1st half: sum each district's cases in weeks 1 to 6. This is each district's own baseline.",
+  "2nd half: sum the same district in weeks 7 to 12.",
+  "Ratio = (2nd half + 1) ÷ (1st half + 1). A ratio near 1 means nothing changed; the bar shows the ratio.",
+  ""
+];
+function hvRender() {
+  const z = $("#hv-z").value;
+  const rows = DIST.map(([d]) => { const a = sum(DATA[z][d].slice(0, 6)), b = sum(DATA[z][d].slice(6)); return { d, a, b, r: (b + 1) / (a + 1) }; });
+  const mx = Math.max(...rows.map(r => r.r));
+  const win = rows.find(r => r.r === mx);
+  const big = rows.reduce((p, r) => (r.a + r.b > p.a + p.b ? r : p));
+  $("#hv-table tbody").innerHTML = rows.map(r => `<tr class="${hvAt >= 5 && r === win ? "win" : ""}"><td>${r.d}</td><td class="num${hvAt < 2 ? " dim" : ""}">${hvAt >= 2 ? r.a : "·"}</td><td class="num${hvAt < 3 ? " dim" : ""}">${hvAt >= 3 ? r.b : "·"}</td><td class="num${hvAt < 4 ? " dim" : ""}">${hvAt >= 4 ? r.r.toFixed(2) : "·"}</td><td class="barcell"><div class="hb" style="width:${hvAt >= 4 ? Math.max(2, r.r / mx * 100) : 0}%"></div></td></tr>`).join("");
+  $$("#hv-steps span").forEach((s, i) => s.classList.toggle("on", i < hvAt));
+  hvNotes[5] = `The largest ratio wins: <b>${win.d}</b>, ${NAME[win.d]}, at ${win.r.toFixed(2)}. ` + (win.d === big.d ? `Here it also has the most cases, but that is not why it was picked.` : `The district with the most cases, ${big.d}, has a ratio of ${big.r.toFixed(2)}: big, but steady.`) + (mx < 2 ? " No ratio is far above 1, so this disease has no real outbreak; the function still names a district, so the dashboard needs a threshold too." : "");
+  $("#hv-note").innerHTML = hvNotes[hvAt];
+  $("#hv-step").disabled = hvAt >= 5;
+}
+$("#hv-step").addEventListener("click", () => { hvAt++; hvRender(); });
+$("#hv-reset").addEventListener("click", () => { hvAt = 0; hvRender(); });
+$("#hv-z").addEventListener("change", hvRender);
+hvRender();
+
+/* ---------- severity sorter ---------- */
+const sortItems = [
+  { text: "The incidence page takes eight seconds to load on a district laptop.", ans: 0, why: "Slow, and worth fixing, but every number on the page is still right." },
+  { text: "Two clinics share a catchment, so Coastal's cases are counted twice and its incidence doubles.", ans: 1, why: "A wrong number that looks plausible. Someone may act on it." },
+  { text: "Hillview reported no cholera, so it is missing from the table instead of showing 0.", ans: 1, why: "A reader cannot tell zero cases from a report that never arrived. That is a public health question, not a cosmetic one." },
+  { text: "A health worker's dose record is lost when the server restarts mid-save.", ans: 1, why: "The child may be vaccinated twice, or not at all. Module 9 (atomicity) exists for this." },
+  { text: "The district names on the chart are in alphabetical order instead of north to south.", ans: 0, why: "A layout preference. Nothing anyone acts on is wrong." }
+];
+const kinds = ["Inconvenient", "Dangerous"];
+$("#sorter").innerHTML = sortItems.map((it, i) => `<div class="sort-item" data-i="${i}"><p>${esc(it.text)}</p><div class="opts pair">${kinds.map((k, j) => `<button class="opt" type="button" data-j="${j}">${k}</button>`).join("")}</div></div>`).join("");
+$$(".sort-item").forEach(el => {
+  const it = sortItems[+el.dataset.i];
+  $$(".opt", el).forEach(b => b.addEventListener("click", () => {
+    const j = +b.dataset.j, ok = j === it.ans;
+    b.classList.add(ok ? "right" : "wrong");
+    let w = $(".why", el); if (!w) { w = document.createElement("div"); el.appendChild(w); }
+    w.className = "why " + (ok ? "ok" : "no"); w.textContent = (ok ? "Right. " : "Not quite. ") + it.why;
+    if (ok) $$(".opt", el).forEach(x => x.disabled = true);
+  }));
+});
+
+const QUIZ = {
+  s1: [
+    { q: "Why does each district have an id such as <code>S-COA</code> as well as a name?", o: ["Ids are shorter to type", "Two districts are both called Central, so a name alone does not say which one you mean", "pandas cannot index by name", "The book requires it"], a: 1, why: "North and South both have a Central. A unique identifier removes the ambiguity; Module 3 (naming) studies this problem in depth." },
+    { q: "Which system cares most about never losing a single record?", o: ["SurveilLite, because it shows many districts", "VaxRecords, because each dose record is part of one child's history", "Neither; both only show totals", "Both equally, for the same reason"], a: 1, why: "SurveilLite aggregates counts; VaxRecords keeps individual histories, where one lost record changes what happens to one child." }
+  ],
+  s2: [
+    { q: "You call <code>population()</code> twice with the default seed. What do you get?", o: ["Two different populations", "Identical tables", "An error, because the generator is already used", "The same names but different birth dates"], a: 1, why: "Each call reseeds its own generator with the same default seed, so the sequence, and therefore the table, is identical." },
+    { q: "Why is a fixed seed useful for the course's tests?", o: ["It makes the code run faster", "It makes the data realistic", "It makes every run produce the same data, so a mismatch is a real finding about your code", "It hides the outbreak until week 7"], a: 2, why: "Reproducibility: the tests, the examples and your predictions all see the same numbers." }
+  ],
+  s3: [
+    { q: "Malaria's baseline is 40 per 100,000 per week, measles 0.8. Roughly how many times more malaria than measles cases do you expect over 12 weeks?", o: ["About 12 times", "About 50 times", "About 480 times", "The same number"], a: 1, why: "Both diseases are drawn over the same people and weeks, so the ratio is just 40 ÷ 0.8 = 50. The lab's data has 4,693 malaria and 80 measles cases, about 59 times: measles counts are small, so the ratio is noisy around 50." },
+    { q: "How many rows would <code>case_reports(weeks=4)</code> produce?", o: ["160", "480", "12", "1,440"], a: 1, why: "4 weeks × 40 clinics × 3 diseases = 480 rows. Only the week loop changed." }
+  ],
+  s4: [
+    { q: "Coastal (population 143,000) reports 304 cholera cases in four weeks. What is its incidence per 100,000?", o: ["About 2.1", "About 21", "About 213", "About 304"], a: 2, why: "304 ÷ 143,000 × 100,000 = 212.6. That is the figure the lab's dashboard flags with ALERT." },
+    { q: "Why must <code>incidence_per_100k()</code> list a district even when it reported no cases?", o: ["To keep the table sorted", "Because pandas needs the same number of rows", "A missing row looks like 'no data' rather than 'zero cases', and a reader cannot tell them apart", "Because division by zero would otherwise fail"], a: 2, why: "Stating 0 explicitly turns an ambiguous gap into a fact the system asserts." }
+  ],
+  s5: [
+    { q: "The cholera outbreak starts in week 7. Is it visible in the national total?", o: ["No, it only shows by district", "Yes: from week 7 the national total climbs steeply, because almost all of the growth comes from one district", "Only in incidence, not in counts", "Only after week 12"], a: 1, why: "The national total rises from 12 to 25 a week in the first half to 125 in week 12, almost all of it Coastal. The total tells you something is wrong; only the district breakdown tells you where." },
+    { q: "Why compare halves instead of picking the district with the most cases?", o: ["Halves are faster to compute", "An outbreak is a change over time; a large district has many cases every week without anything unusual happening", "The largest district is always the outbreak", "Totals cannot be compared across districts"], a: 1, why: "Central South leads in malaria every week simply because it is the largest district. Growth relative to a district's own baseline is the signal." }
+  ],
+  s6: [
+    { q: "For SurveilLite, which failure matters most?", o: ["A page that loads slowly", "A number that is wrong but looks plausible", "A chart with the wrong colours", "An error page when the server is down"], a: 1, why: "A visible error makes people wait; a plausible wrong number makes them act on it. Later chapters on fault tolerance aim to turn silent failures into visible ones." }
+  ],
+  s7: [
+    { q: "You run <code>case_reports(seed=1)</code> instead of the default. What stays the same?", o: ["Every count", "The outbreak's district, disease and starting week", "Nothing at all", "Only the malaria counts"], a: 1, why: "The seed changes the random draws; the outbreak is a parameter, so it is still cholera in Coastal from week index 6, just with different noise." },
+    { q: "Highlands (67,000 people) has 5 cholera cases and Central North (182,000) has 13. Which has the higher incidence?", o: ["Central North, with more cases", "Highlands: 7.5 against 7.1 per 100,000", "They are equal", "You cannot compare districts of different size"], a: 1, why: "5 ÷ 67,000 × 100,000 = 7.5 and 13 ÷ 182,000 × 100,000 = 7.1. Dividing by population is exactly what makes them comparable." },
+    { q: "In a quiet season with no outbreak, what does <code>outbreak_district()</code> return?", o: ["None", "An error", "Some district anyway: whichever has the largest ratio by chance", "The largest district"], a: 2, why: "The function always picks the maximum, even when every ratio is close to 1. A real dashboard also needs a threshold before it calls something an outbreak." }
+  ]
+};
+const CARDS = [
+  ["SurveilLite", "The course's disease surveillance dashboard: 40 clinics in 8 districts report weekly measles, cholera and malaria counts; it reports incidence per 100,000 and flags outbreaks."],
+  ["VaxRecords", "The course's vaccination records API: records each dose, keeps each child's history and each clinic's stock."],
+  ["Synthetic data", "Generated, not collected: no real patients, clinics or places, so it is safe to share."],
+  ["What does a fixed seed buy you?", "Reproducibility: every run produces the same data, so tests, examples and predictions agree."],
+  ["Incidence per 100,000", "cases ÷ population × 100,000"],
+  ["Why list a district with zero cases?", "A missing row reads as 'no data'; an explicit 0 states that there were no cases."],
+  ["What is an outbreak, for the dashboard?", "A change over time relative to the district's own baseline, not a large total."],
+  ["Why <code>(second + 1) ÷ (first + 1)</code>?", "The +1 avoids dividing by zero and stops tiny counts from producing huge ratios."],
+  ["What does 'working' mean for SurveilLite?", "Right numbers first: a wrong number is worse than a slow page."],
+  ["What does 'working' mean for VaxRecords?", "No lost dose records: a lost record means a child may be vaccinated twice or not at all."],
+  ["The module loop", "Read the README, answer predict.md, run the example, complete exercises.py until pytest passes."]
+];
+
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  exercises: {
+    "ex-incidence": {
+      cases: [
+        'r = incidence_per_100k(sample, "cholera")\nprint(round(r["S-COA"], 1), round(r["N-CEN"], 1))',
+        'print(len(incidence_per_100k([], "measles")))',
+        'r = incidence_per_100k([("C01", "N-CEN", 0, "malaria", 182), ("C26", "S-SAV", 0, "malaria", 44)], "malaria")\nprint([round(r[d[0]], 1) for d in DISTRICTS])',
+        'r = incidence_per_100k(sample, "dengue")\nprint(sorted(r.values()))',
+        'r = incidence_per_100k([("C31", "S-COA", 1, "cholera", 13), ("C36", "S-HIG", 1, "measles", 9)], "measles")\nprint(round(r["S-HIG"], 2), round(r["S-COA"], 2))'
+      ],
+      solution: "DISTRICTS = [\n    (\"N-CEN\", \"Central\",   \"North\", 182000),\n    (\"N-RIV\", \"Riverside\", \"North\",  96000),\n    (\"N-HIL\", \"Hillview\",  \"North\",  74000),\n    (\"N-LAK\", \"Lakeshore\", \"North\", 121000),\n    (\"S-CEN\", \"Central\",   \"South\", 205000),\n    (\"S-SAV\", \"Savanna\",   \"South\",  88000),\n    (\"S-COA\", \"Coastal\",   \"South\", 143000),\n    (\"S-HIG\", \"Highlands\", \"South\",  67000),\n]\n\ndef incidence_per_100k(reports, disease):\n    cases = {}\n    for district_id, name, region, pop in DISTRICTS:\n        cases[district_id] = 0\n    for clinic_id, district_id, week, dz, n in reports:\n        if dz == disease:\n            cases[district_id] = cases[district_id] + n\n    rates = {}\n    for district_id, name, region, pop in DISTRICTS:\n        rates[district_id] = cases[district_id] / pop * 100000\n    return rates\n\nsample = [(\"C31\", \"S-COA\", 6, \"cholera\", 13), (\"C32\", \"S-COA\", 7, \"cholera\", 32)]\nr = incidence_per_100k(sample, \"cholera\")\nprint(round(r[\"S-COA\"], 1), round(r[\"N-CEN\"], 1))",
+      hint: ["In the first loop, only count reports whose dz equals the disease argument.", "Second TODO: rates[district_id] = cases[district_id] / pop * 100000. Because every district was set to 0 first, every district gets a rate."]
+    },
+    "ex-outbreak": {
+      cases: [
+        'print(outbreak_district(case_reports(), "cholera"))',
+        'print(outbreak_district(case_reports(outbreak=("N-HIL", "measles", 8)), "measles"))',
+        'print(outbreak_district(case_reports(seed=3, outbreak=("S-SAV", "malaria", 4)), "malaria"))',
+        'print(outbreak_district([("C01", "N-CEN", 0, "cholera", 5), ("C01", "N-CEN", 1, "cholera", 5), ("C06", "N-RIV", 0, "cholera", 0), ("C06", "N-RIV", 1, "cholera", 3)], "cholera"))',
+        'print(outbreak_district([("C06", "N-RIV", 0, "cholera", 2), ("C06", "N-RIV", 1, "cholera", 2), ("C11", "N-HIL", 1, "cholera", 6), ("C12", "N-HIL", 1, "measles", 40)], "cholera"))'
+      ],
+      limit: 10000,
+      solution: "import random\nimport math\nDISTRICTS = [(\"N-CEN\", \"Central\", \"North\", 182000), (\"N-RIV\", \"Riverside\", \"North\", 96000),\n             (\"N-HIL\", \"Hillview\", \"North\", 74000), (\"N-LAK\", \"Lakeshore\", \"North\", 121000),\n             (\"S-CEN\", \"Central\", \"South\", 205000), (\"S-SAV\", \"Savanna\", \"South\", 88000),\n             (\"S-COA\", \"Coastal\", \"South\", 143000), (\"S-HIG\", \"Highlands\", \"South\", 67000)]\nBASE_RATE = {\"measles\": 0.8, \"cholera\": 1.5, \"malaria\": 40.0}\ndef poisson(lam):\n    limit, k, p = math.exp(-lam), 0, 1.0\n    while True:\n        p = p * random.random()\n        if p <= limit:\n            return k\n        k = k + 1\ndef case_reports(weeks=12, seed=42, outbreak=(\"S-COA\", \"cholera\", 6)):\n    random.seed(seed)\n    rows = []\n    for week in range(weeks):\n        for i, (district_id, name, region, pop) in enumerate(DISTRICTS):\n            for k in range(5):\n                clinic_id = \"C\" + str(i * 5 + k + 1).zfill(2)\n                for disease in BASE_RATE:\n                    expected = BASE_RATE[disease] * (pop / 5) / 100000\n                    if outbreak and district_id == outbreak[0] and disease == outbreak[1] and week >= outbreak[2]:\n                        expected = expected * 8 * (week - outbreak[2] + 1)\n                    rows.append((clinic_id, district_id, week, disease, poisson(expected)))\n    return rows\n\ndef outbreak_district(reports, disease):\n    weeks = sorted(set(r[2] for r in reports if r[3] == disease))\n    half = len(weeks) // 2\n    early = weeks[:half]\n    first, second = {}, {}\n    for clinic_id, district_id, week, dz, cases in reports:\n        if dz != disease:\n            continue\n        first[district_id] = first.get(district_id, 0)\n        second[district_id] = second.get(district_id, 0)\n        if week in early:\n            first[district_id] += cases\n        else:\n            second[district_id] += cases\n    best, best_ratio = None, 0\n    for d in first:\n        ratio = (second[d] + 1) / (first[d] + 1)\n        if ratio > best_ratio:\n            best, best_ratio = d, ratio\n    return best\n\nprint(outbreak_district(case_reports(), \"cholera\"))",
+      hint: ["Loop over the reports with for clinic_id, district_id, week, dz, cases in reports:, skip other diseases, and make sure both first[district_id] and second[district_id] exist (start them at 0 with .get).", "Then keep a running best: for d in first: ratio = (second[d] + 1) / (first[d] + 1); if it beats the best so far, remember d. Return d at the end."]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

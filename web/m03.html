@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Naming, Module 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+.rz-card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.rz-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.chipbar { display: flex; flex-wrap: wrap; gap: 6px; }
+.chipbar button { font: inherit; font-family: var(--mono); font-size: 0.76rem; background: var(--paper); color: var(--ink); border: 1.5px solid var(--rule); border-radius: 99px; padding: 3px 10px; cursor: pointer; }
+.chipbar button:hover { border-color: var(--ink); }
+.chipbar button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.rz-path { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-family: var(--mono); font-size: 1.15rem; font-weight: 600; min-height: 2.2em; }
+.rz-path .comp { padding: 3px 10px; border-radius: 8px; border: 1.5px solid var(--rule); background: var(--paper); transition: all .25s; }
+.rz-path .comp.cur { border-color: var(--accent); background: var(--accent); color: var(--paper); }
+.rz-path .comp.done { border-color: var(--ok); color: var(--ok); }
+.rz-path .comp.bad { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+.rz-path .sep { color: var(--muted); }
+.rz-path small { font-size: 0.72rem; font-weight: 400; color: var(--muted); margin-left: 6px; }
+.rz-flow { display: flex; gap: 22px; align-items: stretch; min-height: 168px; }
+@media (max-width: 700px) { .rz-flow { flex-direction: column; gap: 20px; } }
+.ctx { position: relative; flex: 1 1 0; min-width: 0; background: var(--paper); border: 1.5px solid var(--rule); border-radius: 10px; padding: 8px 10px 10px; display: grid; gap: 3px; align-content: start; animation: pop .35s ease; }
+@keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.ctx + .ctx::before { content: "→"; position: absolute; left: -18px; top: 42%; color: var(--accent); font-weight: 700; }
+@media (max-width: 700px) { .ctx + .ctx::before { content: "↓"; left: 50%; top: -20px; } }
+.ctx h4 { margin: 0 0 4px; font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+.ctx.on { border-color: var(--accent); }
+.ctx.dim { opacity: .55; }
+.ctx.ok { border-color: var(--ok); background: var(--ok-soft); }
+.ctx.fail { border-color: var(--bad); background: var(--bad-soft); }
+.bnd { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 8px; font-family: var(--mono); font-size: 0.76rem; padding: 2px 6px; border-radius: 4px; }
+.bnd span:last-child { color: var(--muted); }
+.bnd.hi { background: var(--hl); font-weight: 600; }
+.bnd.hi span:last-child { color: var(--ink); }
+.bnd.x { text-decoration: line-through; text-decoration-color: var(--bad); color: var(--bad); }
+.bnd.x span:last-child { color: var(--bad); }
+.bnd.new { background: var(--ok-soft); }
+.bnd.bad, .bnd.bad span:last-child { color: var(--bad); font-weight: 600; }
+@media (max-width: 700px) { .ctx.dim { display: none; } }
+.bnd.gap { color: var(--muted); padding-block: 0; line-height: 1; }
+.ctl { display: flex; gap: 6px; }
+.lu-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 600px) { .lu-grid { grid-template-columns: 1fr; } }
+.box { border: 1.5px solid var(--rule); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; align-content: start; background: var(--paper); transition: border-color .2s, background .2s; }
+.box h4 { margin: 0; font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.box.on { border-color: var(--accent); }
+.box.bad { border-color: var(--bad); background: var(--bad-soft); }
+.box.good { border-color: var(--ok); background: var(--ok-soft); }
+.mode { display: inline-flex; border: 1.5px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.mode button { font: inherit; font-size: 0.85rem; background: transparent; color: var(--muted); border: 0; padding: 6px 12px; cursor: pointer; }
+.mode button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.url { display: flex; align-items: center; gap: 0; border: 1.5px solid var(--rule); border-radius: 8px; background: var(--paper); font-family: var(--mono); font-size: 0.88rem; overflow: hidden; }
+.url span { padding: 7px 4px 7px 10px; color: var(--muted); }
+.url input { font: inherit; color: var(--ink); background: transparent; border: 0; padding: 7px 10px 7px 0; flex: 1; min-width: 0; outline: none; }
+.url:focus-within { border-color: var(--accent); }
+.resp { font-family: var(--mono); font-size: 0.82rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.code { font-weight: 700; }
+.code.c2 { color: var(--ok); } .code.c3 { color: var(--s4); } .code.c4 { color: var(--bad); }
+.sim-row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+.sim-row input[type=range] { flex: 1 1 200px; accent-color: var(--accent); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.stats div { background: var(--paper); border-radius: 8px; padding: 8px 12px; font-family: var(--mono); font-size: 0.75rem; color: var(--muted); }
+.stats b { display: block; font-family: var(--display); font-size: 1.4rem; color: var(--ink); }
+.stats .warn b { color: var(--accent); }
+.simsvg .curve { fill: none; stroke: var(--accent); stroke-width: 2; }
+.simsvg .grid { stroke: var(--chart-grid); }
+.simsvg .dot { fill: var(--s1); }
+.simsvg .now { fill: var(--accent); stroke: var(--sheet); stroke-width: 2; }
+</style>
+</head>
+<body data-lesson="m03">
+<div class="shell">
+  <aside class="rail" aria-label="Module progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 3</div>
+      <h1>A name only means something in a <em>context</em>.</h1>
+      <p class="lede">"P-0042" is one child at Clinic A and another at Clinic B. Most identity bugs in health data, from duplicate patients to merged children to districts nobody can reach, are naming bugs. Watch a resolver walk names through their contexts, and watch two of them go wrong.</p>
+
+      <div class="rz-card" aria-label="Resolving names through contexts">
+        <div class="rz-top"><span>Pick a name to resolve, or let the resolver cycle through them.</span><div class="ctl"><button class="btn alt" id="rz-step" type="button">Step</button><button class="btn alt" id="rz-play" type="button">Pause</button></div></div>
+        <div class="chipbar" id="rz-pick" role="group" aria-label="Names to resolve"></div>
+        <div class="rz-path" id="rz-path"></div>
+        <div class="rz-flow" id="rz-flow"></div>
+        <div class="cond" id="rz-msg" aria-live="polite"></div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>The naming model (name, value, binding, context, resolution), path names, absolute and relative names, pure and overloaded names, and indirection.</div>
+        <div><b>You will build</b>A district resolver that answers "Central" with choices instead of a guess, an alias layer for renamed clinics, and a check that finds merged children.</div>
+        <div><b>How it works</b>Step through resolutions, simulate how often name plus birth date collides, try URLs against two resolvers, then fix the code.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="The naming model">
+      <div class="sec-head"><span class="sec-num">01</span><h2>The naming model</h2></div>
+      <p>Systems use names everywhere: variable names, file paths, URLs, patient IDs, district codes. Saltzer and Kaashoek describe all of them with one small model.</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Term</th><th>Meaning</th><th>In a Python dict</th></tr></thead>
+        <tbody>
+          <tr><td><b>Name</b> and <b>value</b></td><td>a string used to refer to something, and the thing it refers to</td><td>a key, and what is stored under it</td></tr>
+          <tr><td><b>Binding</b></td><td>an association between a name and a value; binding a name is the act of making it mean something</td><td><code>d[name] = value</code></td></tr>
+          <tr><td><b>Unbinding</b></td><td>removing that meaning</td><td><code>del d[name]</code></td></tr>
+          <tr><td><b>Context</b></td><td>a set of bindings; a name only has a value in some context</td><td>the dict itself</td></tr>
+          <tr><td><b>Resolution</b></td><td>taking a name and a context and returning the value, or failing</td><td><code>d[name]</code>, which may raise <code>KeyError</code></td></tr>
+        </tbody>
+      </table></div>
+      <p>That is why every context in this module is a dict. A <b>naming scheme</b> is the set of rules that says which names exist, which values they can refer to, and how to resolve them. Here is Clinic A's context, in miniature.</p>
+      <div class="cell" data-predict="False">
+        <div class="predict"><label for="p-s1">Predict the last line:</label><input id="p-s1" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s1" spellcheck="false" aria-label="Python code">clinic_a = {}                       # a context: a set of bindings
+clinic_a["P-0041"] = "P000041"      # bind
+clinic_a["P-0042"] = "P000042"      # bind
+clinic_a["P-0043"] = "P000043"      # bind
+
+print(clinic_a["P-0042"])           # resolve
+del clinic_a["P-0043"]              # unbind: the child was registered by mistake
+print(len(clinic_a))
+print("P-0043" in clinic_a)</textarea></div>
+      </div>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2" data-short="Path names">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Context matters: path names</h2></div>
+      <p>Clinic A calls a child "P-0042". So does Clinic B, about a different child. Neither is wrong: each local ID is bound in its own clinic's context. Problems start when a name <b>escapes its context</b>. A report that says only "P-0042", with no clinic attached, cannot be resolved.</p>
+      <p>The fix is to say which context to use. A <b>path name</b> like <code>clinic_a/P-0042</code> names the context first and the patient second. Resolving it is a loop: look up <code>clinic_a</code> in the root context, get a context back, look up <code>P-0042</code> in that. Each lookup's value is the context for the next component. Step through it.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls">
+            <label class="field" for="tr-name">name = <select id="tr-name" style="width:auto"><option>clinic_a/P-0042</option><option>registry/P000042</option><option>clinic_a/P-9999</option><option>clinic_a/P-0042/age</option></select></label>
+            <button class="btn" id="tr-step" type="button">Step</button><button class="btn alt" id="tr-reset" type="button">Start over</button>
+          </div>
+        </div>
+        <div class="trace-grid">
+          <div class="mini-code" id="tr-code"></div>
+          <div class="vars">
+            <div class="var-row"><span>part</span><b id="tv-part">–</b></div>
+            <div class="var-row"><span>value</span><b id="tv-value">–</b></div>
+            <div class="cond" id="tr-cond">Press Step to begin.</div>
+            <div class="term" id="tr-out" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+      <p>The last option is worth a second look. <code>clinic_a/P-0042</code> resolves to the string <code>"P000042"</code>, which is not a context, so a further component has nowhere to be looked up. The resolver refuses instead of guessing. Now run it for real: three clinics of 200 patients each, all numbering from <code>P-0001</code>, and a slice of the national registry.</p>
+      <div class="cell" data-predict="Aline Mugisha">
+        <div class="predict"><label for="p-s2">Predict the last line:</label><input id="p-s2" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s2" spellcheck="false" aria-label="Python code">def resolve(name, context):
+    """Resolve a path name such as 'clinic_a/P-0042' one component at a time."""
+    value = context
+    for part in name.strip("/").split("/"):
+        if not isinstance(value, dict) or part not in value:
+            raise LookupError(repr(name) + ": no binding for " + repr(part))
+        value = value[part]
+    return value
+
+def registry_id(n):
+    return "P" + str(n).zfill(6)
+
+# Each clinic's context binds its own local IDs (P-0001 ... P-0200) to registry IDs.
+clinics = {}
+for k, clinic in enumerate(["clinic_a", "clinic_b", "clinic_c"]):
+    clinics[clinic] = {"P-" + str(i).zfill(4): registry_id(k * 200 + i) for i in range(1, 201)}
+
+# A slice of the national registry: registry IDs bound to records.
+registry = {
+    "P000042": {"given_name": "David", "family_name": "Niyonzima", "birth_date": "2021-12-09"},
+    "P000242": {"given_name": "Aline", "family_name": "Mugisha", "birth_date": "2021-05-18"},
+    "P000442": {"given_name": "Patrick", "family_name": "Uwase", "birth_date": "2023-05-02"},
+}
+root = {"clinic_a": clinics["clinic_a"], "clinic_b": clinics["clinic_b"],
+        "clinic_c": clinics["clinic_c"], "registry": registry}
+
+print(resolve("clinic_a/P-0042", root))
+print(resolve("clinic_b/P-0042", root))
+child = resolve("registry/" + resolve("clinic_b/P-0042", root), root)
+print(child["given_name"], child["family_name"])</textarea></div>
+      </div>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3" data-short="Absolute and relative">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Absolute and relative names</h2></div>
+      <p>An <b>absolute</b> name is resolved from a fixed, well-known root, so it means the same thing wherever it is used. A <b>relative</b> name is resolved from a <b>working context</b>, the place you are standing. Inside Clinic C's own software, "P-0042" alone works fine, because the working context is Clinic C. The same string in a national report is ambiguous, because the report has no working context.</p>
+      <div class="two">
+        <div><span class="eyebrow">Absolute</span><h3><code>clinic_c/P-0042</code></h3><p>Starts at the root. Safe to copy into an email, a CSV export or a national report.</p></div>
+        <div><span class="eyebrow">Relative</span><h3><code>P-0042</code></h3><p>Means a child only inside one clinic. Correct at the clinic's desk, unresolvable once it leaves.</p></div>
+      </div>
+      <div class="cell" data-predict="P000442">
+        <div class="predict"><label for="p-s3">Predict the last line:</label><input id="p-s3" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s3" spellcheck="false" aria-label="Python code">def resolve(name, context):
+    value = context
+    for part in name.strip("/").split("/"):
+        if not isinstance(value, dict) or part not in value:
+            raise LookupError(repr(name) + ": no binding for " + repr(part))
+        value = value[part]
+    return value
+
+clinics = {}
+for k, clinic in enumerate(["clinic_a", "clinic_b", "clinic_c"]):
+    clinics[clinic] = {"P-" + str(i).zfill(4): "P" + str(k * 200 + i).zfill(6) for i in range(1, 201)}
+root = clinics
+
+for name in ["P-0042", "clinic_a/P-9999"]:
+    try:
+        print(resolve(name, root))
+    except LookupError as err:
+        print("unresolved:", err)
+
+working = root["clinic_c"]          # we are standing in Clinic C
+print(resolve("P-0042", working))</textarea></div>
+      </div>
+      <p>An unbound name raises an error rather than returning something plausible. That is the same choice the case-definition parser made in Module 2: fail loudly at the edge rather than quietly in the middle of a report.</p>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4" data-short="Overloaded names">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Pure and overloaded names</h2></div>
+      <p>A <b>pure name</b> carries no information beyond identity: <code>P000042</code> tells you nothing about the child. An <b>overloaded name</b> packs other meaning into the name: a district code inside a patient ID, or "name plus date of birth" used as the key. Overloading is tempting because the name is readable and you can check it against the person in front of you. It fails in two ways:</p>
+      <ul>
+        <li><b>Two different things share the name.</b> Two children called Paul Uwimana, both born on 2022-04-03, get the same key. A dict keyed that way silently keeps one, and their vaccination histories merge.</li>
+        <li><b>The meaning changes but the name cannot.</b> A patient ID that embeds the district becomes wrong when the family moves. A pure ID stays right.</li>
+      </ul>
+      <p>How likely is the first failure? The synthetic population draws from 16 given names, 12 family names and about five years of birth dates: 16 × 12 × 1,825 = 350,400 possible keys, far more than 2,000 children. Move the slider and see.</p>
+      <div class="panel" id="sim">
+        <div class="panel-head"><span class="tag worked">Worked example</span><button class="btn alt" id="sim-again" type="button">Draw a new population</button></div>
+        <div class="sim-row"><label class="field" for="sim-n">children = <b id="sim-nv" style="color:var(--ink)">2,000</b></label><input type="range" id="sim-n" min="500" max="20000" step="500" value="2000" aria-label="Number of children"></div>
+        <div class="stats"><div>children<b id="sim-kids">2,000</b></div><div>distinct keys<b id="sim-keys">–</b></div><div class="warn">merged children<b id="sim-merged">–</b></div><div>expected about<b id="sim-exp">–</b></div></div>
+        <svg class="viz simsvg" id="sim-svg" viewBox="0 0 600 220" role="img" aria-label="Expected collisions grow with the square of the number of children; dots are simulated populations"></svg>
+        <p class="note" id="sim-note"></p>
+      </div>
+      <p>This is the birthday problem. Each pair of children collides with probability 1 in 350,400, and the number of pairs grows with the <em>square</em> of the population: 2,000 children make about two million pairs, so about 5.7 collisions are expected. The lab's seeded population happens to have two: Paul Uwimana and Yves Habimana. Below is the Paul Uwimana case with its real synthetic doses.</p>
+      <div class="cell" data-predict="13">
+        <div class="predict"><label for="p-s4">How many doses does the merged child have?</label><input id="p-s4" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s4" spellcheck="false" aria-label="Python code">registry = {
+    "P000175": {"given_name": "Paul", "family_name": "Uwimana", "birth_date": "2022-04-03",
+                "sex": "F", "district_id": "S-HIG"},
+    "P001915": {"given_name": "Paul", "family_name": "Uwimana", "birth_date": "2022-04-03",
+                "sex": "M", "district_id": "N-LAK"},
+}
+doses = [("P000175", v) for v in ["DTP1", "DTP2", "MCV1", "MCV2", "OPV1", "OPV2"]] + \
+        [("P001915", v) for v in ["BCG", "DTP1", "DTP2", "MCV1", "MCV2", "OPV1", "OPV2"]]
+
+def key(r):
+    return r["given_name"] + " " + r["family_name"] + " " + r["birth_date"]
+
+by_key = {}
+for rid, record in registry.items():
+    by_key[key(record)] = rid             # the second binding silently replaces the first
+print(len(registry), "children,", len(by_key), "key")
+print("the key resolves only to", by_key["Paul Uwimana 2022-04-03"])
+
+history = {}                              # dose history keyed by the overloaded name
+for rid, vaccine in doses:
+    k = key(registry[rid])
+    history[k] = history.get(k, []) + [vaccine]
+print(sorted(history["Paul Uwimana 2022-04-03"]))
+print(len(history["Paul Uwimana 2022-04-03"]))</textarea></div>
+      </div>
+      <p>One child appears to have had most vaccines twice, and the other has vanished. In a real registry that drives a false coverage figure or a missed dose. The cure is a pure registry ID; name and birth date become <em>attributes</em> to check, not the key.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: the loop is written, you fill in two steps.</span></div>
+        <p>Each clinic sends what it recorded about the child it believes has a given registry ID. If one registry ID is bound to records with <b>more than one distinct birth date</b>, it may have merged two children. Finish <code>conflicting_birth_dates</code> so it returns those registry IDs, sorted.</p>
+        <div class="cell" id="ex-dates">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-dates" spellcheck="false" aria-label="Python code">def conflicting_birth_dates(records):
+    dates = {}                          # registry_id -&gt; set of birth dates seen
+    for r in records:
+        rid = r["registry_id"]
+        if rid not in dates:
+            dates[rid] = set()
+        # TODO: add this record's birth_date to dates[rid]
+    # TODO: return the sorted registry_ids that have more than one distinct date
+    return []
+
+records = [
+    {"registry_id": "P000007", "birth_date": "2022-11-02", "clinic": "clinic_a"},
+    {"registry_id": "P000007", "birth_date": "2022-11-02", "clinic": "clinic_b"},
+    {"registry_id": "P001915", "birth_date": "2022-04-03", "clinic": "clinic_a"},
+    {"registry_id": "P001915", "birth_date": "2022-04-30", "clinic": "clinic_c"},
+]
+print(conflicting_birth_dates(records))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="URLs are names">
+      <div class="sec-head"><span class="sec-num">05</span><h2>URLs are names too: two districts called Central</h2></div>
+      <p>The same problem appears at the top of the system. SurveilLite's eight districts include two named "Central", one in the North region (<code>N-CEN</code>, 182,000 people) and one in the South (<code>S-CEN</code>, 205,000). A URL like <code>/districts/Central/cases</code> is a name. The lab's Flask app maps it through a <code>{district_name: district_id}</code> dict, which quietly binds "Central" to whichever row came last.</p>
+      <div class="cell" data-predict="7">
+        <div class="predict"><label for="p-s5">Predict the last line:</label><input id="p-s5" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s5" spellcheck="false" aria-label="Python code">DISTRICTS = [   # district_id, district_name, region, population
+    ("N-CEN", "Central", "North", 182000), ("N-RIV", "Riverside", "North", 96000),
+    ("N-HIL", "Hillview", "North", 74000), ("N-LAK", "Lakeshore", "North", 121000),
+    ("S-CEN", "Central", "South", 205000), ("S-SAV", "Savanna", "South", 88000),
+    ("S-COA", "Coastal", "South", 143000), ("S-HIG", "Highlands", "South", 67000),
+]
+by_name = {name: did for did, name, region, pop in DISTRICTS}
+print("Central resolves to", by_name["Central"])
+print(len(DISTRICTS), "districts")
+print(len(by_name))</textarea></div>
+      </div>
+      <p>Nothing crashes. <code>GET /districts/Central/cases</code> returns South Central's 1,074 cases, and North Central, 182,000 people and 892 cases, has no URL at all. The dashboard is just wrong. Clinic names collide too: both districts have a "Central Health Centre 1". Try URLs against the naive resolver and against the fixed one you are about to write.</p>
+      <div class="panel" id="urlw">
+        <div class="panel-head"><span class="tag worked">Worked example</span><span class="note">Try the presets, or type a path.</span></div>
+        <div class="chipbar" id="url-pre"></div>
+        <label class="url" for="url-in"><span>GET</span><input id="url-in" autocomplete="off" spellcheck="false" value="/districts/Central/cases"></label>
+        <div class="lu-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+          <div class="box" id="url-naive"><h4>Naive: {name: id} dict</h4><div class="resp"></div></div>
+          <div class="box" id="url-fixed"><h4>Fixed: resolve_district</h4><div class="resp"></div></div>
+        </div>
+      </div>
+      <p>The fix has three parts, and none of them breaks a URL that already worked. Accept the unambiguous <code>district_id</code> as a name. Let the caller <b>qualify</b> a name by region: <code>/regions/North/districts/Central/cases</code>. And when a name is still ambiguous, answer <b>300 Multiple Choices</b> with the unambiguous URLs, instead of a guess. A guess is wrong some of the time and nothing tells the user.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Exercise 1 of the lab, without Flask.</span></div>
+        <p>Repair <code>resolve_district</code>. A <code>district_id</code> such as <code>"N-CEN"</code> is returned as it is. Otherwise match against district names, only within <code>region</code> if one is given. No match: raise <code>LookupError</code>. More than one: raise <code>AmbiguousName</code> with the sorted candidate IDs. The <code>answer</code> function, which stands in for the Flask view, is already written.</p>
+        <div class="cell" id="ex-district">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-district" spellcheck="false" aria-label="Python code">DISTRICTS = [
+    ("N-CEN", "Central", "North", 182000), ("N-RIV", "Riverside", "North", 96000),
+    ("N-HIL", "Hillview", "North", 74000), ("N-LAK", "Lakeshore", "North", 121000),
+    ("S-CEN", "Central", "South", 205000), ("S-SAV", "Savanna", "South", 88000),
+    ("S-COA", "Coastal", "South", 143000), ("S-HIG", "Highlands", "South", 67000),
+]
+CASES = {"N-CEN": 892, "N-RIV": 486, "N-HIL": 362, "N-LAK": 613,
+         "S-CEN": 1074, "S-SAV": 465, "S-COA": 1092, "S-HIG": 312}
+
+class AmbiguousName(LookupError):
+    def __init__(self, name, candidates):
+        LookupError.__init__(self, name)
+        self.name = name
+        self.candidates = candidates      # sorted list of district_ids
+
+def resolve_district(name, region=None):
+    # The naive version: "Central" is bound twice and the dict keeps the last.
+    by_name = {d[1]: d[0] for d in DISTRICTS}
+    if name not in by_name:
+        raise LookupError("no district named " + repr(name))
+    return by_name[name]
+
+def answer(name, region=None):
+    """What the web app returns: (status, body)."""
+    try:
+        did = resolve_district(name, region)
+    except AmbiguousName as err:
+        return 300, {"candidates": ["/districts/" + d + "/cases" for d in err.candidates]}
+    except LookupError:
+        return 404, {"error": "no district named " + repr(name)}
+    return 200, {"district_id": did, "cases": CASES[did]}
+
+print(answer("Riverside"))
+print(answer("Central"))
+print(answer("Central", "North"))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6" data-short="Indirection">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Indirection and aliases</h2></div>
+      <p>An old saying, usually credited to David Wheeler, goes: "any problem in computer science can be solved by another level of indirection." The book's version is to let a name be bound to <em>another name</em> rather than directly to the thing. Clinics bind their local IDs to registry IDs; only the registry binds registry IDs to records. Compare the two designs as a child moves clinic and then has a mistyped birth date corrected.</p>
+      <div class="panel" id="ind">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="mode" role="group" aria-label="Design"><button type="button" data-m="copy" aria-pressed="true">Each clinic keeps a copy</button><button type="button" data-m="ind" aria-pressed="false">Clinics bind registry IDs</button></div>
+        </div>
+        <div class="lu-grid">
+          <div class="box" id="ind-a"><h4>Clinic A</h4><div class="resp"></div></div>
+          <div class="box" id="ind-r"><h4>Registry</h4><div class="resp"></div></div>
+          <div class="box" id="ind-b"><h4>Clinic B</h4><div class="resp"></div></div>
+        </div>
+        <div class="cond" id="ind-note" aria-live="polite"></div>
+        <div class="controls"><button class="btn" id="ind-step" type="button">Next step</button><button class="btn alt" id="ind-reset" type="button">Start over</button></div>
+      </div>
+      <p>With indirection, a child who moves gets a new local name bound to the <b>same registry ID</b>, so their history stays whole; a corrected birth date is fixed once, in the registry, and every name that leads there sees it. The cost is an extra lookup, and one new failure mode.</p>
+      <p>That failure shows up with <b>aliases</b>. Old reports name clinics by the name they had at the time. When a clinic is renamed, its old name becomes an alias: a name bound to a newer name, not to the clinic. "Lakeshore Health Centre 2" was renamed "Lakeshore Mother and Child Clinic", then "Lakeshore District Hospital"; last year's report still has to resolve to clinic <code>C17</code>, two hops away. And if someone ever binds an alias back to an older name, the chain becomes a loop that a naive resolver follows forever.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Exercise 2 of the lab.</span></div>
+        <p>Write <code>resolve_clinic</code>: follow aliases until you reach a current name and return its clinic ID. Raise <code>LookupError</code> for a name bound in neither context, and also when following aliases takes more than <code>max_hops</code> steps. Then write <code>rename_clinic</code>: move the clinic ID to the new name, remove the old binding, and add the alias old to new. Raise <code>LookupError</code> if <code>old</code> is not a current name and <code>ValueError</code> if <code>new</code> is already in use.</p>
+        <div class="cell" id="ex-alias">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-alias" spellcheck="false" aria-label="Python code">def resolve_clinic(name, clinic_ids, aliases, max_hops=10):
+    """Follow aliases to a current name; return its clinic_id."""
+    # TODO
+    return None
+
+def rename_clinic(clinic_ids, aliases, old, new):
+    """Rename clinic old to new, in place, keeping old as an alias."""
+    # TODO
+    pass
+
+clinic_ids = {"Lakeshore Health Centre 1": "C16", "Lakeshore Health Centre 2": "C17"}
+aliases = {}
+rename_clinic(clinic_ids, aliases, "Lakeshore Health Centre 2", "Lakeshore Mother and Child Clinic")
+rename_clinic(clinic_ids, aliases, "Lakeshore Mother and Child Clinic", "Lakeshore District Hospital")
+print(clinic_ids)
+print(aliases)
+print(resolve_clinic("Lakeshore Health Centre 2", clinic_ids, aliases))
+</textarea></div>
+        </div>
+      </div>
+      <div class="callout"><b>Run the full lab.</b> The repository version builds the registry from the seeded 2,000-child population with pandas, finds both merged pairs, and serves districts through a real Flask app that you test with <code>app.test_client()</code>. Clone the course and run <code>pytest lessons/03_naming</code>. Source: <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/03_naming">lessons/03_naming on GitHub</a>.</div>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Recall and review</h2></div>
+      <p>Reading something again feels productive but fades fast. Pulling it out of memory is what makes it last. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix ideas from every section. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s7"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through the flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Up next · Module 4</span>
+        <h3>Clients and services</h3>
+        <p>Put VaxRecords behind an interface it can enforce. You will make remote procedure calls through a lossy network, see a retried "record dose" run twice, and make it safe with an idempotency key.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module that pairs the book's ideas with runnable examples in two synthetic health systems, SurveilLite and VaxRecords.</span>
+      <span>Follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009), Chapters 2 and 3. Course repository: <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">github.com/Rwunganira/computer_system_design</a>. Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript. Not affiliated with the authors or MIT. All data is synthetic.</span>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc, highlight } = CT;
+const reduced = CT.reduced;
+const fmt = n => n.toLocaleString("en-US");
+const pid = n => "P" + String(n).padStart(6, "0");
+
+/* ---------- hero: resolving names through contexts ---------- */
+// A card is { t: title, rows: [[name, value, cls]], cls }. A frame is { cur, done, bad, cards, msg }.
+const GAP = ["⋮", "", "gap"];
+const card = (t, rows, cls) => ({ t, rows, cls: cls || "" });
+const ROOT = hi => card("root context", ["clinic_a", "clinic_b", "clinic_c", "registry"].map(n => [n, "context", n === hi ? "hi" : ""]), hi ? "on" : "");
+const CLINIC = (c, base, local, cls) => {
+  const rows = [["P-0001", pid(base + 1)], GAP];
+  if (local === "P-9999") rows.push(["P-0200", pid(base + 200)], ["P-9999", "no binding", "bad"]);
+  else rows.push([local, pid(base + +local.slice(2)), "hi"], GAP, ["P-0200", pid(base + 200)]);
+  return card(c + " context", rows, cls || "on");
+};
+const REG = (id, cls) => card("registry context", [["P000001", "record"], GAP, [id, "record", "hi"], GAP, ["P002000", "record"]], cls || "on");
+const REC = (id, g, f, b) => card("record " + id, [["given_name", g], ["family_name", f], ["birth_date", b]], "ok");
+function pathScenario(label, clinic, base, local, rid, who, relative) {
+  const comps = relative ? [local] : [clinic, local];
+  const rec = REC(rid, ...who);
+  const start = relative ? [] : [ROOT()];
+  const r1 = relative ? [] : [ROOT(clinic)];
+  const c1 = CLINIC(clinic, base, local);
+  const frames = [
+    { cur: -1, cards: relative ? [card("working context: " + clinic, [["P-0001", pid(base + 1)], GAP, ["P-0200", pid(base + 200)]], "on")] : start,
+      msg: relative ? `A relative name has no context of its own. It is resolved in the <b>working context</b>: we are standing in ${clinic}.` : `An absolute path name starts in the <b>root context</b>. Split it at "/" into ${comps.length} components.` }
+  ];
+  if (!relative) frames.push({ cur: 0, cards: r1, msg: `Look up <b>${clinic}</b> in the root context. Its value is another context.` });
+  frames.push({ cur: comps.length - 1, cards: [...r1.map(c => ({ ...c, cls: "dim" })), c1], msg: `Look up <b>${local}</b> in ${clinic}'s context. The value is a registry ID, <b>${rid}</b>.` });
+  frames.push({ cur: comps.length, cards: [...r1.map(c => ({ ...c, cls: "dim" })), { ...c1, cls: "dim" }, REG(rid)], msg: `Clinics bind names to registry IDs, not to records. Look up <b>${rid}</b> in the registry.` });
+  frames.push({ cur: comps.length, done: true, cards: [...r1.map(c => ({ ...c, cls: "dim" })), { ...c1, cls: "dim" }, { ...REG(rid), cls: "dim" }, rec], msg: `Resolved: <b>${label}</b> is ${who[0]} ${who[1]}, born ${who[2]}.${clinic === "clinic_b" ? " Same last component as clinic_a/P-0042, different context, different child." : ""}` });
+  return { label, comps, extra: rid, frames };
+}
+const SCN = [
+  pathScenario("clinic_a/P-0042", "clinic_a", 0, "P-0042", "P000042", ["David", "Niyonzima", "2021-12-09"]),
+  pathScenario("clinic_b/P-0042", "clinic_b", 200, "P-0042", "P000242", ["Aline", "Mugisha", "2021-05-18"]),
+  pathScenario("P-0042 in clinic_c", "clinic_c", 400, "P-0042", "P000442", ["Patrick", "Uwase", "2023-05-02"], true),
+  { label: "clinic_a/P-9999", comps: ["clinic_a", "P-9999"], frames: [
+    { cur: -1, cards: [ROOT()], msg: `Start in the root context. Two components: <b>clinic_a</b>, then <b>P-9999</b>.` },
+    { cur: 0, cards: [ROOT("clinic_a")], msg: `Look up <b>clinic_a</b>: found, and its value is a context.` },
+    { cur: 1, bad: 1, cards: [{ ...ROOT("clinic_a"), cls: "dim" }, CLINIC("clinic_a", 0, "P-9999", "fail")], msg: `Look up <b>P-9999</b> in clinic_a: <b>no binding</b>. The resolver raises LookupError instead of returning something plausible.` }
+  ] },
+  { label: "/districts/Central/cases", comps: ["districts", "Central", "cases"], key: 1, frames: [
+    { cur: -1, cards: [card("DISTRICTS rows", [["N-CEN", "Central"], ["N-RIV", "Riverside"], ["N-HIL", "Hillview"], ["N-LAK", "Lakeshore"], ["S-CEN", "Central"], ["S-SAV", "Savanna"], ["S-COA", "Coastal"], ["S-HIG", "Highlands"]]), card("by_name", [["Central", "N-CEN", "new"], ["Riverside", "N-RIV"], ["Hillview", "N-HIL"], ["Lakeshore", "N-LAK"]], "on")], msg: `The URL is a name, and the app resolves it through <b>{district_name: district_id}</b>, built one row at a time. Central binds to N-CEN first.` },
+    { cur: -1, cards: [card("DISTRICTS rows", [["N-CEN", "Central"], ["N-RIV", "Riverside"], ["N-HIL", "Hillview"], ["N-LAK", "Lakeshore"], ["S-CEN", "Central", "hi"], ["S-SAV", "Savanna"], ["S-COA", "Coastal"], ["S-HIG", "Highlands"]]), card("by_name", [["Central", "N-CEN", "x"], ["Riverside", "N-RIV"], ["Hillview", "N-HIL"], ["Lakeshore", "N-LAK"], ["Central", "S-CEN", "new"], ["Savanna", "S-SAV"], ["Coastal", "S-COA"], ["Highlands", "S-HIG"]], "on")], msg: `Row 5 is South's Central. Binding the same name again <b>replaces</b> the old binding. No error, no warning: 8 districts, 7 names.` },
+    { cur: 1, cards: [card("by_name", [["Central", "S-CEN", "hi"], ["Riverside", "N-RIV"], GAP, ["Highlands", "S-HIG"]], "on"), card("GET /districts/Central/cases", [["status", "200"], ["district_id", "S-CEN"], ["cases", "1,074"]], "ok")], msg: `Resolve <b>Central</b>: S-CEN. The request succeeds, and it is South Central's 1,074 cases whoever was asking.` },
+    { cur: 1, bad: 1, cards: [card("by_name", [["Central", "S-CEN", "hi"], ["Riverside", "N-RIV"], GAP, ["Highlands", "S-HIG"]]), card("North Central, N-CEN", [["population", "182,000"], ["cases", "892"], ["URL", "none", "bad"]], "fail")], msg: `<b>North Central</b>, 182,000 people and 892 cases, cannot be reached by any URL. Nothing crashed; the dashboard is just wrong.` }
+  ] },
+  { label: "Paul Uwimana 2022-04-03", comps: ["Paul Uwimana 2022-04-03"], frames: [
+    { cur: -1, cards: [card("registry context", [["P000175", "Paul Uwimana"], ["", "2022-04-03, F, S-HIG"], ["P001915", "Paul Uwimana"], ["", "2022-04-03, M, N-LAK"]], "on")], msg: `Two different children in the registry: different IDs, sexes and districts, the <b>same name and birth date</b>.` },
+    { cur: 0, cards: [{ ...card("registry context", [["P000175", "Paul Uwimana", "hi"], ["P001915", "Paul Uwimana"]]), cls: "dim" }, card("by_key", [["Paul Uwimana 2022-04-03", "P000175", "new"]], "on")], msg: `Key children by an <b>overloaded name</b>: name plus birth date. The first Paul binds the key.` },
+    { cur: 0, cards: [{ ...card("registry context", [["P000175", "Paul Uwimana"], ["P001915", "Paul Uwimana", "hi"]]), cls: "dim" }, card("by_key", [["Paul Uwimana 2022-04-03", "P000175", "x"], ["Paul Uwimana 2022-04-03", "P001915", "new"]], "on")], msg: `The second Paul binds the <b>same key</b>. The dict silently keeps one binding.` },
+    { cur: 0, bad: 0, cards: [{ ...card("by_key", [["Paul Uwimana 2022-04-03", "P001915", "hi"]]), cls: "dim" }, card("merged dose history", [["BCG", "once"], ["DTP1", "twice", "bad"], ["DTP2", "twice", "bad"], ["MCV1", "twice", "bad"], ["MCV2", "twice", "bad"], ["OPV1", "twice", "bad"], ["OPV2", "twice", "bad"]], "fail")], msg: `Merge dose histories by that key: one child who seems to have had most vaccines <b>twice</b>, and one child who has vanished. 2,000 children, 1,998 distinct keys.` }
+  ] }
+];
+const rz = { s: 0, f: 0, timer: null, playing: !reduced, hold: 0 };
+$("#rz-pick").innerHTML = SCN.map((s, i) => `<button type="button" data-i="${i}">${esc(s.label)}</button>`).join("");
+$$("#rz-pick button").forEach(b => b.addEventListener("click", () => { rz.s = +b.dataset.i; rz.f = 0; rz.hold = 0; rzRender(); }));
+function rzRender() {
+  const S = SCN[rz.s], F = S.frames[rz.f];
+  $$("#rz-pick button").forEach((b, i) => b.setAttribute("aria-pressed", String(i === rz.s)));
+  $("#rz-path").innerHTML = S.comps.map((c, i) => {
+    let cls = "comp";
+    if (F.bad === i) cls += " bad"; else if (F.done || i < F.cur) cls += " done"; else if (i === F.cur) cls += " cur";
+    return `<span class="${cls}">${esc(c)}</span>`;
+  }).join('<span class="sep">/</span>') + (S.extra && F.cur >= S.comps.length ? `<small>then registry/${S.extra}</small>` : "");
+  $("#rz-flow").innerHTML = F.cards.map(c => `<div class="ctx ${c.cls}"><h4>${esc(c.t)}</h4>${c.rows.map(r => `<div class="bnd ${r[2] || ""}"><span>${esc(r[0])}</span><span>${esc(r[1])}</span></div>`).join("")}</div>`).join("");
+  $("#rz-msg").innerHTML = F.msg;
+}
+function rzStep() {
+  const S = SCN[rz.s];
+  if (rz.f < S.frames.length - 1) { rz.f++; rz.hold = 0; }
+  else if (rz.playing && rz.hold < 1) { rz.hold++; return; }
+  else { rz.s = (rz.s + 1) % SCN.length; rz.f = 0; rz.hold = 0; }
+  rzRender();
+}
+function rzLoop() { clearInterval(rz.timer); if (rz.playing) rz.timer = setInterval(rzStep, 2200); $("#rz-play").textContent = rz.playing ? "Pause" : "Play"; }
+$("#rz-step").addEventListener("click", () => { rz.playing = false; rzLoop(); rzStep(); });
+$("#rz-play").addEventListener("click", () => { rz.playing = !rz.playing; rzLoop(); });
+rzRender(); rzLoop();
+
+/* ---------- resolve() tracer ---------- */
+const trLines = ["def resolve(name, context):", "    value = context", '    for part in name.strip("/").split("/"):', "        if not isinstance(value, dict) or part not in value:", '            raise LookupError(name + ": no binding for " + part)', "        value = value[part]", "    return value"];
+const MOCK = { clinic_a: { "P-0001": "P000001", "P-0042": "P000042", "P-0200": "P000200" }, clinic_b: {}, clinic_c: {}, registry: { P000042: { given_name: "David", family_name: "Niyonzima", birth_date: "2021-12-09" } } };
+const show = (v, nm) => v === MOCK ? "root context" : typeof v === "string" ? `"${v}"` : nm === "registry" || (v && v.given_name) ? (v.given_name ? "{David Niyonzima, 2021-12-09}" : "registry context") : "context of " + nm;
+function buildTrace(name) {
+  const st = []; let value = MOCK, label = "root";
+  st.push({ line: 0, part: "–", value: "–", cond: `Call resolve("${name}", root).` });
+  st.push({ line: 1, part: "–", value: show(value), cond: "Start at the root context." });
+  for (const part of name.split("/")) {
+    st.push({ line: 2, part: `"${part}"`, value: show(value, label), cond: `Next component: "${part}".` });
+    const isCtx = typeof value === "object" && !value.given_name, has = isCtx && part in value;
+    st.push({ line: 3, part: `"${part}"`, value: show(value, label), cond: !isCtx ? `value is ${show(value, label)}, not a context. Condition is True.` : has ? `"${part}" is bound here. Condition is False.` : `"${part}" is not bound here. Condition is True.` });
+    if (!isCtx || !has) { st.push({ line: 4, part: `"${part}"`, value: show(value, label), cond: "Fail loudly.", out: `LookupError: ${name}: no binding for ${part}` }); return st; }
+    value = value[part]; label = part;
+    st.push({ line: 5, part: `"${part}"`, value: show(value, label), cond: `value becomes ${show(value, label)}.` });
+  }
+  st.push({ line: 6, part: st[st.length - 1].part, value: show(value, label), cond: "No components left. Return the value.", out: `=> ${show(value, label)}` });
+  return st;
+}
+let tr = [], trAt = -1;
+function trReset() { tr = buildTrace($("#tr-name").value); trAt = -1; trRender(); }
+function trRender() {
+  const s = tr[trAt];
+  $("#tr-code").innerHTML = trLines.map((l, i) => `<div class="${s && i === s.line ? "cur" : ""}">${highlight(l).trimEnd()}</div>`).join("");
+  $("#tv-part").textContent = s ? s.part : "–";
+  $("#tv-value").textContent = s ? s.value : "–";
+  $("#tr-cond").textContent = s ? s.cond : "Press Step to begin.";
+  $("#tr-out").textContent = s ? tr.slice(0, trAt + 1).map(x => x.out).filter(Boolean).join("\n") : "";
+  $("#tr-step").disabled = trAt >= tr.length - 1;
+  $("#tr-step").textContent = trAt < 0 ? "Step" : `Step ${trAt + 1} of ${tr.length}`;
+}
+$("#tr-step").addEventListener("click", () => { trAt++; trRender(); });
+$("#tr-reset").addEventListener("click", trReset);
+$("#tr-name").addEventListener("change", trReset);
+trReset();
+
+/* ---------- collision simulator ---------- */
+const K = 16 * 12 * 1825;
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let simSeed = 7; const draws = [];
+function simulate(n, seed) { const r = mulberry32(seed), keys = new Set(); for (let i = 0; i < n; i++) keys.add(Math.floor(r() * 16) + "|" + Math.floor(r() * 12) + "|" + Math.floor(r() * 1825)); return keys.size; }
+const expected = n => n * (n - 1) / (2 * K);
+function simRun() {
+  const n = +$("#sim-n").value, keys = simulate(n, simSeed), merged = n - keys;
+  draws.push([n, merged]); if (draws.length > 60) draws.shift();
+  $("#sim-nv").textContent = fmt(n); $("#sim-kids").textContent = fmt(n); $("#sim-keys").textContent = fmt(keys);
+  $("#sim-merged").textContent = fmt(merged); $("#sim-exp").textContent = expected(n) < 10 ? expected(n).toFixed(1) : fmt(Math.round(expected(n)));
+  $("#sim-note").innerHTML = `With ${fmt(n)} children there are ${fmt(n * (n - 1) / 2)} pairs. Each pair shares a key with probability 1 in ${fmt(K)}. Ten times the children means a hundred times the collisions.`;
+  const W = 600, H = 220, L = 46, R = 566, T = 12, B = 186, ymax = expected(20000) * 1.1;
+  const sx = v => L + v / 20000 * (R - L), sy = v => B - v / ymax * (B - T);
+  let h = "";
+  [0, 200, 400, 600].forEach(v => { h += `<line class="grid" x1="${L}" x2="${R}" y1="${sy(v)}" y2="${sy(v)}"/><text x="${L - 6}" y="${sy(v) + 4}" text-anchor="end">${v}</text>`; });
+  [0, 5000, 10000, 15000, 20000].forEach(v => { h += `<text x="${sx(v)}" y="${B + 18}" text-anchor="middle">${fmt(v)}</text>`; });
+  h += `<text x="${(L + R) / 2}" y="${H - 2}" text-anchor="middle">children</text><text x="${L}" y="${T - 2}" style="fill:var(--accent)">expected merged children</text>`;
+  let d = ""; for (let v = 0; v <= 20000; v += 250) d += (v ? "L" : "M") + sx(v).toFixed(1) + "," + sy(expected(v)).toFixed(1);
+  h += `<path class="curve" d="${d}"/>`;
+  h += draws.slice(0, -1).map(([x, y]) => `<circle class="dot" cx="${sx(x)}" cy="${sy(y)}" r="3" opacity=".5"/>`).join("");
+  h += `<circle class="now" cx="${sx(n)}" cy="${sy(merged)}" r="6"/>`;
+  $("#sim-svg").innerHTML = h;
+}
+$("#sim-n").addEventListener("input", simRun);
+$("#sim-again").addEventListener("click", () => { simSeed++; simRun(); });
+simRun();
+
+/* ---------- URL resolver ---------- */
+const DIST = [["N-CEN", "Central", "North"], ["N-RIV", "Riverside", "North"], ["N-HIL", "Hillview", "North"], ["N-LAK", "Lakeshore", "North"], ["S-CEN", "Central", "South"], ["S-SAV", "Savanna", "South"], ["S-COA", "Coastal", "South"], ["S-HIG", "Highlands", "South"]];
+const CASES = { "N-CEN": 892, "N-RIV": 486, "N-HIL": 362, "N-LAK": 613, "S-CEN": 1074, "S-SAV": 465, "S-COA": 1092, "S-HIG": 312 };
+const BYNAME = {}; DIST.forEach(d => { BYNAME[d[1]] = d[0]; });
+const UPRE = ["/districts/Riverside/cases", "/districts/Central/cases", "/districts/N-CEN/cases", "/regions/North/districts/Central/cases", "/districts/Atlantis/cases"];
+$("#url-pre").innerHTML = UPRE.map(u => `<button type="button">${esc(u)}</button>`).join("");
+$$("#url-pre button").forEach((b, i) => b.addEventListener("click", () => { $("#url-in").value = UPRE[i]; urlRender(); }));
+function route(path) {
+  const p = path.trim().replace(/\/+$/, "").split("/").filter(Boolean);
+  if (p.length === 3 && p[0] === "districts" && p[2] === "cases") return { name: decodeURIComponent(p[1]) };
+  if (p.length === 5 && p[0] === "regions" && p[2] === "districts" && p[4] === "cases") return { name: decodeURIComponent(p[3]), region: decodeURIComponent(p[1]) };
+  return null;
+}
+const resp = (code, body) => `<span class="code c${String(code)[0]}">${code}</span> ${esc(JSON.stringify(body, null, 1).replace(/\n\s*/g, " "))}`;
+function urlRender() {
+  const r = route($("#url-in").value);
+  const nv = $("#url-naive .resp"), fx = $("#url-fixed .resp");
+  $("#url-naive").className = "box"; $("#url-fixed").className = "box";
+  if (!r) { nv.innerHTML = fx.innerHTML = resp(404, { error: "no such route" }); return; }
+  // naive: only /districts/<name>/cases exists, through the name dict
+  if (r.region) nv.innerHTML = resp(404, { error: "no such route" });
+  else if (r.name in BYNAME) { nv.innerHTML = resp(200, { district: r.name, district_id: BYNAME[r.name], cases: CASES[BYNAME[r.name]] }); if (r.name === "Central") { $("#url-naive").className = "box bad"; nv.innerHTML += "\n\nLooks fine. It is South Central, whoever asked."; } }
+  else nv.innerHTML = resp(404, { error: `no district named '${r.name}'` });
+  // fixed
+  let ids;
+  if (CASES[r.name] != null) ids = [r.name];
+  else ids = DIST.filter(d => d[1] === r.name && (!r.region || d[2] === r.region)).map(d => d[0]).sort();
+  if (!ids.length) fx.innerHTML = resp(404, { error: `no district named '${r.name}'${r.region ? " in " + r.region : ""}` });
+  else if (ids.length > 1) { fx.innerHTML = resp(300, { candidates: ids.map(d => `/districts/${d}/cases`) }) + "\n\nAmbiguous: the caller chooses."; $("#url-fixed").className = "box good"; }
+  else { fx.innerHTML = resp(200, { district_id: ids[0], cases: CASES[ids[0]] }); if (r.name === "Central" || r.name === "N-CEN") $("#url-fixed").className = "box good"; }
+}
+$("#url-in").addEventListener("input", urlRender);
+urlRender();
+
+/* ---------- copies vs indirection ---------- */
+const IND = {
+  copy: [
+    { a: "P-0007: Moses Uwimana\nborn 2021-09-30 (mistyped)", r: "(not used: each clinic\nkeeps its own record)", b: "no record", on: "a", note: "Clinic A registers the child and stores the whole record locally. The birth date was mistyped." },
+    { a: "P-0007: Moses Uwimana\nborn 2021-09-30", r: "(not used)", b: "P-0201: Moses Uwimana\nborn 2021-09-30 (copied)", on: "b", note: "The child moves to Clinic B, which copies the record under its own local name. Two records now describe one child." },
+    { a: "P-0007: Moses Uwimana\nborn 2021-09-30", r: "(not used)", b: "P-0201: Moses Uwimana\nborn 2022-11-02 (corrected)", on: "b", bad: "a", note: "The mother shows the birth card at Clinic B, which fixes its copy. Clinic A still says 2021-09-30. Two answers to one question, and the vaccine schedule depends on which you read." }
+  ],
+  ind: [
+    { a: "P-0007 -> P000007", r: "P000007: Moses Uwimana\nborn 2021-09-30 (mistyped)", b: "no binding", on: "a", note: "Clinic A binds its local name P-0007 to the registry ID P000007. Only the registry holds the record." },
+    { a: "P-0007 -> P000007", r: "P000007: Moses Uwimana\nborn 2021-09-30", b: "P-0201 -> P000007", on: "b", note: "The child moves. Clinic B binds a new local name, P-0201, to the same registry ID. One child, one record, two names." },
+    { a: "P-0007 -> P000007\nsees born 2022-11-02", r: "P000007: Moses Uwimana\nborn 2022-11-02 (corrected)", b: "P-0201 -> P000007\nsees born 2022-11-02", on: "r", good: true, note: "The birth date is corrected once, in the registry. Every name that leads there, clinic_a/P-0007 and clinic_b/P-0201, sees the fix." }
+  ]
+};
+let indMode = "copy", indAt = 0;
+function indRender() {
+  const st = IND[indMode][indAt];
+  [["a", st.a], ["r", st.r], ["b", st.b]].forEach(([k, txt]) => {
+    const el = $("#ind-" + k); $(".resp", el).textContent = txt;
+    el.className = "box" + (st.bad === k ? " bad" : st.good && k !== "r" ? " good" : st.on === k ? " on" : "");
+  });
+  $("#ind-note").textContent = st.note;
+  $("#ind-step").disabled = indAt >= IND[indMode].length - 1;
+}
+$$("#ind .mode button").forEach(b => b.addEventListener("click", () => { indMode = b.dataset.m; indAt = 0; $$("#ind .mode button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); indRender(); }));
+$("#ind-step").addEventListener("click", () => { indAt++; indRender(); });
+$("#ind-reset").addEventListener("click", () => { indAt = 0; indRender(); });
+indRender();
+
+/* ---------- quizzes and cards ---------- */
+const QUIZ = {
+  s1: [
+    { q: "In <code>clinics[\"clinic_a\"][\"P-0042\"] = \"P000042\"</code>, what is the <b>context</b>?", o: ["<code>\"P-0042\"</code>", "<code>\"P000042\"</code>", "<code>clinics[\"clinic_a\"]</code>, Clinic A's dict of bindings", "The assignment itself"], a: 2, why: "The context is the set of bindings the name is resolved in: Clinic A's dict. \"P-0042\" is the name, \"P000042\" the value, and the assignment is the act of binding." },
+    { q: "A nurse deletes a child registered twice by mistake: <code>del clinic_a[\"P-0043\"]</code>. In the book's terms this is…", o: ["resolution", "unbinding", "overloading", "indirection"], a: 1, why: "Unbinding removes the association between a name and a value. The child's record may still exist in the registry; only this name stops meaning it." }
+  ],
+  s2: [
+    { q: "A weekly report from the field lists only <code>P-0042</code>. Why can SurveilLite not resolve it?", o: ["Because P-0042 is not a valid ID format", "Because the name escaped its context: three clinics bind P-0042, and the report does not say which", "Because the registry is offline", "Because local IDs must be numbers"], a: 1, why: "The name is only meaningful inside a clinic's context. Attach the context, as in clinic_b/P-0042, and it resolves." },
+    { q: "What does <code>resolve(\"clinic_a/P-0042/age\", root)</code> do?", o: ["Returns the child's age", "Returns <code>\"P000042\"</code> and ignores <code>age</code>", "Raises LookupError, because <code>\"P000042\"</code> is a string, not a context", "Loops forever"], a: 2, why: "Each component is looked up in the previous value. After P-0042 the value is a registry ID string, which has no bindings, so age has nowhere to be resolved." }
+  ],
+  s3: [
+    { q: "Which name means the same child wherever it is copied: an email, a CSV export, a national report?", o: ["<code>P-0042</code>", "<code>clinic_c/P-0042</code>", "<code>42</code>", "<code>Patrick Uwase</code>"], a: 1, why: "An absolute name is resolved from the well-known root, so it does not depend on where it is used. P-0042 alone is relative, and a human name is overloaded and not unique." },
+    { q: "Inside Clinic C's software, <code>resolve(\"P-0042\", working)</code> with <code>working = root[\"clinic_c\"]</code> returns…", o: ["P000042", "P000242", "P000442", "LookupError"], a: 2, why: "A relative name is resolved in the working context. Clinic C's IDs start at registry number 401, so its P-0042 is P000442." }
+  ],
+  s4: [
+    { q: "Why does a dict keyed by \"given name, family name, birth date\" give a <b>false</b> coverage figure?", o: ["Because string keys are slow", "Because two children with the same key collapse into one binding: their doses merge and one child disappears", "Because birth dates are stored as strings", "Because the dict sorts the children"], a: 1, why: "The dict keeps one binding per key. The surviving child looks over-vaccinated, the other is missing from the denominator, and nothing raises an error." },
+    { q: "A SurveilLite ID embeds the district: <code>S-HIG-0175</code>. The family moves to Lakeshore. What goes wrong?", o: ["Nothing, IDs never change", "The name now carries false information, but changing it breaks every reference to the old name", "The ID becomes a pure name", "The registry deletes the child"], a: 1, why: "That is the second failure of overloaded names: the meaning changes but the name cannot. A pure ID like P000175 stays right when the family moves." }
+  ],
+  s5: [
+    { q: "The naive app has 8 districts but its name table has 7 entries. What does <code>GET /districts/Central/cases</code> return?", o: ["404, no such district", "An error: the name is ambiguous", "200 with North Central's cases", "200 with South Central's cases"], a: 3, why: "S-CEN came later in the rows, so its binding replaced N-CEN's. The request looks perfectly successful." },
+    { q: "Why answer an ambiguous name with <b>300 and choices</b> rather than the most populous district?", o: ["300 is faster to compute", "A guess is wrong some of the time and nothing tells the user; listing the unambiguous URLs makes the ambiguity visible and lets the caller choose", "Browsers cannot display 200 responses with two districts", "Because the most populous district is always South Central"], a: 1, why: "Silent guesses produce dashboards that are quietly wrong. Explicit choices push the decision to the only party who knows which Central was meant." }
+  ],
+  s6: [
+    { q: "A child moves from Clinic A to Clinic B, and then their birth date is corrected in the registry. With indirection, what does <code>clinic_a/P-0007</code> show?", o: ["The old, mistyped date", "The corrected date, because it leads to the same registry record", "Nothing: the old name was unbound when the child moved", "An alias error"], a: 1, why: "Both clinics' names are bound to the registry ID, and only the registry holds the record. Fix it once and every name sees it." },
+    { q: "Why must <code>resolve_clinic</code> stop after <code>max_hops</code>?", o: ["To make it faster on average", "Because aliases are names bound to names, and a chain that leads back to itself would otherwise be followed forever", "Because clinics can only be renamed ten times by law", "Because dict lookups are limited"], a: 1, why: "Indirection adds a new failure mode: loops. A hop limit turns a hang into a LookupError you can see." }
+  ],
+  s7: [
+    { q: "Which of these is a <b>pure</b> name?", o: ["<code>Paul Uwimana 2022-04-03</code>", "<code>S-HIG-0175</code>", "<code>P000175</code>", "<code>Central Health Centre 1</code>"], a: 2, why: "P000175 says nothing about the child. The others pack in a name, a birth date, a district or a place, and each of those can collide or change." },
+    { q: "Each clinic sends what it recorded for registry ID P001915. One says born 2022-04-03, another 2022-04-30. What should the check report?", o: ["Nothing: the latest date wins", "P001915, as an ID bound to conflicting birth dates that may have merged two children", "A syntax error in the dates", "Both dates averaged"], a: 1, why: "Conflicting attributes behind one ID are the symptom of an overloaded name merging two people. Flag it for a human; do not pick one silently." },
+    { q: "Module 2's dose store keyed records by <code>P000042</code>. Which naming idea makes that safe even when two clinics see the same child?", o: ["Overloading: the ID encodes the clinic", "A pure, absolute registry ID that both clinics' local names resolve to", "Relative names: each clinic uses its own", "Aliases from old IDs to new ones"], a: 1, why: "Both clinics reach the same record through the registry ID. The lost update in Module 2 was a coordination problem, not a naming one, which is why it needed a version check." }
+  ]
+};
+const CARDS = [
+  ["Name, value, binding", "A name refers to a value; a binding is the association between them in some context."],
+  ["Context", "A set of bindings in which a name is resolved, such as one clinic's patient list. In Python, a dict."],
+  ["Name resolution", "Taking a name and a context and returning the value, or failing."],
+  ["Naming scheme", "The rules for which names exist, what they can refer to, and how to resolve them."],
+  ["Path name", "A name that names the context first: <code>clinic_a/P-0042</code>. Resolved one component at a time."],
+  ["Absolute vs relative name", "Absolute: resolved from a fixed root. Relative: resolved in a working context."],
+  ["Pure vs overloaded name", "Pure: identity only (<code>P000042</code>). Overloaded: carries other meaning (name plus birth date)."],
+  ["Two ways overloaded names fail", "Different things share the name; the meaning changes but the name cannot."],
+  ["Why <code>/districts/Central/cases</code> was wrong", "Two districts are named Central; the name dict kept the last binding, so North Central had no URL."],
+  ["Indirection", "Bind a name to another name: local IDs to registry IDs, so one fix in the registry reaches every clinic."],
+  ["Alias", "An old name bound to a newer name. Follow it to resolve, and cap the hops to catch loops."]
+];
+
+/* ---------- exercises ---------- */
+const datesStarter = $("#code-ex-dates").value;
+const datesSolution = datesStarter
+  .replace("        # TODO: add this record's birth_date to dates[rid]\n", "        dates[rid].add(r[\"birth_date\"])\n")
+  .replace("    # TODO: return the sorted registry_ids that have more than one distinct date\n    return []\n", "    return sorted(rid for rid in dates if len(dates[rid]) > 1)\n");
+const districtStarter = $("#code-ex-district").value;
+const districtSolution = districtStarter.replace(/def resolve_district\(name, region=None\):\n[\s\S]*?    return by_name\[name\]\n/, `def resolve_district(name, region=None):
+    if name in [d[0] for d in DISTRICTS]:
+        return name
+    ids = sorted(d[0] for d in DISTRICTS if d[1] == name and (region is None or d[2] == region))
+    if not ids:
+        raise LookupError("no district named " + repr(name))
+    if len(ids) > 1:
+        raise AmbiguousName(name, ids)
+    return ids[0]
+`);
+const aliasStarter = $("#code-ex-alias").value;
+const aliasSolution = aliasStarter
+  .replace('    """Follow aliases to a current name; return its clinic_id."""\n    # TODO\n    return None\n', `    """Follow aliases to a current name; return its clinic_id."""
+    for hop in range(max_hops + 1):
+        if name in clinic_ids:
+            return clinic_ids[name]
+        if name not in aliases:
+            raise LookupError("no clinic named " + repr(name))
+        name = aliases[name]
+    raise LookupError("alias chain too long (loop?) at " + repr(name))
+`)
+  .replace('    """Rename clinic old to new, in place, keeping old as an alias."""\n    # TODO\n    pass\n', `    """Rename clinic old to new, in place, keeping old as an alias."""
+    if old not in clinic_ids:
+        raise LookupError("no current clinic named " + repr(old))
+    if new in clinic_ids or new in aliases:
+        raise ValueError(repr(new) + " is already in use")
+    clinic_ids[new] = clinic_ids.pop(old)
+    aliases[old] = new
+`);
+const tryOut = (call, errs) => `try:\n    print(${call})\n` + errs.map(e => `except ${e}:\n    print("${e}")\n`).join("");
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  exercises: {
+    "ex-dates": {
+      cases: [
+        "print(conflicting_birth_dates(records))",
+        'print(conflicting_birth_dates([]))',
+        'print(conflicting_birth_dates([{"registry_id": "P000001", "birth_date": "2021-01-05", "clinic": "clinic_a"}]))',
+        'rs = [{"registry_id": r, "birth_date": d, "clinic": "c"} for r, d in [("P000009", "2022-01-01"), ("P000003", "2021-02-02"), ("P000009", "2022-01-02"), ("P000003", "2021-02-03"), ("P000005", "2023-03-03"), ("P000005", "2023-03-03")]]\nprint(conflicting_birth_dates(rs))',
+        'rs = [{"registry_id": "P000175", "birth_date": d, "clinic": "c"} for d in ["2022-04-03", "2022-04-03", "2022-04-03"]]\nprint(conflicting_birth_dates(rs))'
+      ],
+      solution: datesSolution,
+      hint: ["Inside the loop: dates[rid].add(r[\"birth_date\"]). A set keeps each distinct date once.", "After the loop: return sorted(rid for rid in dates if len(dates[rid]) > 1)."]
+    },
+    "ex-district": {
+      cases: [
+        'print(answer("Riverside"))',
+        'print(answer("Central"))',
+        'print(answer("Central", "North"))\nprint(answer("Central", "South"))',
+        'print(answer("N-CEN"))\nprint(answer("S-CEN"))',
+        'print(answer("Atlantis"))\nprint(answer("Riverside", "South"))',
+        tryOut('resolve_district("Central")', ["AmbiguousName", "LookupError"]) + 'try:\n    resolve_district("Central")\nexcept AmbiguousName as err:\n    print(err.candidates)'
+      ],
+      solution: districtSolution,
+      hint: ["First: if name is one of the district_ids (d[0] for d in DISTRICTS), return it. Then collect sorted(d[0] for d in DISTRICTS if d[1] == name and (region is None or d[2] == region)).", "No IDs: raise LookupError(...). More than one: raise AmbiguousName(name, ids). Exactly one: return ids[0]."]
+    },
+    "ex-alias": {
+      cases: [
+        'ids = {"Lakeshore Health Centre 2": "C17"}\nal = {}\nrename_clinic(ids, al, "Lakeshore Health Centre 2", "Lakeshore Mother and Child Clinic")\nprint(ids)\nprint(al)',
+        'ids = {"Lakeshore District Hospital": "C17"}\nal = {"Lakeshore Health Centre 2": "Lakeshore Mother and Child Clinic", "Lakeshore Mother and Child Clinic": "Lakeshore District Hospital"}\nprint(resolve_clinic("Lakeshore Health Centre 2", ids, al))\nprint(resolve_clinic("Lakeshore District Hospital", ids, al))',
+        'ids = {"Savanna Health Centre 1": "C26"}\n' + tryOut('resolve_clinic("Atlantis Clinic", ids, {})', ["LookupError"]),
+        'ids = {}\nal = {"Old A": "Old B", "Old B": "Old A"}\n' + tryOut('resolve_clinic("Old A", ids, al)', ["LookupError"]),
+        'ids = {"Hillview Health Centre 1": "C11", "Hillview Health Centre 2": "C12"}\nal = {}\n' + tryOut('rename_clinic(ids, al, "Hillview Health Centre 1", "Hillview Health Centre 2")', ["ValueError", "LookupError"]) + tryOut('rename_clinic(ids, al, "Nowhere", "Somewhere")', ["ValueError", "LookupError"]) + 'print(ids)',
+        'ids = {"Coastal Health Centre 3": "C33"}\nal = {}\nrename_clinic(ids, al, "Coastal Health Centre 3", "Coastal Port Clinic")\n' + tryOut('rename_clinic(ids, al, "Coastal Port Clinic", "Coastal Health Centre 3")', ["ValueError", "LookupError"]) + 'print(resolve_clinic("Coastal Health Centre 3", ids, al))'
+      ],
+      solution: aliasSolution,
+      hint: ["resolve_clinic: loop at most max_hops + 1 times. If name is in clinic_ids, return clinic_ids[name]; if it is not in aliases either, raise LookupError; otherwise name = aliases[name]. After the loop, raise LookupError.", "rename_clinic: check old in clinic_ids (else LookupError) and new in neither dict (else ValueError); then clinic_ids[new] = clinic_ids.pop(old) and aliases[old] = new."]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

@@ -57,7 +57,7 @@ const DIR = path.join(__dirname, '..'), SK = process.env.SKULPT_DIR || path.join
   const q = await p.evaluate(() => Array.from(document.querySelectorAll('.quiz')).map(h => h.dataset.quiz + ':' + h.querySelectorAll('.q').length).join(' '));
   console.log('  quizzes', q, ' deck', await p.$$eval('.deck-host .card', d => d.length));
   const sw = await p.evaluate(() => document.documentElement.scrollWidth);
-  await p.evaluate(() => scrollTo(0, 0));
+  await p.evaluate(() => { document.documentElement.style.scrollBehavior = 'auto'; scrollTo(0, 0); });
   if (shots) await p.screenshot({ path: path.join(DIR, 'tools', `shot-${lid}-desk.png`) });
   await p.setViewportSize({ width: 390, height: 844 });
   await p.emulateMedia({ colorScheme: 'dark' });

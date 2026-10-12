@@ -1,0 +1,1114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Capstone: a bad week, Module 12</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+/* hero: the bad week */
+.bw { --line: color-mix(in srgb, var(--code-fg) 18%, transparent); --dim: color-mix(in srgb, var(--code-fg) 6%, transparent);
+  background: var(--code-bg); color: var(--code-fg); border-radius: 14px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.bw-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 14px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.8rem; color: var(--code-muted); }
+.bw-top b { color: var(--code-fg); font-weight: 600; }
+.sws { display: flex; flex-wrap: wrap; gap: 8px; }
+.sw { font: inherit; font-family: var(--mono); font-size: 0.8rem; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  color: var(--code-fg); background: transparent; border: 1px solid var(--line); border-radius: 99px; padding: 5px 12px 5px 6px; transition: border-color .2s, background .2s; }
+.sw:hover { border-color: var(--code-fg); }
+.sw .knob { width: 28px; height: 16px; border-radius: 99px; background: var(--line); position: relative; flex: none; transition: background .25s; }
+.sw .knob::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--code-fg); transition: transform .25s; }
+.sw[aria-pressed="true"] { border-color: var(--tok-str); }
+.sw[aria-pressed="true"] .knob { background: var(--tok-str); }
+.sw[aria-pressed="true"] .knob::after { transform: translateX(12px); background: var(--code-bg); }
+.sw small { color: var(--code-muted); font-size: 0.72rem; }
+.sw[aria-pressed="true"] small { color: var(--tok-str); }
+.bw-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 720px) { .bw-grid { grid-template-columns: 1fr; } .bw-grid .dash { order: -1; } }
+.tl { list-style: none; margin: 0; padding: 0 0 0 14px; display: grid; gap: 4px; position: relative; }
+.tl::before { content: ""; position: absolute; left: 4px; top: 6px; bottom: 6px; width: 2px; background: var(--line); border-radius: 2px; }
+.tl .fill { position: absolute; left: 4px; top: 6px; width: 2px; background: var(--tok-kw); border-radius: 2px; transition: height .45s ease; }
+.ev { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 2px 10px; padding: 7px 10px; border-radius: 8px; font-size: 0.86rem; line-height: 1.4;
+  position: relative; transition: opacity .35s, background .35s; }
+.ev::before { content: ""; position: absolute; left: -14px; top: 12px; width: 10px; height: 10px; border-radius: 50%; background: var(--code-bg); border: 2px solid var(--line); transition: all .3s; }
+.ev.past::before { border-color: var(--tok-kw); background: var(--tok-kw); }
+.ev.now { background: var(--dim); }
+.ev.now::before { border-color: var(--tok-kw); background: var(--code-bg); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tok-kw) 30%, transparent); }
+.ev.future { opacity: .38; }
+.ev-t { font-family: var(--mono); font-size: 0.72rem; color: var(--code-muted); padding-top: 2px; }
+.ev-b b { font-family: var(--mono); font-weight: 600; font-size: 0.8rem; color: var(--tok-fn); }
+.ev-b .who-disk { color: var(--tok-num); }
+.ev-b .who-bad { color: var(--tok-kw); }
+.ev .chip-o { grid-column: 2; justify-self: start; font-family: var(--mono); font-size: 0.74rem; padding: 1px 8px; border-radius: 6px; border: 1px solid var(--line); color: var(--code-muted);
+  transform-origin: left center; transition: transform .3s, opacity .3s; }
+.ev.future .chip-o { opacity: 0; transform: scale(.85); }
+.chip-o.ok { color: var(--tok-str); border-color: color-mix(in srgb, var(--tok-str) 55%, transparent); }
+.chip-o.bad { color: var(--code-bg); background: var(--tok-kw); border-color: var(--tok-kw); font-weight: 600; }
+.chip-o.warn { color: var(--tok-num); border-color: color-mix(in srgb, var(--tok-num) 55%, transparent); }
+.ev.now.flash .ev-b { animation: flash 0.9s ease 2; }
+@keyframes flash { 50% { color: var(--tok-num); } }
+.dash { display: grid; gap: 10px; }
+.tile { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; }
+.tile h4 { margin: 0; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--code-muted); font-weight: 600; }
+.big { font-family: var(--display); font-weight: 800; font-size: 2.6rem; line-height: 1; font-variant-numeric: tabular-nums; transition: color .3s; }
+.big.bad { color: var(--tok-kw); } .big.ok { color: var(--tok-str); }
+.bars { display: grid; gap: 5px; margin-top: 6px; font-family: var(--mono); font-size: 0.72rem; color: var(--code-muted); }
+.bar-row { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 8px; align-items: center; }
+.bar-tr { height: 8px; border-radius: 4px; background: var(--dim); overflow: hidden; }
+.bar-tr span { display: block; height: 100%; width: 0; border-radius: 4px; transition: width .5s ease, background .3s; }
+.mini-tiles { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.mini-tiles .tile { padding: 9px 10px; }
+.mini-tiles b { font-family: var(--mono); font-size: 1.05rem; }
+.mini-tiles b.bad { color: var(--tok-kw); } .mini-tiles b.ok { color: var(--tok-str); }
+.verdict-bw { font-family: var(--mono); font-size: 0.82rem; padding: 8px 12px; border-radius: 8px; background: var(--dim); min-height: 2.4em; }
+.verdict-bw b.ok { color: var(--tok-str); } .verdict-bw b.bad { color: var(--tok-kw); }
+.bw-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; font-family: var(--mono); font-size: 0.75rem; color: var(--code-muted); }
+
+/* s1 pipeline */
+.lane { display: grid; gap: 8px; }
+.lane h4 { margin: 0; font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.pipe { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pipe .arr { color: var(--muted); font-family: var(--mono); }
+.stage { font-family: var(--mono); font-size: 0.82rem; padding: 6px 10px; border-radius: 8px; border: 1.5px solid var(--rule); background: var(--paper); transition: all .25s; }
+.stage.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; transform: translateY(-2px); }
+.stage.done { border-color: var(--ok); }
+.stage.check { border-style: dashed; }
+
+/* shared chips for tables */
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.mute { background: var(--paper); color: var(--muted); border: 1px solid var(--rule); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.future td { opacity: .3; }
+.totals td { font-weight: 700; border-top: 2px solid var(--ink); }
+
+/* s4 replicas */
+.reps { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) { .reps { grid-template-columns: 1fr; } }
+.rep { background: var(--paper); border: 1.5px solid var(--rule); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; font-family: var(--mono); font-size: 0.82rem; transition: border-color .3s, background .3s; }
+.rep h4 { margin: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.rep.badrep { border-color: var(--bad); background: var(--bad-soft); }
+.rep.goodrep { border-color: var(--ok); }
+.rep .kv { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.rep .kv span { color: var(--muted); }
+.rep .cases { font-family: var(--display); font-size: 1.6rem; font-weight: 800; }
+.rep.pulse { animation: pulse .6s ease; }
+@keyframes pulse { 50% { transform: scale(1.02); } }
+
+/* s5 matrix */
+table.mx { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+table.mx th, table.mx td { border: 1px solid var(--rule); padding: 5px 4px; text-align: center; }
+@media (max-width: 560px) { table.mx th[scope="row"] { font-size: 0.66rem; } table.mx th { font-size: 0.64rem; } }
+table.mx th { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); font-weight: 600; }
+table.mx th[scope="row"] { text-align: left; }
+table.mx button { font: inherit; font-family: var(--mono); font-size: 0.75rem; width: 100%; min-width: 40px; border: 0; border-radius: 6px; padding: 5px 4px; cursor: pointer; transition: background .25s, color .25s; }
+table.mx button.allow { background: var(--ok-soft); color: var(--ok); }
+table.mx button.deny { background: var(--bad-soft); color: var(--bad); }
+table.mx button.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+.seg { display: inline-flex; border: 1.5px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-size: 0.85rem; font-weight: 700; padding: 6px 12px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.next a { color: var(--paper); }
+@media (prefers-reduced-motion: reduce) {
+  .bw *, .stage, .rep, table.mx button { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body data-lesson="m12">
+<div class="shell">
+  <aside class="rail" aria-label="Lesson progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 12</div>
+      <h1>Failures arrive <em>together</em>, so a system needs every check <em>at once</em>.</h1>
+      <p class="lede">In one bad week SurveilLite loses a reply, hears from a clinic that was offline, finds a digit flipped on disk and meets two users who try something they should not. Three short functions decide whether the Coastal dashboard tells the truth.</p>
+
+      <div class="bw" aria-label="A timeline of the bad week with three switchable checks and the Coastal dashboard">
+        <div class="bw-top"><span>SurveilLite intake · week of <b>2 March 2026</b></span><span>Coastal (S-COA) · population <b>143,000</b></span></div>
+        <div class="sws" role="group" aria-label="Checks">
+          <button class="sw" type="button" data-k="accept" aria-pressed="false"><span class="knob"></span><code style="background:none;padding:0;color:inherit">accept</code><small>naive</small></button>
+          <button class="sw" type="button" data-k="read" aria-pressed="false"><span class="knob"></span><code style="background:none;padding:0;color:inherit">read_verified</code><small>naive</small></button>
+          <button class="sw" type="button" data-k="auth" aria-pressed="false"><span class="knob"></span><code style="background:none;padding:0;color:inherit">authorize</code><small>naive</small></button>
+        </div>
+        <div class="bw-grid">
+          <ol class="tl" id="bw-tl"><span class="fill" id="bw-fill" aria-hidden="true"></span></ol>
+          <div class="dash">
+            <div class="tile">
+              <h4>Coastal cholera, as the dashboard reads it now</h4>
+              <div class="big" id="bw-num">0</div>
+              <div style="font-family:var(--mono);font-size:0.75rem;color:var(--code-muted)"><span id="bw-rate">0.0</span> per 100k · truth so far <span id="bw-truth">0</span></div>
+              <div class="bars">
+                <div class="bar-row"><span>dashboard</span><div class="bar-tr"><span id="bw-bar-d"></span></div></div>
+                <div class="bar-row"><span>truth</span><div class="bar-tr"><span id="bw-bar-t" style="background:var(--tok-str)"></span></div></div>
+              </div>
+            </div>
+            <div class="mini-tiles">
+              <div class="tile"><h4>Snoop</h4><b id="bw-snoop">–</b></div>
+              <div class="tile"><h4>Forgery</h4><b id="bw-forge">–</b></div>
+              <div class="tile"><h4>Audit</h4><b id="bw-audit">0</b></div>
+            </div>
+            <div class="verdict-bw" id="bw-verdict" aria-live="polite">The week is starting.</div>
+          </div>
+        </div>
+        <div class="bw-bar"><span>Flip a check on or off at any time: the week replays with it.</span><div style="display:flex;gap:6px"><button class="btn-ghost" id="bw-step" type="button">Step</button><button class="btn-ghost" id="bw-play" type="button">Pause</button><button class="btn-ghost" id="bw-replay" type="button">Replay</button></div></div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>How retries, out-of-order delivery, silent corruption and misuse combine, and where the end-to-end argument puts each check.</div>
+        <div><b>You will build</b>The three pluggable parts of the capstone service: <code>accept</code>, <code>read_verified</code> and <code>authorize</code>.</div>
+        <div><b>How it works</b>Replay the bad week, step through why the naive dashboard says 459, write each check, then run the whole week against your parts.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="Everything at once">
+      <div class="sec-head"><span class="sec-num">01</span><h2>Everything at once</h2></div>
+      <p>Each module so far isolated one idea: retries in Module 4, duplicate suppression in Module 7, checksums in Module 8, all-or-nothing writes in Module 9, authorization in Module 11. Real systems need them together, and the hard part is that failures do not take turns. The week the network is bad is also the week a disk fails and someone tries something they should not.</p>
+      <p>The capstone puts SurveilLite's report intake behind one small service. Clinics send <code>POST /reports</code>; district officers ask <code>GET /districts/&lt;id&gt;/incidence</code>. Each accepted delivery is appended to an intake log as a new record, stored on two replicas, each with a checksum, written with write-then-rename so a crash never leaves half a file. Three decisions are left pluggable, because they are where the course's ideas live.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><div class="controls"><button class="btn" id="pipe-step" type="button">Next stage</button><button class="btn alt" id="pipe-reset" type="button">Start over</button></div></div>
+        <div class="lane"><h4>A clinic submits a report</h4><div class="pipe" id="pipe-w"></div></div>
+        <div class="lane"><h4>An officer reads incidence</h4><div class="pipe" id="pipe-r"></div></div>
+        <p class="note" id="pipe-note" aria-live="polite">Press <b>Next stage</b> to follow a report in, then a dashboard read out. Dashed boxes are the three parts you will write.</p>
+      </div>
+
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Function you write</th><th>What it must do</th><th>Modules</th></tr></thead>
+        <tbody>
+          <tr><td><code>accept(message, seen)</code></td><td>Count each (clinic, sequence number) once, whatever order or how many times it arrives</td><td>4, 7</td></tr>
+          <tr><td><code>read_verified(replicas)</code></td><td>Return only data whose checksum matches; repair bad replicas; fail fast if none is good</td><td>8</td></tr>
+          <tr><td><code>authorize(user, action, district_id)</code></td><td>Clinics submit only for themselves; officers read only their district; deny everything else</td><td>11</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout">None of the three functions is long. The design work is deciding <em>where</em> each check belongs: the end-to-end argument, applied three times.</div>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2" data-short="The naive parts">
+      <div class="sec-head"><span class="sec-num">02</span><h2>The naive parts, and where 459 comes from</h2></div>
+      <p><code>NaiveParts</code> is what a first version usually does: accept everything, trust the first copy, and let any logged-in user do anything. It is not a strawman. Each choice is the simplest thing that works on a good day, and on a good day you cannot tell it from a correct system.</p>
+      <p>The lab runs the week through Flask with <code>hashlib</code> and real files. Neither runs in the browser, so this page simulates the same service in plain Python: replicas are dicts, and the checksum is a small polynomial hash standing in for SHA-256. The true Coastal cholera total for the week is 40 + 25 + 31 + 44 = 140. Before you run it, work out what the naive dashboard shows.</p>
+      <div class="cell" data-predict="459">
+        <div class="predict"><label for="p-s2">Predict the last line:</label><input id="p-s2" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s2" spellcheck="false" aria-label="Python code"># A stand-in for SHA-256: a polynomial rolling hash of the payload's text.
+def checksum(payload):
+    text = ",".join(k + "=" + str(payload[k]) for k in sorted(payload))
+    h = 0
+    for ch in text:
+        h = (h * 131 + ord(ch)) % 1000000007
+    return h
+
+CLINIC_DISTRICT = {"C01": "N-CEN", "C31": "S-COA", "C32": "S-COA"}
+NURSE_C31 = {"name": "nurse_c31", "role": "clinic", "clinic_id": "C31"}
+NURSE_C32 = {"name": "nurse_c32", "role": "clinic", "clinic_id": "C32"}
+OFFICER_COA = {"name": "officer_coa", "role": "district_officer", "district_id": "S-COA"}
+OFFICER_HIL = {"name": "officer_hil", "role": "district_officer", "district_id": "N-HIL"}
+
+def report(clinic_id, seq, week, cases):
+    return {"clinic_id": clinic_id, "seq": seq, "week": week, "disease": "cholera", "cases": cases}
+
+def run_week(accept, read_verified, authorize):
+    seen, audit = set(), []
+    replica1, replica2 = {}, {}
+    deliveries = [0]                     # the intake log numbers every stored delivery
+
+    def submit(user, msg):
+        allowed = authorize(user, ("submit", msg["clinic_id"]), CLINIC_DISTRICT[msg["clinic_id"]])
+        audit.append((user["name"], "submit", msg["clinic_id"], allowed))
+        if not allowed:
+            return 403
+        if not accept(msg, seen):
+            return 200
+        deliveries[0] += 1
+        key = msg["clinic_id"] + "_" + str(msg["seq"]) + "_d" + str(deliveries[0])
+        for replica in (replica1, replica2):
+            replica[key] = {"payload": dict(msg), "sum": checksum(msg)}
+        return 201
+
+    def incidence(user, district):
+        allowed = authorize(user, ("read", district), district)
+        audit.append((user["name"], "read", district, allowed))
+        if not allowed:
+            return 403, {}
+        totals = {}
+        for key in sorted(replica1):
+            rec = read_verified([replica1[key], replica2[key]])
+            if CLINIC_DISTRICT[rec["clinic_id"]] == district:
+                totals[rec["disease"]] = totals.get(rec["disease"], 0) + rec["cases"]
+        return 200, totals
+
+    submit(NURSE_C31, report("C31", 1, "03-02", 40))
+    submit(NURSE_C31, report("C31", 1, "03-02", 40))       # retry: the reply was lost
+    for seq, week, cases in [(3, "03-16", 44), (1, "03-02", 25), (2, "03-09", 31)]:
+        submit(NURSE_C32, report("C32", seq, week, cases))  # back online, out of order
+    victim = [k for k in sorted(replica1) if k.startswith("C32_2_")][0]
+    replica1[victim]["payload"]["cases"] = 310              # silent corruption on disk
+    snoop, _ = incidence(OFFICER_HIL, "S-COA")
+    forged = submit(NURSE_C31, report("C01", 1, "03-02", 999))
+    status, totals = incidence(OFFICER_COA, "S-COA")
+    return {"cholera": totals.get("cholera", 0), "snoop": snoop, "forged": forged, "audit": len(audit)}
+
+def naive_accept(message, seen):
+    return True                          # every delivery counts
+
+def naive_read(replicas):
+    return replicas[0]["payload"]        # trust the first copy
+
+def naive_authorize(user, action, district_id):
+    return user is not None              # any logged-in user may do anything
+
+obs = run_week(naive_accept, naive_read, naive_authorize)
+print("Hillview officer reading Coastal: HTTP", obs["snoop"])
+print("C31 nurse submitting as C01:      HTTP", obs["forged"])
+print("Coastal cholera on the dashboard (truth 140):")
+print(obs["cholera"])</textarea></div>
+      </div>
+      <p>An epidemiologist looking at that dashboard would see a threefold outbreak that did not happen, and both misuse attempts went through without a trace of refusal. Step through the Friday read below to see exactly where the extra cases come from.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><div class="controls"><button class="btn" id="led-step" type="button">Read next record</button><button class="btn alt" id="led-reset" type="button">Start over</button></div></div>
+        <div class="scroll-x"><table class="data" id="led"><thead><tr><th>File</th><th>District</th><th class="num">Checksum says</th><th class="num">Replica 1 says</th><th class="num">Naive adds</th><th class="num">Coastal total</th></tr></thead><tbody></tbody></table></div>
+        <p class="note" id="led-note" aria-live="polite">The dashboard loops over the stored records in sorted order and calls <code>read_verified</code> on each. Press <b>Read next record</b>.</p>
+      </div>
+      <p>Two failures stack up. The intake log appends every accepted delivery as a new record, the way a SQL <code>INSERT</code> or a message queue would, so the lost reply turned one report into two records: +40. The flipped digit adds 310 − 31 = 279. Together that is 140 + 40 + 279 = 459. The out-of-order reports and the forged C01 report do not change Coastal's number, though the forgery corrupts Central's.</p>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3" data-short="accept">
+      <div class="sec-head"><span class="sec-num">03</span><h2><code>accept</code>: count each report once</h2></div>
+      <p>Two things happened on the network side. C31's phone never heard back and sent the same report again, which is <b>at-least-once</b> delivery from Module 4. C32 came back online after three weeks and its reports arrived as sequence numbers 3, 1, 2, because a best-effort network promises nothing about order (Module 7). A correct intake must count every report exactly once, whichever order and however many times it arrives.</p>
+      <p>The fix is <b>duplicate suppression</b> with an <b>idempotency key</b>: each report names itself by (clinic, sequence number), and the service remembers the keys it has already accepted. That gives <b>at-most-once</b> on the server side; combined with the phone's retries, each report counts once. Deliver the week's messages one at a time and compare three policies.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><div class="controls"><button class="btn" id="pol-step" type="button">Deliver next message</button><button class="btn alt" id="pol-reset" type="button">Start over</button></div></div>
+        <div class="scroll-x"><table class="data" id="pol"><thead><tr><th>Arrives</th><th>Accept all</th><th>Highest seq</th><th>Key set</th></tr></thead><tbody></tbody></table></div>
+        <p class="note" id="pol-note" aria-live="polite"></p>
+      </div>
+
+      <p>The middle column is a real design that people ship: remember the highest sequence number per clinic and drop anything at or below it. It is fine for a stream that never reorders, such as one TCP connection. Predict what it counts for C32's late reports.</p>
+      <div class="cell" data-predict="84">
+        <div class="predict"><label for="p-s3">Predict the last line:</label><input id="p-s3" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s3" spellcheck="false" aria-label="Python code">def accept_highest(message, highest):
+    clinic, seq = message["clinic_id"], message["seq"]
+    if seq &lt;= highest.get(clinic, 0):
+        return False                  # looks old, so drop it
+    highest[clinic] = seq
+    return True
+
+arrivals = [("C31", 1, 40), ("C31", 1, 40), ("C32", 3, 44), ("C32", 1, 25), ("C32", 2, 31)]
+highest = {}
+total = 0
+for clinic, seq, cases in arrivals:
+    ok = accept_highest({"clinic_id": clinic, "seq": seq}, highest)
+    print(clinic, seq, "accepted" if ok else "dropped")
+    if ok:
+        total += cases
+print(total)</textarea></div>
+      </div>
+      <p>It suppresses the retry, but it throws away weeks 1 and 2 from C32 because they arrived after week 3. Dropping real cases silently is as bad as doubling them. A set of keys has no notion of order, which is exactly what an offline clinic needs.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: the steps are given as comments, you fill them in.</span></div>
+        <p>Complete <code>accept(message, seen)</code>. Build the key from the message's <code>clinic_id</code> and <code>seq</code>. If the key is already in <code>seen</code>, return <code>False</code>; otherwise add it to <code>seen</code> and return <code>True</code>. Other fields, such as the case count, must not matter: a retry is the same report even if it was re-typed.</p>
+        <div class="cell" id="ex-accept">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-accept" spellcheck="false" aria-label="Python code">def accept(message, seen):
+    key = None          # 1. the pair that names one report
+    # 2. if key is already in seen, this is a retry: return False
+    # 3. otherwise remember key in seen
+    return True
+
+seen = set()
+for clinic, seq in [("C31", 1), ("C31", 1), ("C32", 3), ("C32", 1), ("C32", 2)]:
+    print(clinic, seq, accept({"clinic_id": clinic, "seq": seq}, seen))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4" data-short="read_verified">
+      <div class="sec-head"><span class="sec-num">04</span><h2><code>read_verified</code>: a missing number beats a wrong one</h2></div>
+      <p>On Thursday night a disk silently changed one stored report: replica 1 of C32 #2's record now says 310 cases instead of 31. In Module 8's words the <b>fault</b> is the flipped digit, the <b>error</b> is the wrong value sitting in replica 1, and the <b>failure</b> is the dashboard showing it. A <b>checksum</b> stored beside the data catches the error before it becomes a failure: recompute it on every read and compare.</p>
+      <p>Detection is only the first of three jobs. <code>read_verified</code> must also <b>mask</b> the error by returning a good copy, <b>repair</b> the bad replica so the redundancy is restored, and, if no copy is intact, <b>fail fast</b> by raising an error instead of guessing. Corrupt one replica or both, then read.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><div class="controls"><button class="btn alt" id="rep-c1" type="button">Corrupt replica 1</button><button class="btn alt" id="rep-c2" type="button">Corrupt replica 2</button><button class="btn" id="rep-read" type="button">read_verified</button><button class="btn alt" id="rep-reset" type="button">Start over</button></div></div>
+        <div class="reps" id="reps"></div>
+        <div class="cond" id="rep-msg" aria-live="polite">Both replicas hold C32 #2 with 31 cases and a matching checksum.</div>
+      </div>
+
+      <p>The checksum is a short value computed from the whole payload, so changing any field changes it. Predict whether the stored sum still matches after the digit flips.</p>
+      <div class="cell" data-predict="False">
+        <div class="predict"><label for="p-s4">Predict the last line:</label><input id="p-s4" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s4" spellcheck="false" aria-label="Python code">def checksum(payload):          # stand-in for SHA-256
+    text = ",".join(k + "=" + str(payload[k]) for k in sorted(payload))
+    h = 0
+    for ch in text:
+        h = (h * 131 + ord(ch)) % 1000000007
+    return h
+
+payload = {"clinic_id": "C32", "seq": 2, "cases": 31}
+record = {"payload": dict(payload), "sum": checksum(payload)}
+print("stored sum:", record["sum"])
+
+record["payload"]["cases"] = 310            # the disk flips a digit
+print("recomputed:", checksum(record["payload"]))
+print(record["sum"] == checksum(record["payload"]))</textarea></div>
+      </div>
+      <p>Why raise instead of returning whatever is there? In surveillance a confident wrong number drives real decisions: a team is sent, a district is flagged. A visible gap gets someone to fix the data. That is <b>fail-fast</b>, and it is the same reasoning as Module 8's argument for detecting before masking.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">From the module's <code>exercises.py</code>, with dicts in place of files.</span></div>
+        <p>Write <code>read_verified(replicas)</code>. Each replica is a dict <code>{"payload": {...}, "sum": ...}</code>. Return the payload of the first replica whose <code>checksum(payload)</code> equals its <code>"sum"</code>. Repair every bad replica in place by copying the good one's payload (use <code>dict(...)</code>) and sum into it. If none is good, <code>raise ValueError("no intact replica")</code>.</p>
+        <div class="cell" id="ex-read">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-read" spellcheck="false" aria-label="Python code">def checksum(payload):          # stand-in for SHA-256
+    text = ",".join(k + "=" + str(payload[k]) for k in sorted(payload))
+    h = 0
+    for ch in text:
+        h = (h * 131 + ord(ch)) % 1000000007
+    return h
+
+def make_record(payload):
+    return {"payload": dict(payload), "sum": checksum(payload)}
+
+def read_verified(replicas):
+    # 1. find the first replica whose checksum matches
+    # 2. copy it into every replica that does not match
+    # 3. if none matches, raise ValueError
+    return replicas[0]["payload"]       # naive: trust the first copy
+
+P = {"clinic_id": "C32", "seq": 2, "cases": 31}
+replicas = [make_record(P), make_record(P)]
+replicas[0]["payload"]["cases"] = 310   # the disk flips a digit
+print(read_verified(replicas)["cases"])
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="authorize">
+      <div class="sec-head"><span class="sec-num">05</span><h2><code>authorize</code>: least privilege, denied by default</h2></div>
+      <p>Two requests that week were made by real, logged-in users. A Hillview officer asked for Coastal's incidence, and a Coastal nurse submitted a report as clinic C01. <b>Authentication</b> worked both times: the service knew exactly who was asking. What was missing was <b>authorization</b>, the decision whether that principal may do that action.</p>
+      <p>Module 11's principles turn into three rules. <b>Least privilege</b>: a clinic may only submit for itself and an officer may only read their own district. <b>Fail-safe defaults</b>: anything not explicitly granted, including an unknown role or an anonymous user, is denied. <b>Complete mediation</b>: every request goes through <code>authorize</code>, reads included, and every decision, allowed or not, goes into the <b>audit log</b>. Switch the matrix between the two policies and tap any cell for the reason.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><div class="seg" role="group" aria-label="Policy"><button type="button" data-pol="naive" aria-pressed="true">Naive</button><button type="button" data-pol="least" aria-pressed="false">Least privilege</button></div></div>
+        <div class="scroll-x"><table class="mx" id="mx"></table></div>
+        <div class="cond" id="mx-msg" aria-live="polite">Tap a cell to see why it is allowed or denied.</div>
+      </div>
+
+      <p>A common first fix is a deny list: name the bad cases and allow the rest. Predict what this one says about an IT administrator, a role nobody thought about.</p>
+      <div class="cell" data-predict="True">
+        <div class="predict"><label for="p-s5">Predict the last line:</label><input id="p-s5" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s5" spellcheck="false" aria-label="Python code">def authorize_denylist(user, action, district_id):
+    verb, target = action
+    if user is None:
+        return False
+    if user["role"] == "clinic" and verb == "read":
+        return False                       # clinics do not read dashboards
+    if user["role"] == "district_officer" and verb == "submit":
+        return False                       # officers do not file reports
+    return True                            # everything else is fine?
+
+nurse = {"name": "nurse_c31", "role": "clinic", "clinic_id": "C31"}
+admin = {"name": "it_admin", "role": "admin"}
+print("nurse submits for C31:", authorize_denylist(nurse, ("submit", "C31"), "S-COA"))
+print("nurse submits as C01: ", authorize_denylist(nurse, ("submit", "C01"), "N-CEN"))
+print(authorize_denylist(admin, ("read", "S-COA"), "S-COA"))</textarea></div>
+      </div>
+      <p>A deny list fails open: every case you forgot is allowed. It also missed the forgery, because "a clinic submitting" looked fine without checking <em>which</em> clinic. An allow list fails closed, and forgetting a case costs a support call instead of a data leak.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">From the module's <code>exercises.py</code>.</span></div>
+        <p>Write <code>authorize(user, action, district_id)</code>. <code>user</code> is <code>None</code>, a clinic user <code>{"role": "clinic", "clinic_id": ...}</code> or an officer <code>{"role": "district_officer", "district_id": ...}</code>. <code>action</code> is <code>("submit", clinic_id)</code> or <code>("read", district_id)</code>. Clinics may only submit for their own clinic; officers may only read their own district; everything else returns <code>False</code>.</p>
+        <div class="cell" id="ex-auth">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-auth" spellcheck="false" aria-label="Python code">def authorize(user, action, district_id):
+    # Allow only what is explicitly granted; deny everything else.
+    return user is not None       # naive: any logged-in user may do anything
+
+nurse = {"role": "clinic", "clinic_id": "C31"}
+officer = {"role": "district_officer", "district_id": "N-HIL"}
+print(authorize(nurse, ("submit", "C31"), "S-COA"))
+print(authorize(nurse, ("submit", "C01"), "N-CEN"))
+print(authorize(officer, ("read", "S-COA"), "S-COA"))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6" data-short="Survive the week">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Survive the bad week</h2></div>
+      <p>Now plug the three worked answers into the same service and run the week again. The service is unchanged: the parts are passed in, which is what made them easy to test one at a time. This cell also prints the audit log. Before running, list the requests that reach <code>authorize</code> and predict how many entries the log will hold.</p>
+      <div class="cell" data-predict="8">
+        <div class="predict"><label for="p-s6">Predict the number of audit entries:</label><input id="p-s6" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s6" spellcheck="false" aria-label="Python code">def checksum(payload):
+    text = ",".join(k + "=" + str(payload[k]) for k in sorted(payload))
+    h = 0
+    for ch in text:
+        h = (h * 131 + ord(ch)) % 1000000007
+    return h
+
+CLINIC_DISTRICT = {"C01": "N-CEN", "C31": "S-COA", "C32": "S-COA"}
+NURSE_C31 = {"name": "nurse_c31", "role": "clinic", "clinic_id": "C31"}
+NURSE_C32 = {"name": "nurse_c32", "role": "clinic", "clinic_id": "C32"}
+OFFICER_COA = {"name": "officer_coa", "role": "district_officer", "district_id": "S-COA"}
+OFFICER_HIL = {"name": "officer_hil", "role": "district_officer", "district_id": "N-HIL"}
+
+def accept(message, seen):
+    key = (message["clinic_id"], message["seq"])
+    if key in seen:
+        return False
+    seen.add(key)
+    return True
+
+def read_verified(replicas):
+    good = None
+    for r in replicas:
+        if checksum(r["payload"]) == r["sum"]:
+            good = r
+            break
+    if good is None:
+        raise ValueError("no intact replica")
+    for r in replicas:
+        if checksum(r["payload"]) != r["sum"]:
+            r["payload"], r["sum"] = dict(good["payload"]), good["sum"]
+    return good["payload"]
+
+def authorize(user, action, district_id):
+    if not user:
+        return False
+    verb, target = action
+    if user.get("role") == "clinic":
+        return verb == "submit" and target == user.get("clinic_id")
+    if user.get("role") == "district_officer":
+        return verb == "read" and target == user.get("district_id")
+    return False
+
+def report(clinic_id, seq, week, cases):
+    return {"clinic_id": clinic_id, "seq": seq, "week": week, "disease": "cholera", "cases": cases}
+
+seen, audit = set(), []
+replica1, replica2 = {}, {}
+deliveries = [0]
+
+def submit(user, msg):
+    allowed = authorize(user, ("submit", msg["clinic_id"]), CLINIC_DISTRICT[msg["clinic_id"]])
+    audit.append((user["name"], "submit", msg["clinic_id"], allowed))
+    if not allowed:
+        return 403
+    if not accept(msg, seen):
+        return 200
+    deliveries[0] += 1
+    key = msg["clinic_id"] + "_" + str(msg["seq"]) + "_d" + str(deliveries[0])
+    for replica in (replica1, replica2):
+        replica[key] = {"payload": dict(msg), "sum": checksum(msg)}
+    return 201
+
+def incidence(user, district):
+    allowed = authorize(user, ("read", district), district)
+    audit.append((user["name"], "read", district, allowed))
+    if not allowed:
+        return 403, 0
+    total = 0
+    for key in sorted(replica1):
+        rec = read_verified([replica1[key], replica2[key]])
+        if CLINIC_DISTRICT[rec["clinic_id"]] == district:
+            total += rec["cases"]
+    return 200, total
+
+submit(NURSE_C31, report("C31", 1, "03-02", 40))
+print("retry of C31 #1: HTTP", submit(NURSE_C31, report("C31", 1, "03-02", 40)))
+for seq, week, cases in [(3, "03-16", 44), (1, "03-02", 25), (2, "03-09", 31)]:
+    submit(NURSE_C32, report("C32", seq, week, cases))
+victim = [k for k in sorted(replica1) if k.startswith("C32_2_")][0]
+replica1[victim]["payload"]["cases"] = 310
+print("Hillview reads Coastal: HTTP", incidence(OFFICER_HIL, "S-COA")[0])
+print("C31 submits as C01:    HTTP", submit(NURSE_C31, report("C01", 1, "03-02", 999)))
+status, cholera = incidence(OFFICER_COA, "S-COA")
+print("Coastal cholera:", cholera, "(truth 140)")
+print("replica 1 of", victim, "after the read:", replica1[victim]["payload"]["cases"])
+print()
+for entry in audit:
+    print(entry)
+print(len(audit))</textarea></div>
+      </div>
+      <p>Six submissions and two reads reach <code>authorize</code>, so the log has eight entries, including the two refusals. Note that the retry is logged as an allowed submission: authorization and duplicate suppression are separate questions, answered in separate places.</p>
+
+      <h3>Where each check belongs</h3>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Check</th><th>Why it lives at the endpoint</th><th>What a lower layer cannot do</th></tr></thead>
+        <tbody>
+          <tr><td><code>accept</code></td><td>Only the application knows that (clinic, sequence number) names one report</td><td>A reliable transport removes duplicates within one connection, not a retry the phone makes after a timeout on a new connection</td></tr>
+          <tr><td><code>read_verified</code></td><td>The check runs on the data that is about to be counted, after every layer that could damage it</td><td>A disk's own error correction does not cover a bad write, a buggy copy or a file edited by hand</td></tr>
+          <tr><td><code>authorize</code></td><td>Only the service knows which clinic belongs to which district and who may read what</td><td>Encryption and login prove who is asking, not what they may do</td></tr>
+        </tbody>
+      </table></div>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="After the week">
+      <div class="sec-head"><span class="sec-num">07</span><h2>After the week: restarts and going further</h2></div>
+      <p>The parts survive the scripted week, but <code>seen</code> lives in memory. When the service restarts, the set is empty, and a retry that arrives afterwards looks new. The intake log is append-only, so the late retry becomes a second record and is counted twice. Predict the total.</p>
+      <div class="cell" data-predict="80">
+        <div class="predict"><label for="p-s7">Predict the last line:</label><input id="p-s7" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s7" spellcheck="false" aria-label="Python code">table = []              # an append-only table of accepted reports
+seen = set()            # the duplicate filter, kept in memory
+
+def accept(message, seen):
+    key = (message["clinic_id"], message["seq"])
+    if key in seen:
+        return False
+    seen.add(key)
+    return True
+
+def submit(message):
+    if accept(message, seen):
+        table.append(message)
+
+report = {"clinic_id": "C31", "seq": 1, "cases": 40}
+submit(report)
+submit(dict(report))    # retry before the restart: suppressed
+print("rows before restart:", len(table))
+
+seen = set()            # the service restarts; memory is gone
+submit(dict(report))    # a late retry arrives after the restart
+print(sum(r["cases"] for r in table))</textarea></div>
+      </div>
+      <p>The fix is to keep <code>seen</code> in the same durable store as the reports. That raises Module 9's question: recording the key and storing the report must happen <b>all-or-nothing</b>, or a crash between the two either loses the report (key saved, report not) or lets a later retry count it twice (report saved, key not). In a database, both go in one transaction; with files, the report's file name can be its key, so writing the file and recording the key are the same atomic rename.</p>
+      <ul>
+        <li><b>A tamper-evident audit log.</b> Chain each entry to the previous entry's hash, as in Module 11's exercise, so an insider cannot quietly delete the record of a snoop.</li>
+        <li><b>A third replica and a voter.</b> With two replicas and a checksum you can detect and repair; <b>triple modular redundancy</b> can outvote one bad copy even without a checksum. It costs a third write on every report. Worth it when a wrong value is very expensive and checksums cannot cover the fault, such as a bug that computes the wrong number and checksums it faithfully.</li>
+      </ul>
+      <div class="quiz" data-quiz="s7"></div>
+      <div class="callout"><b>Run the full lab.</b> The repository version runs the same bad week through a Flask service with real files, write-then-rename and SHA-256. Fill in <code>exercises.py</code>, then run <code>python lessons/12_capstone/bad_week.py</code> and <code>pytest lessons/12_capstone</code>. Source: <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/12_capstone">lessons/12_capstone on GitHub</a>.</div>
+    </section>
+
+    <!-- 8 -->
+    <section class="lesson" id="s8" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">08</span><h2>Recall and review</h2></div>
+      <p>This deck draws on the whole course, because the capstone does. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix the three checks with the week's failures. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s8"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through these flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Finished · Back to the course map</span>
+        <h3>You have reached the end of the course</h3>
+        <p>Return to the <a href="index.html">course map</a> and look at each module's progress. Earlier modules have their own review dates; the ones you finished first are probably due now. Revisit Modules 4, 7, 8 and 11 in particular, since this week leaned on them hardest, then try the going-further ideas above in the full lab.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module for working developers. Follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009), Chapters 1 to 11. Not affiliated with the authors or MIT. All data is synthetic.</span>
+      <span>Course repository: <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">github.com/Rwunganira/computer_system_design</a>. Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript.</span>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc } = CT;
+const reduced = CT.reduced;
+
+/* ---------- shared model: checksum, users, parts ---------- */
+function checksum(p) {
+  const text = Object.keys(p).sort().map(k => k + "=" + p[k]).join(",");
+  let h = 0;
+  for (const ch of text) h = (h * 131 + ch.charCodeAt(0)) % 1000000007;
+  return h;
+}
+const DIST = { C01: "N-CEN", C31: "S-COA", C32: "S-COA" };
+const U = {
+  c31: { name: "nurse_c31", role: "clinic", clinic_id: "C31" },
+  c32: { name: "nurse_c32", role: "clinic", clinic_id: "C32" },
+  coa: { name: "officer_coa", role: "district_officer", district_id: "S-COA" },
+  hil: { name: "officer_hil", role: "district_officer", district_id: "N-HIL" }
+};
+function authLeast(user, verb, target) {
+  if (!user) return false;
+  if (user.role === "clinic") return verb === "submit" && target === user.clinic_id;
+  if (user.role === "district_officer") return verb === "read" && target === user.district_id;
+  return false;
+}
+const authNaive = user => !!user;
+
+/* ---------- hero: the bad week ---------- */
+const rep = (c, seq, week, cases) => ({ clinic_id: c, seq, week, disease: "cholera", cases });
+const EV = [
+  { t: "Mon 08:10", html: "<b>nurse_c31</b> posts C31 #1: 40 cases, week of 2 Mar", kind: "submit", user: U.c31, msg: rep("C31", 1, "03-02", 40) },
+  { t: "Mon 08:11", html: "<b>nurse_c31</b>'s phone hears no reply and sends C31 #1 again", kind: "submit", user: U.c31, msg: rep("C31", 1, "03-02", 40), retry: true },
+  { t: "Wed 17:42", html: "<b>nurse_c32</b> is back online after three weeks: C32 #3, 44 cases", kind: "submit", user: U.c32, msg: rep("C32", 3, "03-16", 44) },
+  { t: "Wed 17:42", html: "<b>nurse_c32</b>: C32 #1, 25 cases, arriving late", kind: "submit", user: U.c32, msg: rep("C32", 1, "03-02", 25) },
+  { t: "Wed 17:43", html: "<b>nurse_c32</b>: C32 #2, 31 cases", kind: "submit", user: U.c32, msg: rep("C32", 2, "03-09", 31) },
+  { t: "Thu 03:15", html: "<b class=\"who-disk\">disk</b> silently changes replica 1 of C32 #2: 31 becomes 310", kind: "corrupt" },
+  { t: "Thu 09:30", html: "<b class=\"who-bad\">officer_hil</b> (Hillview) asks for Coastal's incidence", kind: "read", user: U.hil, d: "S-COA", snoop: true },
+  { t: "Fri 11:05", html: "<b class=\"who-bad\">nurse_c31</b> files C01 #1 with 999 cases, as another clinic", kind: "submit", user: U.c31, msg: rep("C01", 1, "03-02", 999), forged: true },
+  { t: "Fri 16:00", html: "<b>officer_coa</b> opens the Coastal dashboard", kind: "read", user: U.coa, d: "S-COA", dash: true }
+];
+const bw = { on: { accept: false, read: false, auth: false }, at: -1, timer: null, playing: !reduced, shown: 0 };
+
+function simulate(upto) {
+  const { on } = bw;
+  let deliveries = 0;
+  const seen = new Set(), r1 = [], r2 = [];   // each entry: {key, rec}
+  let audit = 0, truth = 0, snoop = null, forge = null, dash = null;
+  const out = [], tally = [];
+  const put = (store, key, rec) => store.push({ key, rec });   // append-only intake log
+  const readAll = (district, repair) => {
+    let total = 0, repaired = 0, failed = false;
+    r1.forEach((e, i) => {
+      const a = e.rec, b = r2[i].rec;
+      let p;
+      if (!on.read) p = a.payload;
+      else {
+        const good = [a, b].find(x => checksum(x.payload) === x.sum);
+        if (!good) { failed = true; return; }
+        [a, b].forEach(x => { if (checksum(x.payload) !== x.sum) { if (repair) { x.payload = Object.assign({}, good.payload); x.sum = good.sum; } repaired++; } });
+        p = good.payload;
+      }
+      if (DIST[p.clinic_id] === district) total += p.cases;
+    });
+    return { total, repaired, failed };
+  };
+  for (let i = 0; i <= upto && i < EV.length; i++) {
+    const ev = EV[i];
+    let o;
+    if (ev.kind === "submit") {
+      const allowed = (on.auth ? authLeast : authNaive)(ev.user, "submit", ev.msg.clinic_id);
+      audit++;
+      if (!allowed) o = { cls: "ok", text: "403 forbidden, logged" };
+      else {
+        const rk = ev.msg.clinic_id + "_" + ev.msg.seq;
+        const isNew = !seen.has(rk);
+        const ok = on.accept ? isNew : true;
+        if (isNew) { seen.add(rk); if (DIST[ev.msg.clinic_id] === "S-COA") truth += ev.msg.cases; }
+        else if (!on.accept) seen.add(rk);
+        if (!ok) o = { cls: "ok", text: "200 duplicate ignored" };
+        else {
+          deliveries++;
+          const key = rk + "_d" + deliveries;
+          [r1, r2].forEach(s => put(s, key, { payload: Object.assign({}, ev.msg), sum: checksum(ev.msg) }));
+          if (ev.forged) o = { cls: "bad", text: "201 stored: 999 phantom cases in Central" };
+          else if (!isNew) o = { cls: "bad", text: "201 stored again as " + key };
+          else o = { cls: "ok", text: "201 stored as " + key };
+        }
+      }
+      if (ev.forged) forge = allowed ? 201 : 403;
+    } else if (ev.kind === "corrupt") {
+      const e = r1.find(x => x.rec.payload.clinic_id === "C32" && x.rec.payload.seq === 2);
+      if (e) { e.rec.payload = Object.assign({}, e.rec.payload, { cases: 310 }); }
+      o = { cls: "warn", text: "replica 1 says 310; its checksum still says 31" };
+    } else {
+      const allowed = (on.auth ? authLeast : authNaive)(ev.user, "read", ev.d);
+      audit++;
+      if (!allowed) o = { cls: "ok", text: "403 forbidden, logged" };
+      else {
+        const res = readAll(ev.d, true);
+        if (ev.snoop) o = { cls: "bad", text: "200 Coastal data sent to Hillview" };
+        else {
+          dash = res.total;
+          o = { cls: res.total === 140 ? "ok" : "bad", text: "200 dashboard shows " + res.total + (res.repaired ? ", repaired replica 1" : "") };
+        }
+        if (res.repaired && ev.snoop) o.text += " (and repaired replica 1)";
+      }
+      if (ev.snoop) snoop = allowed ? 200 : 403;
+    }
+    out.push(o);
+    tally.push({ shown: readAll("S-COA", false).total, truth, audit, snoop, forge, dash });
+  }
+  return { out, tally };
+}
+
+function bwBuild() {
+  const tl = $("#bw-tl");
+  $$(".ev", tl).forEach(e => e.remove());
+  EV.forEach((ev, i) => {
+    const li = document.createElement("li");
+    li.className = "ev future"; li.dataset.i = i;
+    li.innerHTML = `<span class="ev-t">${ev.t}</span><span class="ev-b">${ev.html}</span><span class="chip-o"></span>`;
+    tl.appendChild(li);
+  });
+}
+function tween(el, to) {
+  const from = +el.dataset.v || 0; el.dataset.v = to;
+  if (reduced || from === to) { el.textContent = to; return; }
+  const t0 = performance.now(), dur = 550;
+  const f = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = Math.round(from + (to - from) * e); if (k < 1) requestAnimationFrame(f); };
+  requestAnimationFrame(f);
+}
+function bwRender(fresh) {
+  const sim = simulate(EV.length - 1);
+  const at = bw.at;
+  $$("#bw-tl .ev").forEach((li, i) => {
+    li.className = "ev " + (i < at ? "past" : i === at ? "now" : "future");
+    if (i === at && fresh && EV[i].kind === "corrupt") li.classList.add("flash");
+    const chip = $(".chip-o", li), o = sim.out[i];
+    chip.className = "chip-o " + o.cls; chip.textContent = o.text;
+  });
+  const items = $$("#bw-tl .ev");
+  const fill = $("#bw-fill");
+  if (at < 0) fill.style.height = "0px";
+  else { const li = items[at]; fill.style.height = (li.offsetTop + 12 - 6) + "px"; }
+  const st = at >= 0 ? sim.tally[at] : { shown: 0, truth: 0, audit: 0, snoop: null, forge: null, dash: null };
+  const num = $("#bw-num");
+  tween(num, st.shown);
+  num.className = "big " + (at < 0 ? "" : st.shown === st.truth ? "ok" : "bad");
+  $("#bw-rate").textContent = (st.shown / 143000 * 100000).toFixed(1);
+  $("#bw-truth").textContent = st.truth;
+  const max = 470;
+  $("#bw-bar-d").style.width = Math.min(100, st.shown / max * 100) + "%";
+  $("#bw-bar-d").style.background = st.shown === st.truth ? "var(--tok-str)" : "var(--tok-kw)";
+  $("#bw-bar-t").style.width = (st.truth / max * 100) + "%";
+  const code = (el, v, good) => { el.textContent = v == null ? "–" : v; el.className = v == null ? "" : v === good ? "ok" : "bad"; };
+  code($("#bw-snoop"), st.snoop, 403); code($("#bw-forge"), st.forge, 403);
+  $("#bw-audit").textContent = st.audit;
+  const v = $("#bw-verdict");
+  if (at < EV.length - 1) v.textContent = at < 0 ? "The week is starting." : "Event " + (at + 1) + " of " + EV.length + ". Audit entries so far: " + st.audit + ".";
+  else {
+    const fails = [];
+    if (st.dash !== 140) fails.push("cholera " + st.dash + " not 140");
+    if (st.snoop !== 403) fails.push("snoop allowed");
+    if (st.forge !== 403) fails.push("forgery allowed");
+    v.innerHTML = fails.length ? `Survived the bad week: <b class="bad">NO</b> · ${fails.join(", ")}` : `Survived the bad week: <b class="ok">YES</b> · 140 cases, two refusals, ${st.audit} audit entries`;
+  }
+  $("#bw-step").disabled = at >= EV.length - 1;
+}
+function bwTick() { if (bw.at < EV.length - 1) { bw.at++; bwRender(true); } if (bw.at >= EV.length - 1) { bw.playing = false; bwLoop(); } }
+function bwLoop() {
+  clearInterval(bw.timer);
+  if (bw.playing) bw.timer = setInterval(bwTick, 1100);
+  $("#bw-play").textContent = bw.playing ? "Pause" : "Play";
+}
+$$(".sw[data-k]").forEach(b => b.addEventListener("click", () => {
+  const k = b.dataset.k; bw.on[k] = !bw.on[k];
+  b.setAttribute("aria-pressed", bw.on[k]); $("small", b).textContent = bw.on[k] ? "checked" : "naive";
+  bwRender(false);
+}));
+$("#bw-step").addEventListener("click", () => { bw.playing = false; bwLoop(); bwTick(); });
+$("#bw-play").addEventListener("click", () => { if (bw.at >= EV.length - 1) bw.at = -1; bw.playing = !bw.playing; bwLoop(); if (bw.playing) bwTick(); });
+$("#bw-replay").addEventListener("click", () => { bw.at = -1; bwRender(false); if (!reduced) { bw.playing = true; bwLoop(); } });
+bwBuild();
+if (reduced) { bw.at = EV.length - 1; bw.playing = false; }
+bwRender(false); bwLoop();
+addEventListener("resize", () => bwRender(false));
+
+/* ---------- s1 pipeline stepper ---------- */
+const PW = [["clinic POST /reports", ""], ["authorize()", "check"], ["accept()", "check"], ["write_replicas()", ""], ["replica1 + sum", ""], ["replica2 + sum", ""]];
+const PR = [["officer GET incidence", ""], ["authorize()", "check"], ["read_verified()", "check"], ["cases per 100k", ""]];
+const PSTEPS = [
+  ["w", 0, "A clinic's phone sends a report: clinic, sequence number, week, disease, cases. The network may lose the reply, so the phone may send it again (Modules 4 and 7)."],
+  ["w", 1, "<b>authorize</b> asks whether this user may submit for this clinic. Every request passes here, and the decision is written to the audit log (Module 11)."],
+  ["w", 2, "<b>accept</b> asks whether this (clinic, sequence number) has been seen before. A retry is dropped; a late or out-of-order report is kept (Modules 4 and 7)."],
+  ["w", 3, "<b>write_replicas</b> wraps the payload with its checksum and writes it to a temporary file, then renames it into place, so a crash never leaves half a record (Module 9)."],
+  ["w", 4, "Replica 1 holds the payload and its checksum."],
+  ["w", 5, "Replica 2 holds an identical copy, so one bad disk does not lose the report (Module 8)."],
+  ["r", 0, "An officer opens the dashboard for a district."],
+  ["r", 1, "<b>authorize</b> again: reads are mediated too. An officer may read only their own district."],
+  ["r", 2, "<b>read_verified</b> recomputes each replica's checksum, returns an intact copy, repairs the other, and raises an error if neither is intact (Module 8)."],
+  ["r", 3, "The verified counts are summed and divided by the district's population. Coastal has 143,000 people, so 140 cases is 97.9 per 100k."]
+];
+let pAt = -1;
+function pipeRender() {
+  const draw = (lane, list, host) => {
+    host.innerHTML = list.map(([t, c], i) => {
+      const idx = PSTEPS.findIndex(s => s[0] === lane && s[1] === i);
+      const st = idx === pAt ? " on" : idx < pAt ? " done" : "";
+      return (i ? '<span class="arr" aria-hidden="true">→</span>' : "") + `<span class="stage${c ? " check" : ""}${st}">${t}</span>`;
+    }).join("");
+  };
+  draw("w", PW, $("#pipe-w")); draw("r", PR, $("#pipe-r"));
+  $("#pipe-note").innerHTML = pAt < 0 ? "Press <b>Next stage</b> to follow a report in, then a dashboard read out. Dashed boxes are the three parts you will write." : PSTEPS[pAt][2];
+  $("#pipe-step").disabled = pAt >= PSTEPS.length - 1;
+}
+$("#pipe-step").addEventListener("click", () => { pAt++; pipeRender(); });
+$("#pipe-reset").addEventListener("click", () => { pAt = -1; pipeRender(); });
+pipeRender();
+
+/* ---------- s2 ledger of the naive Friday read ---------- */
+const LED = [
+  { f: "C01_1_d6", d: "N-CEN", sum: 999, r1: 999, add: 0, note: "<b>C01_1_d6</b> is the forged report. It belongs to Central (N-CEN), so the Coastal sum skips it, but Central's dashboard now carries 999 phantom cases." },
+  { f: "C31_1_d1", d: "S-COA", sum: 40, r1: 40, add: 40, note: "<b>C31_1_d1</b> is C31's first send on Monday: 40." },
+  { f: "C31_1_d2", d: "S-COA", sum: 40, r1: 40, add: 40, bad: true, note: "<b>C31_1_d2</b> is the retry. The naive accept let it through and the intake log appended it as a new record, so the same report counts again: +40." },
+  { f: "C32_1_d4", d: "S-COA", sum: 25, r1: 25, add: 25, note: "<b>C32_1_d4</b> arrived after C32_3, but the order of arrival does not matter to the sum: 25." },
+  { f: "C32_2_d5", d: "S-COA", sum: 31, r1: 310, add: 310, bad: true, note: "<b>C32_2_d5</b>: replica 1 says 310 but its checksum was computed over 31. The naive read never looks at the checksum and trusts the first copy: 310." },
+  { f: "C32_3_d3", d: "S-COA", sum: 44, r1: 44, add: 44, note: "<b>C32_3_d3</b>: 44. The total is 459, against a truth of 140: 40 from the doubled retry plus 279 (310 minus 31) from the corruption." }
+];
+let lAt = -1;
+function ledRender() {
+  let run = 0;
+  $("#led tbody").innerHTML = LED.map((r, i) => {
+    if (i <= lAt) run += r.add;
+    const cls = i === lAt ? "now" : i > lAt ? "future" : "";
+    return `<tr class="${cls}"><td><code>${r.f}</code></td><td>${r.d}</td><td class="num">${r.sum}</td><td class="num">${r.bad && r.r1 !== r.sum ? `<span class="pill bad">${r.r1}</span>` : r.r1}</td><td class="num">${i <= lAt ? (r.d === "S-COA" ? (r.bad ? `<span class="pill bad">+${r.add}</span>` : "+" + r.add) : '<span class="pill mute">skip</span>') : ""}</td><td class="num">${i <= lAt ? run : ""}</td></tr>`;
+  }).join("");
+  $("#led-note").innerHTML = lAt < 0 ? "The dashboard loops over the stored records in sorted order and calls <code>read_verified</code> on each. Press <b>Read next record</b>." : LED[lAt].note;
+  $("#led-step").disabled = lAt >= LED.length - 1;
+}
+$("#led-step").addEventListener("click", () => { lAt++; ledRender(); });
+$("#led-reset").addEventListener("click", () => { lAt = -1; ledRender(); });
+ledRender();
+
+/* ---------- s3 three acceptance policies ---------- */
+const ARR = [["C31", 1, 40, "first send"], ["C31", 1, 40, "retry, reply lost"], ["C32", 3, 44, "back online"], ["C32", 1, 25, "late"], ["C32", 2, 31, "late"]];
+let polAt = -1;
+function polRender() {
+  const hi = {}, seen = new Set(), tot = [0, 0, 0];
+  const rowsHtml = ARR.map(([c, s, n, why], i) => {
+    if (i > polAt) return `<tr class="future"><td><code>${c} #${s}</code> <br><span class="note">${why}</span></td><td></td><td></td><td></td></tr>`;
+    const a = true;
+    const b = s > (hi[c] || 0); if (b) hi[c] = s;
+    const k = c + "#" + s, d = !seen.has(k); seen.add(k);
+    [a, b, d].forEach((x, j) => { if (x) tot[j] += n; });
+    const truthNew = !ARR.slice(0, i).some(([c2, s2]) => c2 === c && s2 === s);
+    const cell = x => { const right = x === truthNew; return `<span class="pill ${right ? "ok" : "bad"}">${x ? "kept" : "dropped"}</span>`; };
+    return `<tr class="${i === polAt ? "now" : ""}"><td><code>${c} #${s}</code> <br><span class="note">${n} cases, ${why}</span></td><td>${cell(a)}</td><td>${cell(b)}</td><td>${cell(d)}</td></tr>`;
+  }).join("");
+  $("#pol tbody").innerHTML = rowsHtml + `<tr class="totals"><td>Cases counted</td><td>${tot[0]}</td><td>${tot[1]}</td><td>${tot[2]}</td></tr>`;
+  const notes = ["C31's first send. Every policy keeps it.", "The retry. Accept-all counts it again; the other two recognise it.", "C32 #3 arrives first. Every policy keeps it.", "C32 #1 is a real report, but it is below the highest number seen from C32, so the middle policy drops it.", "C32 #2 is dropped by the middle policy too. Only the key set ends at 140."];
+  $("#pol-note").innerHTML = polAt < 0 ? "The truth is 140 cases from four reports. <b>Highest seq</b> keeps a message only if its number beats the clinic's highest so far; <b>Key set</b> remembers every (clinic, seq) pair. Green means the policy did the right thing." : notes[polAt];
+  $("#pol-step").disabled = polAt >= ARR.length - 1;
+}
+$("#pol-step").addEventListener("click", () => { polAt++; polRender(); });
+$("#pol-reset").addEventListener("click", () => { polAt = -1; polRender(); });
+polRender();
+
+/* ---------- s4 replica inspector ---------- */
+const BASE = { clinic_id: "C32", seq: 2, cases: 31 };
+let R = [];
+function repReset() { R = [0, 1].map(() => ({ payload: Object.assign({}, BASE), sum: checksum(BASE) })); repRender(null); $("#rep-msg").textContent = "Both replicas hold C32 #2 with 31 cases and a matching checksum."; }
+function repRender(pulse) {
+  $("#reps").innerHTML = R.map((r, i) => {
+    const ok = checksum(r.payload) === r.sum;
+    return `<div class="rep ${ok ? "goodrep" : "badrep"}${pulse === i && !reduced ? " pulse" : ""}"><h4>Replica ${i + 1}</h4><div class="cases">${r.payload.cases}</div>
+      <div class="kv"><span>stored sum</span>${r.sum}</div><div class="kv"><span>recomputed</span>${checksum(r.payload)}</div>
+      <div class="kv"><span>status</span><b style="color:var(${ok ? "--ok" : "--bad"})">${ok ? "intact" : "corrupt"}</b></div></div>`;
+  }).join("");
+}
+function corrupt(i) {
+  const c = R[i].payload.cases;
+  R[i].payload.cases = c === 31 ? 310 : c === 310 ? 3100 : c * 10;
+  repRender(i);
+  $("#rep-msg").textContent = `A digit appears in replica ${i + 1}: ${c} becomes ${R[i].payload.cases}. The stored sum still describes the old value.`;
+}
+$("#rep-c1").addEventListener("click", () => corrupt(0));
+$("#rep-c2").addEventListener("click", () => corrupt(1));
+$("#rep-read").addEventListener("click", () => {
+  const good = R.find(r => checksum(r.payload) === r.sum);
+  if (!good) { $("#rep-msg").textContent = "ValueError: no intact replica. read_verified fails fast; the dashboard shows an error for this report instead of a number nobody can trust."; return; }
+  const fixed = [];
+  R.forEach((r, i) => { if (checksum(r.payload) !== r.sum) { r.payload = Object.assign({}, good.payload); r.sum = good.sum; fixed.push(i); } });
+  repRender(fixed.length ? fixed[0] : null);
+  $("#rep-msg").textContent = fixed.length ? `Returned ${good.payload.cases} cases from replica ${R.indexOf(good) + 1}, then repaired replica ${fixed.map(i => i + 1).join(" and ")} by copying the good record over it.` : `Returned ${good.payload.cases} cases. Both checksums match; nothing to repair.`;
+});
+$("#rep-reset").addEventListener("click", repReset);
+repReset();
+
+/* ---------- s5 access matrix ---------- */
+const MU = [
+  ["nurse_c31", { role: "clinic", clinic_id: "C31" }, "clinic C31, in Coastal"],
+  ["officer_coa", { role: "district_officer", district_id: "S-COA" }, "Coastal's district officer"],
+  ["officer_hil", { role: "district_officer", district_id: "N-HIL" }, "Hillview's district officer"],
+  ["it_admin", { role: "admin" }, "a role no rule mentions"],
+  ["anonymous", null, "no valid token"]
+];
+const MA = [["submit", "C31"], ["submit", "C01"], ["read", "S-COA"], ["read", "N-HIL"]];
+let mxPol = "naive", mxSel = null;
+function why(u, a, allowed) {
+  const [name, user, desc] = u, [verb, target] = a;
+  if (mxPol === "naive") return allowed ? `${name} is logged in, and the naive rule allows any logged-in user to ${verb} ${target}.` : `${name} has no valid token, so even the naive rule denies it.`;
+  if (!user) return `Denied: there is no authenticated user. Fail-safe default.`;
+  if (user.role === "clinic") return verb === "submit" ? (allowed ? `Allowed: ${name} submits for its own clinic, ${target}.` : `Denied: ${name} may submit only for ${user.clinic_id}, not ${target}.`) : `Denied: clinic users submit reports; they are not granted reads.`;
+  if (user.role === "district_officer") return verb === "read" ? (allowed ? `Allowed: ${name} reads their own district, ${target}.` : `Denied: ${name} may read only ${user.district_id}, not ${target}.`) : `Denied: officers are not granted submissions.`;
+  return `Denied: role "${user.role}" is ${desc}. Nothing grants it anything, so the default applies.`;
+}
+function mxRender() {
+  let allowedN = 0;
+  $("#mx").innerHTML = `<thead><tr><th scope="col">user</th>${MA.map(([v, t]) => `<th scope="col">${v}<br>${t}</th>`).join("")}</tr></thead><tbody>` +
+    MU.map((u, i) => `<tr><th scope="row">${u[0]}</th>${MA.map((a, j) => {
+      const ok = mxPol === "naive" ? authNaive(u[1]) : authLeast(u[1], a[0], a[1]);
+      if (ok) allowedN++;
+      const sel = mxSel && mxSel[0] === i && mxSel[1] === j ? " sel" : "";
+      return `<td><button type="button" class="${ok ? "allow" : "deny"}${sel}" data-i="${i}" data-j="${j}" aria-label="${u[0]} ${a[0]} ${a[1]}: ${ok ? "allow" : "deny"}">${ok ? "allow" : "deny"}</button></td>`;
+    }).join("")}</tr>`).join("") + `</tbody>`;
+  $$("#mx button").forEach(b => b.addEventListener("click", () => { mxSel = [+b.dataset.i, +b.dataset.j]; mxRender(); }));
+  if (mxSel) { const u = MU[mxSel[0]], a = MA[mxSel[1]]; const ok = mxPol === "naive" ? authNaive(u[1]) : authLeast(u[1], a[0], a[1]); $("#mx-msg").textContent = why(u, a, ok); }
+  else $("#mx-msg").textContent = `${allowedN} of ${MU.length * MA.length} requests allowed. Tap a cell to see why.`;
+}
+$$(".seg button").forEach(b => b.addEventListener("click", () => {
+  mxPol = b.dataset.pol; $$(".seg button").forEach(x => x.setAttribute("aria-pressed", x === b)); mxRender();
+}));
+mxRender();
+
+/* ---------- quizzes ---------- */
+const QUIZ = {
+  s1: [
+    { q: "Why does the capstone make <code>accept</code>, <code>read_verified</code> and <code>authorize</code> pluggable instead of writing them into the routes?", o: ["Flask requires it", "They are the three decisions where the course's ideas live, and passing them in lets you test each one and swap naive for correct without touching the service", "To make the service faster", "So the clinics can choose their own rules"], a: 1, why: "The service is the same for naive and correct parts. Isolating the decisions behind a small interface is modularity from Module 1, and it is what lets bad_week.py run the same week against both." },
+    { q: "Which request does <b>not</b> pass through <code>authorize</code> in the capstone service?", o: ["A clinic's report submission", "A district officer's incidence read", "A retried submission", "None: every request passes through it"], a: 3, why: "Complete mediation: every request, reads and retries included, is checked and logged. A retry is a new request that happens to carry an old report." }
+  ],
+  s2: [
+    { q: "With the naive parts, Coastal shows 459 cholera cases instead of 140. Which two failures account for the gap?", o: ["The out-of-order reports and the forged C01 report", "The retried C31 report and the corrupted replica", "The corrupted replica alone", "The snooping officer and the retry"], a: 1, why: "The retry is appended as a second record (+40) and the flipped digit adds 310 − 31 = 279: 140 + 40 + 279 = 459. The out-of-order reports are all real, and C01 belongs to Central." },
+    { q: "Why is <code>NaiveParts</code> described as \"not a strawman\"?", o: ["It is secretly correct", "Each choice is the simplest thing that works on a good day, so it is what a first version really looks like", "It is faster than the correct parts", "It passes the tests"], a: 1, why: "On a day with no retries, no corruption and no misuse, the naive dashboard is exactly right. The bugs only show when failures arrive, which is why they ship." }
+  ],
+  s3: [
+    { q: "C32's reports arrive as sequence numbers 3, 1, 2. What does a \"drop anything at or below the highest seq seen\" rule do?", o: ["Accepts all three", "Accepts 3, drops 1 and 2", "Drops 3, accepts 1 and 2", "Raises an error"], a: 1, why: "After seeing 3, both 1 and 2 look old. They are real reports, so the rule silently loses 56 cases. A set of keys has no idea of order and keeps all three." },
+    { q: "A clinic re-types a lost report and sends C31 #1 again, this time with 41 cases instead of 40. What should <code>accept</code> return?", o: ["True, the content differs so it is new", "False, the key (C31, 1) has already been seen", "True, and replace the old count", "It should raise an error"], a: 1, why: "The idempotency key names the report, not its content. Correcting a report is a separate operation; silently treating a retry as new would double count." }
+  ],
+  s4: [
+    { q: "In Module 8's terms, what is the 310 sitting in replica 1?", o: ["A fault", "An error", "A failure", "A checksum"], a: 1, why: "The flipped digit on disk is the fault; the wrong value in internal state is the error; it becomes a failure only if the dashboard shows it." },
+    { q: "Both replicas of a report fail their checksums. What should <code>read_verified</code> do?", o: ["Return replica 1, since it was written first", "Return the larger of the two counts, to be safe", "Raise an error so the gap is visible", "Skip the report silently and return the rest of the total"], a: 2, why: "In surveillance a missing number is better than a wrong one, and a silently smaller total is also a wrong number. Failing fast makes someone look." }
+  ],
+  s5: [
+    { q: "The Hillview officer's request carried a valid token. Which step should have stopped it?", o: ["Authentication", "Authorization", "The checksum", "Duplicate suppression"], a: 1, why: "Authentication answered \"who is this?\" correctly. Authorization answers \"may this principal read S-COA?\", and the answer is no." },
+    { q: "A new role, <code>data_analyst</code>, is added to the user table but nobody updates <code>authorize</code>. What happens under fail-safe defaults?", o: ["Analysts can do everything", "Analysts can read every district", "Analysts are denied everything until a rule grants them access", "The service crashes"], a: 2, why: "An allow list denies anything it does not mention. The cost is a support request; under a deny list the cost would be silent over-access." }
+  ],
+  s6: [
+    { q: "Why does the reliable transport underneath the service not make <code>accept</code> unnecessary?", o: ["It does make it unnecessary", "The retry is a new request on a new connection after a timeout; only the application knows it is the same report", "Transports cannot detect duplicates at all", "Because SMS is used"], a: 1, why: "This is the end-to-end argument. The transport suppresses duplicates within its own connection; the phone's retry is a separate request that only (clinic, seq) can recognise." },
+    { q: "How many audit entries does the bad week produce, with naive or correct parts?", o: ["6", "7", "8", "9"], a: 2, why: "Six submissions (two from C31, three from C32, one forged) plus two reads. The disk corruption is not a request. Denied requests are logged too." }
+  ],
+  s7: [
+    { q: "The service restarts, and a retry of C31 #1 arrives afterwards. With <code>seen</code> held in memory and an append-only table, what happens?", o: ["It is ignored", "It is counted a second time", "The service rejects it with 403", "It overwrites the first row"], a: 1, why: "The restart emptied seen, so the retry looks new and a second row is appended. Keeping the keys durable fixes it." },
+    { q: "You move <code>seen</code> into the database. Why must recording the key and storing the report be one atomic step?", o: ["For speed", "A crash between them can lose the report or let a later retry count it twice", "Databases require it", "To satisfy authorize"], a: 1, why: "Key saved without the report loses data; report saved without the key lets a retry through. All-or-nothing atomicity, Module 9, closes the gap." }
+  ],
+  s8: [
+    { q: "Match the failure to the check that stops it: a disk flips a digit in one replica.", o: ["accept", "read_verified", "authorize", "write-then-rename"], a: 1, why: "The checksum detects the change, the good replica masks it, and repair restores redundancy. Write-then-rename protects against crashes mid-write, not later corruption." },
+    { q: "Which pair of week events is handled by the <b>same</b> function?", o: ["The lost reply and the out-of-order reports", "The lost reply and the forged report", "The corrupted replica and the snooping officer", "The out-of-order reports and the corrupted replica"], a: 0, why: "Both are delivery problems that accept handles with one key set: the retry is dropped, and the late reports are kept because their keys are new." },
+    { q: "An engineer proposes returning the first replica when no checksum matches, \"so the dashboard always has a number\". What is the strongest objection?", o: ["It is slower", "It hides a detected error and can show a false outbreak, such as 310 cases, as if it were real", "It uses more disk", "It breaks authorize"], a: 1, why: "Masking is only safe with a good copy. Without one, failing fast turns a silent wrong number into a visible gap that someone will fix." }
+  ]
+};
+const CARDS = [
+  ["The four failures of the bad week", "A lost reply and retry, out-of-order reports from an offline clinic, silent corruption of one replica, and misuse by two authenticated users."],
+  ["What <code>accept(message, seen)</code> does", "Builds the key (clinic, seq); returns False if seen, otherwise adds it and returns True."],
+  ["Idempotency key", "A unique identifier sent with a request so the service can recognise and ignore a repeat."],
+  ["At-least-once plus duplicate suppression gives", "Each report counted exactly once: the client retries until it hears back, the service ignores repeats."],
+  ["What <code>read_verified</code> does", "Returns an intact replica's payload, repairs bad replicas, and raises an error if none is intact."],
+  ["Fault, error, failure", "The flipped digit; the wrong value stored in the replica; the dashboard showing it."],
+  ["Fail-fast", "Stopping and reporting a problem as soon as it is detected, rather than continuing with bad data."],
+  ["Principle of least privilege", "Each user and program gets only the access it needs: clinics submit for themselves, officers read their district."],
+  ["Fail-safe defaults", "Deny access unless it has been explicitly granted. An unknown role gets nothing."],
+  ["Complete mediation", "Check every access, every time, reads and retries included, and log each decision."],
+  ["Naive vs true Coastal cholera", "459 with the naive parts, 140 in truth: +40 from the counted retry, +279 from the corrupted 310."],
+  ["End-to-end argument, applied three times", "Duplicates, corruption and authority all need the application's knowledge, so the checks live in the service, not in the network or disk."]
+];
+
+const ACC_SOL = `def accept(message, seen):
+    key = (message["clinic_id"], message["seq"])
+    if key in seen:
+        return False
+    seen.add(key)
+    return True
+
+seen = set()
+for clinic, seq in [("C31", 1), ("C31", 1), ("C32", 3), ("C32", 1), ("C32", 2)]:
+    print(clinic, seq, accept({"clinic_id": clinic, "seq": seq}, seen))`;
+
+const READ_SOL = `def checksum(payload):          # stand-in for SHA-256
+    text = ",".join(k + "=" + str(payload[k]) for k in sorted(payload))
+    h = 0
+    for ch in text:
+        h = (h * 131 + ord(ch)) % 1000000007
+    return h
+
+def make_record(payload):
+    return {"payload": dict(payload), "sum": checksum(payload)}
+
+def read_verified(replicas):
+    good = None
+    for r in replicas:
+        if checksum(r["payload"]) == r["sum"]:
+            good = r
+            break
+    if good is None:
+        raise ValueError("no intact replica")
+    for r in replicas:
+        if checksum(r["payload"]) != r["sum"]:
+            r["payload"] = dict(good["payload"])
+            r["sum"] = good["sum"]
+    return good["payload"]
+
+P = {"clinic_id": "C32", "seq": 2, "cases": 31}
+replicas = [make_record(P), make_record(P)]
+replicas[0]["payload"]["cases"] = 310   # the disk flips a digit
+print(read_verified(replicas)["cases"])`;
+
+const AUTH_SOL = `def authorize(user, action, district_id):
+    if not user:
+        return False
+    verb, target = action
+    if user.get("role") == "clinic":
+        return verb == "submit" and target == user.get("clinic_id")
+    if user.get("role") == "district_officer":
+        return verb == "read" and target == user.get("district_id")
+    return False
+
+nurse = {"role": "clinic", "clinic_id": "C31"}
+officer = {"role": "district_officer", "district_id": "N-HIL"}
+print(authorize(nurse, ("submit", "C31"), "S-COA"))
+print(authorize(nurse, ("submit", "C01"), "N-CEN"))
+print(authorize(officer, ("read", "S-COA"), "S-COA"))`;
+
+const MK = 'P = {"clinic_id": "C32", "seq": 2, "cases": 31}\nr = [make_record(P), make_record(P)]\n';
+
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  exercises: {
+    "ex-accept": {
+      cases: [
+        'seen = set()\nm = {"clinic_id": "C31", "seq": 1}\nprint(accept(m, seen), accept(dict(m), seen))',
+        'seen = set()\nprint([accept({"clinic_id": "C32", "seq": s}, seen) for s in (3, 1, 2)])',
+        'seen = set()\nprint(accept({"clinic_id": "C32", "seq": 3}, seen), accept({"clinic_id": "C31", "seq": 3}, seen))',
+        'seen = set()\nprint(accept({"clinic_id": "C31", "seq": 1, "cases": 40}, seen), accept({"clinic_id": "C31", "seq": 1, "cases": 41}, seen))',
+        'seen = set()\nfor c, s in [("C31", 1), ("C31", 1), ("C32", 3), ("C32", 1), ("C32", 2), ("C32", 3)]:\n    accept({"clinic_id": c, "seq": s}, seen)\nprint(len(seen))'
+      ],
+      solution: ACC_SOL,
+      hint: ["The key is a tuple of two fields: (message[\"clinic_id\"], message[\"seq\"]). Tuples can go in a set.", "if key in seen: return False. Otherwise seen.add(key), then return True."]
+    },
+    "ex-read": {
+      cases: [
+        MK + 'r[0]["payload"]["cases"] = 310\nprint(read_verified(r)["cases"])',
+        MK + 'r[0]["payload"]["cases"] = 310\nread_verified(r)\nprint(r[0]["payload"]["cases"], r[0]["sum"] == checksum(r[0]["payload"]))',
+        MK + 'r[1]["payload"]["cases"] = 310\nprint(read_verified(r)["cases"], r[1]["payload"]["cases"])',
+        MK + 'r[0]["payload"]["cases"] = 310\nr[1]["payload"]["cases"] = 3\ntry:\n    read_verified(r)\n    print("returned a number")\nexcept ValueError:\n    print("refused: no intact replica")',
+        MK + 'print(read_verified(r)["cases"], r[0]["sum"] == r[1]["sum"])',
+        MK + 'r[0]["sum"] = 0\nprint(read_verified(r)["cases"], r[0]["sum"] == r[1]["sum"])'
+      ],
+      solution: READ_SOL,
+      hint: ["Loop over replicas and keep the first r with checksum(r[\"payload\"]) == r[\"sum\"]. If there is none, raise ValueError(\"no intact replica\").", "Then loop again: for every r whose checksum does not match, set r[\"payload\"] = dict(good[\"payload\"]) and r[\"sum\"] = good[\"sum\"]. Return good[\"payload\"]."]
+    },
+    "ex-auth": {
+      cases: [
+        'print(authorize(None, ("read", "S-COA"), "S-COA"), authorize({}, ("read", "S-COA"), "S-COA"))',
+        'u = {"role": "clinic", "clinic_id": "C31"}\nprint(authorize(u, ("submit", "C31"), "S-COA"), authorize(u, ("submit", "C01"), "N-CEN"), authorize(u, ("read", "S-COA"), "S-COA"))',
+        'u = {"role": "district_officer", "district_id": "S-COA"}\nprint(authorize(u, ("read", "S-COA"), "S-COA"), authorize(u, ("submit", "C31"), "S-COA"))',
+        'u = {"role": "district_officer", "district_id": "N-HIL"}\nprint(authorize(u, ("read", "S-COA"), "S-COA"), authorize(u, ("read", "N-HIL"), "N-HIL"))',
+        'print(authorize({"role": "admin"}, ("read", "S-COA"), "S-COA"), authorize({"role": "admin", "clinic_id": "C31"}, ("submit", "C31"), "S-COA"))'
+      ],
+      solution: AUTH_SOL,
+      hint: ["Start with: if not user: return False. Then unpack verb, target = action.", "For role \"clinic\": return verb == \"submit\" and target == user.get(\"clinic_id\"). For \"district_officer\": the same with \"read\" and district_id. Any other role: return False."]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

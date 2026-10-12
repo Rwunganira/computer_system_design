@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Computer System Design, Module 8</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+.ft-card { --edge: color-mix(in srgb, var(--code-fg) 22%, transparent); background: var(--code-bg); color: var(--code-fg); border-radius: 14px; padding: 20px 20px 16px; display: grid; gap: 14px; }
+.ft-card .tape-top b { font-variant-numeric: tabular-nums; }
+.weeks { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 560px) { .weeks { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.wk { border: 1.5px solid var(--edge); border-radius: 8px; padding: 6px 2px 4px; text-align: center; font-family: var(--mono); transition: border-color .25s; }
+.wk small { display: block; font-size: 0.64rem; color: var(--code-muted); letter-spacing: 0.04em; }
+.wk.bad { border-color: var(--tok-kw); }
+.wk.healed { animation: heal 1s ease; }
+@keyframes heal { from { background: color-mix(in srgb, var(--tok-str) 38%, transparent); } to { background: transparent; } }
+.dg { font: inherit; font-size: 1.15rem; font-weight: 600; line-height: 1.3; background: none; border: 0; color: var(--code-fg); padding: 0 2px; min-width: 15px; cursor: pointer; border-radius: 4px; }
+.dg:hover { background: color-mix(in srgb, var(--code-fg) 14%, transparent); }
+.dg.bad { color: var(--code-bg); background: var(--tok-kw); }
+.dg.pop { animation: pop .4s ease; }
+@keyframes pop { from { transform: scale(1.6); } to { transform: none; } }
+.reads { display: grid; gap: 6px; }
+.rd { display: grid; grid-template-columns: 12.5em minmax(0, 1fr); gap: 10px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--edge); font-family: var(--mono); font-size: 0.8rem; transition: border-color .3s, background .3s; }
+.rd > span:first-child { color: var(--code-muted); }
+.rd.on { border-color: var(--tok-fn); background: color-mix(in srgb, var(--tok-fn) 13%, transparent); }
+.rd .no { color: var(--tok-kw); font-weight: 600; } .rd .yes { color: var(--tok-str); font-weight: 600; }
+@media (max-width: 560px) { .rd { grid-template-columns: 1fr; gap: 2px; } }
+.byte { font-family: var(--mono); font-size: 0.8rem; color: var(--code-muted); min-height: 1.4em; }
+.byte b { color: var(--tok-num); font-weight: 600; }
+.byte i { font-style: normal; color: var(--code-bg); background: var(--tok-kw); border-radius: 3px; padding: 0 2px; }
+
+.reps { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rep { font: inherit; font-family: var(--mono); font-size: 0.85rem; border: 1.5px solid var(--rule); background: var(--paper); color: var(--ink); border-radius: 8px; padding: 6px 12px; cursor: pointer; transition: background .25s, border-color .25s; }
+.rep small { display: block; font-size: 0.68rem; color: var(--muted); }
+.rep.stale { border-color: var(--bad); background: var(--bad-soft); }
+.flow { font-family: var(--mono); color: var(--muted); }
+.voter { font-family: var(--mono); font-size: 0.85rem; padding: 6px 12px; border-radius: 8px; background: var(--ink); color: var(--paper); }
+td.outvoted { text-decoration: line-through; color: var(--muted); }
+td.v-ok { color: var(--ok); font-weight: 700; }
+td.v-bad { color: var(--bad); font-weight: 700; }
+td.flash { animation: heal-l 0.8s ease; }
+@keyframes heal-l { from { background: var(--hl); } to { background: transparent; } }
+
+.parts { display: grid; gap: 8px; }
+.part { display: grid; grid-template-columns: minmax(0, 1.5fr) auto auto auto minmax(0, 1fr); gap: 10px; align-items: center; padding: 8px 12px; background: var(--paper); border-radius: 8px; font-size: 0.9rem; }
+.part .nm2 { font-weight: 700; }
+.part .nm2 small { display: block; font-weight: 400; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+.part .field input { width: 76px; }
+.part .av { font-family: var(--mono); font-size: 0.82rem; text-align: right; font-variant-numeric: tabular-nums; }
+.part label.dup { display: flex; gap: 6px; align-items: center; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); cursor: pointer; }
+@media (max-width: 680px) { .part { grid-template-columns: 1fr 1fr; } .part .nm2 { grid-column: 1 / -1; } .part .av { text-align: left; } }
+.chain { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 4px; }
+.blk { font-family: var(--mono); font-size: 0.75rem; padding: 6px 9px; border: 1.5px solid var(--ink); border-radius: 6px; background: var(--sheet); transition: box-shadow .3s; }
+.blk.dup { box-shadow: 4px 4px 0 -1.5px var(--sheet), 4px 4px 0 0 var(--ink); }
+.chain .arr { color: var(--muted); font-family: var(--mono); }
+.dbar { display: flex; height: 20px; border-radius: 5px; overflow: hidden; background: var(--rule); }
+.dbar span { height: 100%; transition: width .4s ease; }
+.dleg { display: flex; flex-wrap: wrap; gap: 4px 14px; font-family: var(--mono); font-size: 0.75rem; color: var(--muted); }
+.dleg i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.stat { background: var(--paper); border-radius: 10px; padding: 10px 14px; }
+.stat b { display: block; font-family: var(--display); font-size: var(--step-2); font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat span { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); }
+</style>
+</head>
+<body data-lesson="m08">
+<div class="shell">
+  <aside class="rail" aria-label="Lesson progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 8</div>
+      <h1>Every part will fail. Make the system <em>notice</em>, then <em>mask</em> it.</h1>
+      <p class="lede">A flipped bit on a disk does not raise an error. It quietly becomes a wrong cholera total on the SurveilLite dashboard. This module turns silent faults into loud ones with checksums, outvotes them with redundancy, and measures what that buys in hours of downtime per year.</p>
+
+      <div class="ft-card" aria-label="A stored case-count file with a checksum and a backup replica">
+        <div class="tape-top"><span>s-coa_cholera.csv · weekly cholera cases, Coastal district · tap any digit to flip one bit</span><span>stored checksum <b id="h-stored">0</b></span></div>
+        <div class="weeks" id="h-weeks"></div>
+        <div class="byte" id="h-byte" aria-live="polite">Each digit is one byte on the disk. A fault flips one of its eight bits.</div>
+        <div class="reads">
+          <div class="rd" id="h-r1"><span>1. read and trust</span><span id="h-o1"></span></div>
+          <div class="rd" id="h-r2"><span>2. read and verify</span><span id="h-o2"></span></div>
+          <div class="rd" id="h-r3"><span>3. mask with backup</span><span id="h-o3"></span></div>
+        </div>
+        <div class="tape-log">
+          <span id="h-msg" style="color:var(--code-muted)"></span>
+          <div style="display:flex;gap:6px"><button class="btn-ghost" id="h-step" type="button">Step</button><button class="btn-ghost" id="h-repair" type="button">Repair</button><button class="btn-ghost" id="h-play" type="button">Pause</button></div>
+        </div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>Faults, errors and failures; fail-fast design; detection with checksums; masking with replicas and voting; availability from MTTF and MTTR.</div>
+        <div><b>You will build</b>A fail-fast incidence check, a reader that repairs bad replicas, the reliability of triple modular redundancy, and series and parallel availability.</div>
+        <div><b>How it works</b>Flip bits, outvote a stale replica, tune a server room, then code each mechanism and check yourself. Each check you pass fills the bar.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="Fault, error, failure">
+      <div class="sec-head"><span class="sec-num">01</span><h2>Faults, errors and failures</h2></div>
+      <p>Everyday speech uses "error" and "failure" for the same thing. The book separates three stages, and the separation is what makes the subject teachable:</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Stage</th><th>What it is</th><th>In SurveilLite</th></tr></thead>
+        <tbody>
+          <tr><td><b>Fault</b></td><td>the underlying defect</td><td>one bit flips in the stored count for the week of 23 March</td></tr>
+          <tr><td><b>Error</b></td><td>a wrong value inside the system, once the fault is activated</td><td>the job that reads the file holds a Coastal total of 261 instead of 361</td></tr>
+          <tr><td><b>Failure</b></td><td>the system breaks its specification, as seen from outside</td><td>the dashboard shows a cholera incidence that hides the outbreak</td></tr>
+        </tbody>
+      </table></div>
+      <p>You know this shape already: exposure, infection, disease. Not every exposure infects, and not every infection causes disease. In the same way, a fault may never be activated (nobody reads the bad byte), and an error may be caught before anyone outside sees it. Fault tolerance is the work of breaking that chain, and the most valuable break is to <b>detect</b> an error before it spreads.</p>
+      <p>The dangerous fault is the <b>latent</b> one: the bad byte sitting unread on disk. Nothing tells you it is there. It waits until the dashboard reads it, and then it looks exactly like real data.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Sort each event by the stage it belongs to.</span></div>
+        <div class="sorter" id="sorter"></div>
+      </div>
+      <div class="callout">Fault tolerance does not prevent faults. It stops a fault from becoming a failure, by detecting the error and then masking it.</div>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Fail fast</h2></div>
+      <p>A component that notices something impossible should stop and say so, rather than carry on and produce a plausible answer. This is <b>fail-fast</b> design. A negative case count or a district with a population of zero is not something to round, clip or skip quietly. It means some clinic report or some table is broken, and any incidence computed from it cannot be trusted.</p>
+      <p>Below, a clinic typed <code>-4</code> instead of <code>4</code>. One function "cleans" the bad value and carries on; the other refuses it and names the report. Predict what the quiet version prints for Coastal district.</p>
+      <div class="cell" data-predict="quiet: 109">
+        <div class="predict"><label for="p-s2">Predict the last line:</label><input id="p-s2" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s2" spellcheck="false" aria-label="Python code">reports = [
+    {"report_id": 501, "district_id": "S-COA", "cases": 109},
+    {"report_id": 502, "district_id": "S-COA", "cases": -4},   # a typo at the clinic
+    {"report_id": 503, "district_id": "N-CEN", "cases": 3},
+]
+
+def total_quiet(reports, district):
+    total = 0
+    for r in reports:
+        if r["district_id"] == district:
+            total += max(0, r["cases"])      # "clean" the bad value and carry on
+    return total
+
+def total_loud(reports, district):
+    for r in reports:
+        if r["cases"] &lt; 0:
+            raise ValueError("negative case count in report_id " + str(r["report_id"]))
+    return sum(r["cases"] for r in reports if r["district_id"] == district)
+
+try:
+    print("loud:", total_loud(reports, "S-COA"))
+except ValueError as e:
+    print("loud: ValueError:", e)
+print("quiet:", total_quiet(reports, "S-COA"))</textarea></div>
+      </div>
+      <p>The quiet version reports 109, which is wrong by four cases and gives no sign of it. The loud version produces no number at all, and that is the useful outcome: the message names report 502, so whoever reads the log can phone that clinic today. Failing fast trades a wrong answer for no answer plus a precise pointer to the fault.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">From the module's Exercise 1.</span></div>
+        <p>Finish <code>checked_incidence</code>. Before computing anything, raise <code>ValueError</code> if any report has a case count that is <code>None</code> or negative (name every such <code>report_id</code> in the message), or else if any district has a population of zero or less (name every such <code>district_id</code>). Otherwise return the same dict as <code>incidence</code>. Check the reports first.</p>
+        <div class="cell" id="ex-failfast">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-failfast" spellcheck="false" aria-label="Python code">POP = {"S-COA": 143000, "N-CEN": 182000, "S-HIG": 67000}
+REPORTS = [
+    {"report_id": 101, "district_id": "S-COA", "disease": "cholera", "cases": 109},
+    {"report_id": 102, "district_id": "N-CEN", "disease": "cholera", "cases": 3},
+    {"report_id": 103, "district_id": "S-COA", "disease": "measles", "cases": 2},
+]
+
+def incidence(reports, pop, disease):
+    """Cases of disease per 100,000 people, as {district_id: value}."""
+    cases = {d: 0 for d in pop}
+    for r in reports:
+        if r["disease"] == disease:
+            cases[r["district_id"]] += r["cases"]
+    return {d: round(cases[d] / pop[d] * 100000, 2) for d in pop}
+
+def checked_incidence(reports, pop, disease):
+    # TODO 1: collect the report_id of every report whose cases is None or below 0.
+    #         If there are any, raise ValueError with them in the message.
+    # TODO 2: the same for districts whose population is 0 or less.
+    return incidence(reports, pop, disease)
+
+# The checker calls this helper. Leave it as it is.
+def run_case(reports, pop):
+    try:
+        result = checked_incidence(reports, pop, "cholera")
+        print([(d, f"{result[d]:.2f}") for d in sorted(result)])
+    except ValueError as e:
+        names = ["101", "102", "103", "104", "105", "S-COA", "N-CEN", "S-HIG"]
+        print("ValueError naming", [w for w in names if w in str(e)])
+
+run_case(REPORTS, POP)
+run_case(REPORTS + [{"report_id": 104, "district_id": "S-COA", "disease": "cholera", "cases": -4}], POP)
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3" data-short="Detect: checksums">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Detect: a checksum next to the data</h2></div>
+      <p>All fault tolerance comes down to <b>redundancy</b>: storing or computing more than the bare minimum. It is used in one of two ways. The first is <b>error detection</b>: keep a little extra information that lets you notice damage.</p>
+      <p>A <b>checksum</b> is a short value computed from the data. Save it next to the file; when you read the file back, compute it again and compare. If even one bit changed, the two values almost certainly differ. The local lab uses SHA-256 from Python's <code>hashlib</code>, which costs 64 bytes per file. Skulpt has no <code>hashlib</code>, so this page uses a small polynomial hash, <code>h = (h * 31 + ord(ch)) % 1000000007</code>, as a stand-in. It is far weaker against deliberate tampering, but it catches a flipped bit just the same.</p>
+
+      <div class="panel" id="cs">
+        <div class="panel-head"><span class="tag worked">Worked example</span><span class="note">The last row of the file, before and after the bit flip.</span></div>
+        <div class="scroll-x"><table class="data" id="cs-table"><thead><tr><th>Step</th><th>Char</th><th>h, original</th><th>Char</th><th>h, flipped</th></tr></thead><tbody></tbody></table></div>
+        <div class="controls"><button class="btn" id="cs-step" type="button">Next character</button><button class="btn alt" id="cs-all" type="button">Run to the end</button><button class="btn alt" id="cs-reset" type="button">Start over</button><span class="note" id="cs-note"></span></div>
+      </div>
+      <p>The flipped bit changes one character, and from that character on every value of <code>h</code> is different. Because each step multiplies the running value by 31, a change anywhere in the file is carried all the way to the end.</p>
+      <p>Now the whole story in code. Bit 0 of the character <code>'1'</code> (byte <code>0011 0001</code>) flips, and it becomes <code>'0'</code> (<code>0011 0000</code>). The file still parses, so <code>int()</code> raises nothing. Predict the total that a trusting reader computes.</p>
+      <div class="cell" data-predict="trusted total = 261">
+        <div class="predict"><label for="p-s3">Predict the last line:</label><input id="p-s3" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s3" spellcheck="false" aria-label="Python code">WEEKS = ["2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09",
+         "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23"]
+COUNTS = [1, 1, 5, 2, 1, 2, 13, 32, 45, 63, 87, 109]
+
+def checksum(text):
+    h = 0
+    for ch in text:
+        h = (h * 31 + ord(ch)) % 1000000007
+    return h
+
+def total_cases(text):
+    lines = text.strip().split("\n")[1:]          # skip the header
+    return sum(int(line.split(",")[1]) for line in lines)
+
+data = "week_start,cases\n" + "\n".join(w + "," + str(c) for w, c in zip(WEEKS, COUNTS)) + "\n"
+stored = checksum(data)
+print("saved: total =", total_cases(data), " checksum =", stored)
+
+# A fault: flip bit 0 of the first digit of the last count. No error is reported.
+i = data.rindex(",") + 1
+damaged = data[:i] + chr(ord(data[i]) ^ 1) + data[i + 1:]
+print("last row now reads:", damaged.strip().split("\n")[-1])
+print("trusted total =", total_cases(damaged))</textarea></div>
+      </div>
+      <p>A total of 261 instead of 361 is not off by a little. Bit flips land wherever they land, and the leading digit is as likely a target as any other. Now read the same damaged file the careful way.</p>
+      <div class="cell">
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s3b" spellcheck="false" aria-label="Python code">class CorruptionError(Exception):
+    """The data does not match its checksum."""
+
+def checksum(text):
+    h = 0
+    for ch in text:
+        h = (h * 31 + ord(ch)) % 1000000007
+    return h
+
+def load(disk):
+    """Read and verify: fail fast instead of returning bad data."""
+    if checksum(disk["data"]) != disk["sum"]:
+        raise CorruptionError("checksum mismatch")
+    return disk["data"]
+
+good = "week_start,cases\n2026-03-16,87\n2026-03-23,109\n"
+disk = {"data": good, "sum": checksum(good)}
+print("before the fault:", load(disk) == good)
+
+disk["data"] = good.replace("109", "009")      # the bit flip
+try:
+    load(disk)
+except CorruptionError as e:
+    print("CorruptionError:", e)</textarea></div>
+      </div>
+      <div class="callout">Detection alone does not give you the right answer. It stops you publishing the wrong one, and that is already most of the value.</div>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4" data-short="Mask: replicas">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Mask: replicas and repair on read</h2></div>
+      <p>The second use of redundancy is <b>error masking</b>: keep enough copies that you can still produce the right answer. With two checksummed replicas, a reader that finds one bad copy reads the other. That is what step 3 of the machine at the top of the page does.</p>
+      <p>Masking has a trap. If the reader quietly falls back to the backup and does nothing else, the bad primary stays bad. The next fault, on the backup this time, finds no good copy left. Faults accumulate silently until every copy is bad. So a good reader also <b>repairs on read</b>: it rewrites every bad replica from the good one, and logs that it did, because a masked fault is a safety margin you have just used up.</p>
+      <div class="two">
+        <div><span class="eyebrow">Mask only</span><h3>Read the backup</h3><p>Right answer today. The primary stays damaged; one more fault on the backup and the data is gone.</p></div>
+        <div><span class="eyebrow">Mask and repair</span><h3>Read the backup, rewrite the primary</h3><p>Right answer today, and two good copies again. The time to repair shrinks from "whenever someone notices" to one read.</p></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">From the module's Exercise 3. Disks are simulated as dicts.</span></div>
+        <p>Finish <code>read_with_repair(replicas)</code>. Return the data of the first replica that verifies. Every replica that fails to load (corrupted, or empty because the file is missing) must be rewritten with <code>save</code> from the good copy, so after the call all replicas verify. If no replica verifies, raise <code>CorruptionError</code>.</p>
+        <div class="cell" id="ex-repair">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-repair" spellcheck="false" aria-label="Python code">class CorruptionError(Exception):
+    pass
+
+def checksum(text):
+    h = 0
+    for ch in text:
+        h = (h * 31 + ord(ch)) % 1000000007
+    return h
+
+def save(disk, data):
+    disk["data"] = data
+    disk["sum"] = checksum(data)
+
+def load(disk):
+    if "data" not in disk or "sum" not in disk:
+        raise CorruptionError("missing")
+    if checksum(disk["data"]) != disk["sum"]:
+        raise CorruptionError("checksum mismatch")
+    return disk["data"]
+
+def read_with_repair(replicas):
+    good = None
+    bad = []
+    for disk in replicas:
+        pass  # TODO: try to load(disk); on CorruptionError, add disk to bad
+    # TODO: if no replica verified, raise CorruptionError
+    # TODO: save the good data into every bad replica
+    return good
+
+# Helpers the checker uses.
+FILE = "week_start,cases\n2026-03-16,87\n2026-03-23,109\n"
+def fresh():
+    d = {}
+    save(d, FILE)
+    return d
+def flip(disk, i):
+    t = disk["data"]
+    disk["data"] = t[:i] + chr(ord(t[i]) ^ 1) + t[i + 1:]
+def report(replicas):
+    try:
+        data = read_with_repair(replicas)
+        print("read", data and data.split("\n")[-2], "| all verify:", [checksum(d.get("data", "")) == d.get("sum") for d in replicas])
+    except CorruptionError:
+        print("CorruptionError: no good replica")
+
+r = [fresh(), fresh()]
+flip(r[0], 40)
+report(r)
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="Voting">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Masking computation: replicas and a voter</h2></div>
+      <p>Checksums protect stored data. To protect a <em>computation</em>, run it more than once and compare. In <b>N-modular redundancy</b>, N replicas compute the same answer and a <b>voter</b> takes the majority. With three replicas this is <b>triple modular redundancy</b> (TMR).</p>
+      <p>In the lab, three replicas compute cholera incidence per 100,000 for each district. Replica B has a fault: its copy of the data stopped syncing in week 6, before the Coastal outbreak. Tap a replica to switch its data between current and stale, and watch the voter.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls"><button class="btn alt" id="tmr-one" type="button">One stale</button><button class="btn alt" id="tmr-two" type="button">Common mode</button><button class="btn alt" id="tmr-none" type="button">All current</button></div>
+        </div>
+        <div class="reps" id="tmr-reps"></div>
+        <div class="scroll-x"><table class="data" id="tmr-table"><thead><tr><th>District</th><th>A</th><th>B</th><th>C</th><th>Voted</th></tr></thead><tbody></tbody></table></div>
+        <div class="cond" id="tmr-msg" aria-live="polite"></div>
+      </div>
+
+      <p>Voting works only if replicas fail <b>independently</b>. When B and C share the same stale data, that is a <b>common-mode fault</b>: the majority is wrong, and the voter reports the wrong incidence with full confidence. Running three copies of the same buggy code on three servers is the classic common-mode fault. Here is the voter in code. Predict what it publishes for Coastal district when two replicas are stale.</p>
+      <div class="cell" data-predict="common mode: 8.39">
+        <div class="predict"><label for="p-s5">Predict the last line:</label><input id="p-s5" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s5" spellcheck="false" aria-label="Python code">POP = {"N-CEN": 182000, "S-COA": 143000, "S-HIG": 67000}
+ALL_WEEKS = {"N-CEN": 39, "S-COA": 361, "S-HIG": 11}     # cholera cases, 12 weeks
+STALE     = {"N-CEN": 21, "S-COA": 12,  "S-HIG": 2}      # synced in week 6
+
+class NoMajority(Exception):
+    pass
+
+def incidence(cases):
+    return {d: round(cases[d] / POP[d] * 100000, 2) for d in POP}
+
+def vote(answers):
+    """Majority vote, district by district."""
+    result = {}
+    for d in answers[0]:
+        counts = {}
+        for a in answers:
+            counts[a[d]] = counts.get(a[d], 0) + 1
+        value = max(counts, key=counts.get)
+        if counts[value] &lt;= len(answers) // 2:
+            raise NoMajority(d)
+        result[d] = value
+    return result
+
+healthy, stale = incidence(ALL_WEEKS), incidence(STALE)
+print(f"one stale:   {vote([healthy, stale, healthy])['S-COA']:.2f}")
+print(f"common mode: {vote([healthy, stale, stale])['S-COA']:.2f}")</textarea></div>
+      </div>
+
+      <h3>When is voting worse than one replica?</h3>
+      <p>Suppose each replica is right with probability <i>r</i>, independently, and the voter itself never fails. TMR is right when at least two of the three are right: all three right, or exactly two right (three ways to choose the one that is wrong). If <i>r</i> is high, TMR is much better than one replica. If <i>r</i> is below a break-even point, voting makes things worse, because the majority is more often wrong than right.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example from Exercise 2: the structure is given, you fill the gaps.</span></div>
+        <p>Complete <code>tmr_reliability(r)</code> with the exact probability, and the loop in <code>simulate_tmr</code> so it estimates the same probability by simulation. The last line prints both for <code>r = 0.9</code>; they should nearly agree.</p>
+        <div class="cell" id="ex-tmr" data-limit="12000">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-tmr" spellcheck="false" aria-label="Python code">import random
+
+def tmr_reliability(r):
+    all_three = r ** 3
+    exactly_two = 0     # TODO: 3 ways to pick the wrong one, times r * r * (1 - r)
+    return all_three + exactly_two
+
+def simulate_tmr(r, trials=20000, seed=0):
+    random.seed(seed)
+    ok = 0
+    for t in range(trials):
+        right = 0
+        # TODO: for each of the 3 replicas, it is right when random.random() &lt; r
+        if right &gt;= 2:
+            ok += 1
+    return ok / trials
+
+print(round(tmr_reliability(0.9), 4), round(simulate_tmr(0.9), 3))
+</textarea></div>
+        </div>
+      </div>
+      <p>Once your function works, plot it. The dashed line is a single replica (TMR right exactly as often as one replica is).</p>
+      <div class="cell">
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s5-plot" spellcheck="false" aria-label="Python code">import pylab
+
+def tmr_reliability(r):
+    return r ** 3 + 3 * r ** 2 * (1 - r)
+
+rs = [i / 50 for i in range(51)]
+pylab.plot(rs, rs, 'k--', label='one replica')
+pylab.plot(rs, [tmr_reliability(r) for r in rs], 'r-', label='TMR, 3 replicas and a voter')
+pylab.axvline(0.5)
+pylab.title('Reliability of TMR')
+pylab.xlabel('chance each replica is right, r')
+pylab.ylabel('chance the voted answer is right')
+pylab.legend()
+pylab.show()
+for r in [0.4, 0.5, 0.9, 0.99]:
+    print(r, round(tmr_reliability(r), 4))</textarea></div>
+      </div>
+      <p>The curves cross at <i>r</i> = 0.5. Solving 3<i>r</i>² − 2<i>r</i>³ = <i>r</i> gives (2<i>r</i> − 1)(<i>r</i> − 1) = 0. Above one half, voting helps, and the closer <i>r</i> gets to 1 the bigger the gain: at 0.99, the chance of a wrong answer drops from 1 in 100 to about 3 in 10,000. (The pylab here is a small browser subset; full matplotlib draws the same chart from these calls.)</p>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Availability: MTTF and MTTR</h2></div>
+      <p>Real components fail and get repaired, again and again. Two averages describe that cycle: <b>MTTF</b>, the mean time to failure, and <b>MTTR</b>, the mean time to repair. The fraction of time a component is up is its <b>availability</b>:</p>
+      <div class="callout">availability = MTTF / (MTTF + MTTR)</div>
+      <p>A system built from several parts combines their availabilities in one of two ways.</p>
+      <div class="two">
+        <div><span class="eyebrow">Series</span><h3>All parts are needed</h3><p>The dashboard needs power and the network and the app server and the database. Multiply: <code>a1 * a2 * a3 * a4</code>. The whole is less available than its weakest part.</p></div>
+        <div><span class="eyebrow">Parallel</span><h3>Any one part is enough</h3><p>Two network links, either will do. The pair is down only when both are down: <code>1 - (1 - a1) * (1 - a2)</code>.</p></div>
+      </div>
+      <p>The lab's server room has four parts with invented but plausible MTTF and MTTR, in hours. The worst of them is up about 98% of the time. Predict the whole dashboard's availability, to three places.</p>
+      <div class="cell" data-predict="0.974">
+        <div class="predict"><label for="p-s6">Predict the last line:</label><input id="p-s6" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s6" spellcheck="false" aria-label="Python code">HOURS_PER_YEAR = 365 * 24
+COMPONENTS = [                      # name, MTTF hours, MTTR hours
+    ("power supply", 500, 1),
+    ("district network link", 300, 6),
+    ("app server (Flask)", 720, 2),
+    ("database server", 2000, 4),
+]
+
+def availability(mttf, mttr):
+    return mttf / (mttf + mttr)
+
+dashboard = 1.0
+for name, mttf, mttr in COMPONENTS:
+    a = availability(mttf, mttr)
+    print(f"{name:&lt;22} {a:.5f}  {(1 - a) * HOURS_PER_YEAR:6.1f} h down per year")
+    dashboard = dashboard * a        # in series: all four are needed
+
+print(f"dashboard down {(1 - dashboard) * HOURS_PER_YEAR:.1f} h per year")
+print(round(dashboard, 3))</textarea></div>
+      </div>
+      <p>About 230 hours a year, or nearly ten days. Every part in series adds its downtime. Now spend money on redundancy and repair, and see where it pays. Tick <b>×2</b> to put a second copy of a part in parallel; change MTTR to model a spare on the shelf or a better runbook.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls"><button class="btn alt" id="av-base" type="button">As built</button><button class="btn alt" id="av-dup" type="button">Two links, two app servers</button><button class="btn alt" id="av-fast" type="button">+ faster power repair</button></div>
+        </div>
+        <div class="chain" id="av-chain" aria-hidden="true"></div>
+        <div class="parts" id="av-parts"></div>
+        <div class="stats">
+          <div class="stat"><b id="av-a">0</b><span>dashboard availability</span></div>
+          <div class="stat"><b id="av-h">0</b><span>hours down per year</span></div>
+          <div class="stat"><b id="av-d">0</b><span>days down per year</span></div>
+        </div>
+        <div class="dbar" id="av-bar" role="img" aria-label="Share of downtime by part"></div>
+        <div class="dleg" id="av-leg"></div>
+        <p class="note" id="av-note"></p>
+      </div>
+      <p>Duplicating the two cheapest, least reliable parts takes the dashboard from about ten days down a year to about a day and a half (38 hours). Then the weakest remaining part dominates, and the other lever appears: halving the power supply's MTTR from 1 hour to 0.5 cuts another 9 hours. Shortening repair (a spare on the shelf, a runbook, an alert that wakes someone) improves availability as surely as lengthening MTTF, and is often far cheaper.</p>
+      <p>All of these formulas assume <b>independent</b> failures. One shared power supply under both app servers, one shared bug, or one administrator who makes the same mistake on both machines is a common-mode fault that parallel redundancy does not cover.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: finish the parallel rule.</span></div>
+        <p><code>series</code> is written for you. Complete <code>parallel(parts)</code>: the group is down only when every part is down, so multiply the chances of each part being down, and the group is up the rest of the time.</p>
+        <div class="cell" id="ex-avail">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-avail" spellcheck="false" aria-label="Python code">def availability(mttf, mttr):
+    return mttf / (mttf + mttr)
+
+def series(parts):
+    up = 1.0
+    for a in parts:
+        up = up * a
+    return up
+
+def parallel(parts):
+    down = 1.0
+    for a in parts:
+        down = down * 1     # TODO: multiply by this part's chance of being down
+    return 1 - down
+
+link = availability(300, 6)
+print(round(parallel([link, link]), 5))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="Design for faults">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Design for the faults that will happen</h2></div>
+      <p>The book's advice reduces to a handful of habits. Here they are, applied to SurveilLite and VaxRecords.</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Habit</th><th>In practice</th></tr></thead>
+        <tbody>
+          <tr><td><b>Check, do not trust</b></td><td>Assume every disk, link and clinic report will eventually be wrong. Verify checksums; validate inputs.</td></tr>
+          <tr><td><b>Fail fast</b></td><td>Refuse impossible values loudly, naming the report, instead of publishing a plausible wrong incidence.</td></tr>
+          <tr><td><b>Make masked faults visible</b></td><td>Log every outvoted replica and every repaired file. A masked fault is a lost safety margin.</td></tr>
+          <tr><td><b>Keep MTTR short</b></td><td>Repair automatically where you can (repair on read); alert a person where you cannot.</td></tr>
+          <tr><td><b>Hunt for common modes</b></td><td>Same code, same data source, same power, same person. Each one turns "three copies" back into one.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Run the full lab.</b> The repository version uses real SHA-256 from <code>hashlib</code>, real files on disk, pandas for the incidence, and tests for all three exercises. Clone the course, then run <code>pytest lessons/08_fault_tolerance</code>. See <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/08_fault_tolerance">lessons/08_fault_tolerance on GitHub</a>.</div>
+      <div class="quiz" data-quiz="s7"></div>
+    </section>
+
+    <!-- 8 -->
+    <section class="lesson" id="s8" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">08</span><h2>Recall and review</h2></div>
+      <p>Reading something again feels productive but fades fast. Pulling it out of memory is what makes it last. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix ideas from every section. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s8"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through the flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Up next · Module 9</span>
+        <h3>Atomicity: all-or-nothing and before-or-after</h3>
+        <p>Recording a dose in VaxRecords writes two things: the child's history and the clinic's stock. You will crash the recorder between them, then fix it three ways: a shadow copy, a write-ahead log with recovery, and two-phase commit across two services.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module. Follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009), Chapter 8. Not affiliated with the authors or MIT. All data is synthetic.</span>
+      <span>Course repository: <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">github.com/Rwunganira/computer_system_design</a>. Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript.</span>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc, highlight } = CT;
+const reduced = CT.reduced;
+
+/* ---------- shared data ---------- */
+const DATES = ["2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23"];
+const LABELS = ["Jan 5", "Jan 12", "Jan 19", "Jan 26", "Feb 2", "Feb 9", "Feb 16", "Feb 23", "Mar 2", "Mar 9", "Mar 16", "Mar 23"];
+const GOOD = [1, 1, 5, 2, 1, 2, 13, 32, 45, 63, 87, 109];
+function checksum(t) { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) % 1000000007; return h; }
+const csv = vals => "week_start,cases\n" + DATES.map((d, i) => d + "," + vals[i]).join("\n") + "\n";
+const bits = c => c.charCodeAt(0).toString(2).padStart(8, "0");
+
+/* ---------- hero: bit flip, checksum, backup ---------- */
+const STORED = checksum(csv(GOOD.map(String)));
+const hf = { prim: GOOD.map(String), phase: 0, playing: !reduced, timer: null, last: null, first: true };
+$("#h-stored").textContent = STORED;
+function hfFlip(w, j, pop) {
+  const s = hf.prim[w], c = s[j], n = String.fromCharCode(c.charCodeAt(0) ^ 1);
+  hf.prim[w] = s.slice(0, j) + n + s.slice(j + 1);
+  hf.last = { w, j, from: c, to: n };
+  hfRender(pop ? { w, j } : null);
+}
+function hfRepair() {
+  const healed = hf.prim.map((v, i) => v !== String(GOOD[i]) ? i : -1).filter(i => i >= 0);
+  hf.prim = GOOD.map(String); hf.last = null;
+  hfRender(null, healed);
+  return healed.length;
+}
+function hfRender(pop, healed) {
+  const host = $("#h-weeks");
+  host.innerHTML = hf.prim.map((v, i) => {
+    const bad = v !== String(GOOD[i]);
+    return `<div class="wk${bad ? " bad" : ""}${healed && healed.includes(i) ? " healed" : ""}"><div>${v.split("").map((c, j) => `<button class="dg${bad && c !== (String(GOOD[i])[j]) ? " bad" : ""}${pop && pop.w === i && pop.j === j ? " pop" : ""}" type="button" data-w="${i}" data-j="${j}" aria-label="Flip a bit in digit ${j + 1} of ${LABELS[i]}">${c}</button>`).join("")}</div><small>${LABELS[i]}</small></div>`;
+  }).join("");
+  const text = csv(hf.prim), total = hf.prim.reduce((s, v) => s + parseInt(v, 10), 0), sum = checksum(text);
+  const corrupt = sum !== STORED;
+  $("#h-o1").innerHTML = corrupt ? `total = <span class="no">${total} cases</span>, and nothing warns you` : `total = <span class="yes">${total} cases</span>`;
+  $("#h-o2").innerHTML = corrupt ? `checksum ${sum} ≠ ${STORED} → <span class="no">CorruptionError</span>` : `checksum ${sum} = stored → <span class="yes">verified</span>`;
+  $("#h-o3").innerHTML = corrupt ? `primary fails, backup verifies → <span class="yes">total = 361 cases</span>` : `primary verifies; backup not needed`;
+  $("#h-byte").innerHTML = hf.last ? `last fault: '${hf.last.from}' = <b>${bits(hf.last.from).slice(0, 7)}</b><i>${bits(hf.last.from)[7]}</i> became '${hf.last.to}' = <b>${bits(hf.last.to).slice(0, 7)}</b><i>${bits(hf.last.to)[7]}</i>. Still a digit, so the file still parses.` : "Each digit is one byte on the disk. A fault flips one of its eight bits.";
+  $$(".dg", host).forEach(b => b.addEventListener("click", () => { hf.playing = false; hfLoop(); hfFlip(+b.dataset.w, +b.dataset.j, true); hfLight([1, 2, 3]); $("#h-msg").textContent = "You flipped a bit. Press Repair to rewrite the primary from the backup."; }));
+}
+function hfLight(on) { [1, 2, 3].forEach(k => $("#h-r" + k).classList.toggle("on", on.includes(k))); }
+const MSGS = ["Both replicas verify. The dashboard shows 361 cases.", "A bit flips on the primary disk. No error is reported.", "The checksum no longer matches: a fault became a detected error.", "Redundancy masks it: the backup still verifies.", "Repair on read rewrites the primary from the backup."];
+function hfStep() {
+  hf.phase = (hf.phase + 1) % 5;
+  if (hf.phase === 0) hfRender();
+  if (hf.phase === 1) {
+    if (hf.first) { hfFlip(11, 0, true); hf.first = false; }
+    else { const w = Math.floor(Math.random() * 12), s = hf.prim[w]; hfFlip(w, Math.floor(Math.random() * s.length), true); }
+  }
+  if (hf.phase === 4) hfRepair();
+  hfLight(hf.phase === 1 ? [1] : hf.phase === 2 ? [2] : hf.phase === 3 ? [3] : []);
+  $("#h-msg").textContent = MSGS[hf.phase];
+}
+function hfLoop() { clearInterval(hf.timer); if (hf.playing) hf.timer = setInterval(hfStep, 1700); $("#h-play").textContent = hf.playing ? "Pause" : "Play"; }
+$("#h-step").addEventListener("click", () => { hf.playing = false; hfLoop(); hfStep(); });
+$("#h-play").addEventListener("click", () => { hf.playing = !hf.playing; hfLoop(); });
+$("#h-repair").addEventListener("click", () => { hf.playing = false; hfLoop(); const n = hfRepair(); hf.phase = 0; hfLight([]); $("#h-msg").textContent = n ? `Repaired ${n} week${n > 1 ? "s" : ""} from the backup. Log it: a masked fault still needs a cause.` : "Nothing to repair: the primary verifies."; });
+hfRender(); $("#h-msg").textContent = MSGS[0]; hfLoop();
+
+/* ---------- sorter: fault, error or failure ---------- */
+const sortItems = [
+  { code: "A cosmic ray flips one bit in s-coa_cholera.csv. Nobody has read the file since.", ans: 0, why: "The underlying defect, and a latent one: it sits on disk doing nothing until someone reads it." },
+  { code: "The weekly job reads the file and holds a Coastal total of 261 in memory.", ans: 1, why: "The fault has been activated and produced a wrong value inside the system. Nobody outside has seen it yet." },
+  { code: "The district officer sees a falling cholera trend on the dashboard and does not send a response team.", ans: 2, why: "The system broke its promise to its users: the published incidence is wrong." },
+  { code: "Replica B's data copy stopped syncing in week 6.", ans: 0, why: "A stale copy is a defect waiting to be activated. It becomes an error only when B computes from it." },
+  { code: "Replica B computes 8.39 per 100,000 for Coastal; the voter outvotes it.", ans: 1, why: "A wrong internal value, caught and masked before it reached the dashboard, so no failure happened." }
+];
+const kinds = ["Fault", "Error", "Failure"];
+$("#sorter").innerHTML = sortItems.map((it, i) => `<div class="sort-item" data-i="${i}"><p>${esc(it.code)}</p><div class="opts">${kinds.map((k, j) => `<button class="opt" type="button" data-j="${j}">${k}</button>`).join("")}</div></div>`).join("");
+$$(".sort-item").forEach(el => {
+  const it = sortItems[+el.dataset.i];
+  $$(".opt", el).forEach(b => b.addEventListener("click", () => {
+    const j = +b.dataset.j, ok = j === it.ans;
+    b.classList.add(ok ? "right" : "wrong");
+    let w = $(".why", el); if (!w) { w = document.createElement("div"); el.appendChild(w); }
+    w.className = "why " + (ok ? "ok" : "no"); w.textContent = (ok ? "Right. " : "Not quite. ") + it.why;
+    if (ok) $$(".opt", el).forEach(x => x.disabled = true);
+  }));
+});
+
+/* ---------- checksum step-through ---------- */
+const CS_A = "2026-03-23,109", CS_B = "2026-03-23,009";
+let csAt = 0;
+function csRows(n) {
+  let ha = 0, hb = 0; const rows = [];
+  for (let i = 0; i < n; i++) {
+    ha = (ha * 31 + CS_A.charCodeAt(i)) % 1000000007; hb = (hb * 31 + CS_B.charCodeAt(i)) % 1000000007;
+    rows.push([i + 1, CS_A[i], ha, CS_B[i], hb]);
+  }
+  return rows;
+}
+function csRender() {
+  const rows = csRows(csAt), tb = $("#cs-table tbody");
+  tb.innerHTML = rows.map((r, i) => {
+    const diff = r[2] !== r[4];
+    return `<tr class="${i === rows.length - 1 ? "now" : ""}"><td>${r[0]}</td><td><code>${esc(r[1])}</code></td><td>${r[2]}</td><td><code${r[1] !== r[3] ? ' style="background:var(--bad-soft);color:var(--bad)"' : ""}>${esc(r[3])}</code></td><td style="${diff ? "color:var(--bad);font-weight:700" : ""}">${r[4]}</td></tr>`;
+  }).join("") || `<tr><td colspan="5" class="note">h starts at 0. Press Next character.</td></tr>`;
+  const done = csAt >= CS_A.length;
+  $("#cs-step").disabled = $("#cs-all").disabled = done;
+  $("#cs-note").textContent = done ? `Final values differ: ${rows[rows.length - 1][2]} vs ${rows[rows.length - 1][4]}. The flip is detected.` : csAt >= 12 ? "The characters differ here, so h diverges." : "";
+}
+$("#cs-step").addEventListener("click", () => { csAt = Math.min(csAt + 1, CS_A.length); csRender(); });
+$("#cs-all").addEventListener("click", () => { csAt = CS_A.length; csRender(); });
+$("#cs-reset").addEventListener("click", () => { csAt = 0; csRender(); });
+csRender();
+
+/* ---------- TMR voter ---------- */
+const DIST = [["N-CEN", 182000, 39, 21], ["N-RIV", 96000, 18, 9], ["N-HIL", 74000, 17, 9], ["N-LAK", 121000, 21, 12], ["S-CEN", 205000, 41, 27], ["S-SAV", 88000, 15, 7], ["S-COA", 143000, 361, 12], ["S-HIG", 67000, 11, 2]];
+const inc = (c, p) => Math.round(c / p * 100000 * 100) / 100;
+const tmr = { stale: [false, true, false], prev: null };
+function tmrRender() {
+  $("#tmr-reps").innerHTML = ["A", "B", "C"].map((n, i) => `<button class="rep${tmr.stale[i] ? " stale" : ""}" type="button" data-i="${i}">replica ${n}<small>${tmr.stale[i] ? "stale copy, week 6" : "current data"}</small></button>`).join("") + `<span class="flow">→</span><span class="voter">vote()</span><span class="flow">→ dashboard</span>`;
+  $$("#tmr-reps .rep").forEach(b => b.addEventListener("click", () => { tmr.stale[+b.dataset.i] = !tmr.stale[+b.dataset.i]; tmrRender(); }));
+  const nStale = tmr.stale.filter(Boolean).length;
+  const voted = [];
+  $("#tmr-table tbody").innerHTML = DIST.map(([d, p, all, st]) => {
+    const truth = inc(all, p), vals = tmr.stale.map(s => s ? inc(st, p) : truth);
+    const counts = {}; vals.forEach(v => counts[v] = (counts[v] || 0) + 1);
+    const win = +Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+    voted.push(win);
+    const changed = tmr.prev && tmr.prev[d] !== win;
+    return `<tr><td><b>${d}</b></td>${vals.map(v => `<td class="${v !== win ? "outvoted" : ""}">${v.toFixed(2)}</td>`).join("")}<td class="${win === truth ? "v-ok" : "v-bad"}${changed ? " flash" : ""}">${win.toFixed(2)}</td></tr>`;
+  }).join("");
+  tmr.prev = Object.fromEntries(DIST.map((r, i) => [r[0], voted[i]]));
+  const names = ["A", "B", "C"].filter((_, i) => tmr.stale[i]).join(" and ");
+  $("#tmr-msg").textContent = nStale === 0 ? "All three agree everywhere. Nothing to mask." :
+    nStale === 1 ? `Fault masked: ${names} is outvoted in every district, and the dashboard shows the Coastal outbreak at 252.45. Log it: ${names} still needs repair.` :
+    nStale === 2 ? `Common-mode fault: ${names} share the same stale data, so the majority is wrong. The voter publishes 8.39 for Coastal with full confidence.` :
+    "All three are stale. They agree perfectly, and every number is wrong.";
+}
+$("#tmr-one").addEventListener("click", () => { tmr.stale = [false, true, false]; tmrRender(); });
+$("#tmr-two").addEventListener("click", () => { tmr.stale = [false, true, true]; tmrRender(); });
+$("#tmr-none").addEventListener("click", () => { tmr.stale = [false, false, false]; tmrRender(); });
+tmrRender();
+
+/* ---------- availability calculator ---------- */
+const PARTS = [
+  { name: "power supply", mttf: 500, mttr: 1, color: "var(--s4)" },
+  { name: "district network link", mttf: 300, mttr: 6, color: "var(--s1)" },
+  { name: "app server (Flask)", mttf: 720, mttr: 2, color: "var(--s3)" },
+  { name: "database server", mttf: 2000, mttr: 4, color: "var(--s7)" }
+];
+const av = { mttf: PARTS.map(p => p.mttf), mttr: PARTS.map(p => p.mttr), dup: [false, false, false, false] };
+const HPY = 365 * 24;
+$("#av-parts").innerHTML = PARTS.map((p, i) => `<div class="part">
+  <div class="nm2">${p.name}<small id="av-a${i}"></small></div>
+  <label class="field" for="av-f${i}">MTTF <input id="av-f${i}" type="number" min="1" step="any"></label>
+  <label class="field" for="av-r${i}">MTTR <input id="av-r${i}" type="number" min="0.1" step="any"></label>
+  <label class="dup" for="av-x${i}"><input id="av-x${i}" type="checkbox"> ×2</label>
+  <div class="av" id="av-h${i}"></div></div>`).join("");
+PARTS.forEach((p, i) => {
+  $("#av-f" + i).addEventListener("input", e => { const v = parseFloat(e.target.value); if (v > 0) { av.mttf[i] = v; avRender(false); } });
+  $("#av-r" + i).addEventListener("input", e => { const v = parseFloat(e.target.value); if (v > 0) { av.mttr[i] = v; avRender(false); } });
+  $("#av-x" + i).addEventListener("change", e => { av.dup[i] = e.target.checked; avRender(false); });
+});
+function avRender(syncInputs = true) {
+  const single = PARTS.map((_, i) => av.mttf[i] / (av.mttf[i] + av.mttr[i]));
+  const block = single.map((a, i) => av.dup[i] ? 1 - (1 - a) ** 2 : a);
+  const dash = block.reduce((x, y) => x * y, 1), down = (1 - dash) * HPY;
+  PARTS.forEach((p, i) => {
+    if (syncInputs) { $("#av-f" + i).value = av.mttf[i]; $("#av-r" + i).value = av.mttr[i]; $("#av-x" + i).checked = av.dup[i]; }
+    $("#av-a" + i).textContent = `alone ${single[i].toFixed(5)}`;
+    $("#av-h" + i).innerHTML = `${block[i].toFixed(5)}<br><span class="note" style="font-size:0.75rem">${((1 - block[i]) * HPY).toFixed(1)} h/yr</span>`;
+  });
+  $("#av-chain").innerHTML = PARTS.map((p, i) => `<span class="blk${av.dup[i] ? " dup" : ""}">${p.name.replace(" (Flask)", "")}${av.dup[i] ? " ×2" : ""}</span>`).join('<span class="arr">→</span>');
+  $("#av-a").textContent = dash.toFixed(5);
+  $("#av-h").textContent = down.toFixed(1);
+  $("#av-d").textContent = (down / 24).toFixed(1);
+  const shares = block.map(a => 1 - a), tot = shares.reduce((x, y) => x + y, 0) || 1;
+  $("#av-bar").innerHTML = shares.map((s, i) => `<span style="width:${(s / tot * 100).toFixed(2)}%;background:${PARTS[i].color}" title="${PARTS[i].name}"></span>`).join("");
+  $("#av-leg").innerHTML = PARTS.map((p, i) => `<span><i style="background:${p.color}"></i>${p.name.replace(" (Flask)", "")} ${Math.round(shares[i] / tot * 100)}%</span>`).join("");
+  const worst = shares.indexOf(Math.max(...shares));
+  $("#av-note").innerHTML = `The bar splits the downtime by part. The biggest share now comes from the <b>${PARTS[worst].name}</b>: that is where the next hour of effort pays most.`;
+}
+const avSet = (dup, mttr0) => { av.mttf = PARTS.map(p => p.mttf); av.mttr = PARTS.map(p => p.mttr); av.mttr[0] = mttr0; av.dup = dup; avRender(); };
+$("#av-base").addEventListener("click", () => avSet([false, false, false, false], 1));
+$("#av-dup").addEventListener("click", () => avSet([false, true, true, false], 1));
+$("#av-fast").addEventListener("click", () => avSet([false, true, true, false], 0.5));
+avRender();
+
+const QUIZ = {
+  s1: [
+    { q: "A clinic's tablet stores a measles count of 3 as 8 because of a memory defect. The value is synced, but the weekly report filters out measles that week, so nobody ever sees it. What happened?", o: ["A failure, because the data is wrong", "A fault became an error, but no failure occurred", "Nothing: a value nobody sees cannot be a fault", "An error became a failure"], a: 1, why: "The defect (fault) produced a wrong stored value (error), but the system never broke its promise to any user, so there was no failure. The error is still there, waiting." },
+    { q: "Why is a latent fault more dangerous than one that crashes the program at once?", o: ["Latent faults are always larger", "Nothing tells you it is there, so it waits and later looks exactly like real data", "Crashes cannot be repaired", "Latent faults only affect backups"], a: 1, why: "A crash is loud and gets fixed. A bad byte on disk is silent until it is read, and then it passes for a real case count." }
+  ],
+  s2: [
+    { q: "The incidence job finds a district with population 0. What should a fail-fast design do?", o: ["Skip that district and publish the others", "Treat the population as 1 so the division works", "Refuse to compute, and raise an error that names the district", "Publish an incidence of 0 for that district"], a: 2, why: "A zero population means a broken table. Every workaround publishes a number that looks valid and is not. Stopping loudly, with the district_id in the message, points straight at the fault." },
+    { q: "What is the main cost of failing fast?", o: ["It hides the fault", "Sometimes you publish nothing until the bad input is fixed", "It makes the dashboard slower", "It needs a second replica"], a: 1, why: "You trade a plausible wrong answer for no answer plus a precise error. For surveillance data that is almost always the right trade." }
+  ],
+  s3: [
+    { q: "A checksum stored next to a file detects a flipped bit. What does it <b>not</b> do on its own?", o: ["Notice that the data changed", "Turn a silent fault into a detected error", "Give you the correct data back", "Let you fail fast"], a: 2, why: "Detection tells you the copy is bad. To get the right data you need redundancy used for masking: another good copy." },
+    { q: "One bit flips in the first character of a 12-week CSV. With the polynomial checksum on this page, which values of h change?", o: ["Only the first", "Only the last", "Every value from the first character on, including the final checksum", "None, because one bit is too small to notice"], a: 2, why: "Each step multiplies the running value by 31 and adds the next character, so a difference anywhere is carried forward to the final value." }
+  ],
+  s4: [
+    { q: "A reader finds the primary copy corrupt, reads the backup, returns the right data, and does nothing else. What is the risk?", o: ["None: the user got the right answer", "The next fault, on the backup, leaves no good copy, and nobody knew the margin was gone", "The backup becomes corrupt because it was read", "The checksum stops working"], a: 1, why: "Masking without repair lets faults accumulate silently. Repair on read restores two good copies and should log that it did." },
+    { q: "Both replicas fail verification. What should <code>read_with_repair</code> do?", o: ["Return the primary anyway", "Return whichever copy has the larger total", "Raise CorruptionError", "Recompute the checksums so they match"], a: 2, why: "With no verified copy there is nothing trustworthy to return. Fail fast; recomputing the checksum would bless the damaged data." }
+  ],
+  s5: [
+    { q: "Three servers run the same incidence code. A bug in that code makes all three divide by the wrong population. What does the voter publish?", o: ["The correct incidence, because 3 servers outvote a bug", "NoMajority", "The wrong incidence, with full confidence", "Nothing, because the replicas disagree"], a: 2, why: "All three share the bug, so they agree on the same wrong answer: a common-mode fault. Voting only masks faults that strike replicas independently." },
+    { q: "Each replica is right with probability 0.4, independently. Compared with one replica, TMR is:", o: ["more reliable", "exactly as reliable", "less reliable", "always right"], a: 2, why: "3(0.4)² − 2(0.4)³ = 0.352, which is less than 0.4. Below r = 0.5 the majority is more often wrong than right." }
+  ],
+  s6: [
+    { q: "Four parts in series have availabilities 0.998, 0.980, 0.997 and 0.998. The dashboard's availability is:", o: ["0.998, the best part", "0.980, the worst part", "below 0.980", "the average, about 0.993"], a: 2, why: "Series multiplies: 0.998 × 0.980 × 0.997 × 0.998 ≈ 0.974. The whole is less available than its weakest part." },
+    { q: "Which change does <b>not</b> improve a part's availability?", o: ["Doubling MTTF", "Halving MTTR", "Keeping a spare on the shelf", "Doubling MTTR"], a: 3, why: "Availability is MTTF / (MTTF + MTTR). A longer repair time lowers it. Shortening repair helps as surely as lengthening time to failure." }
+  ],
+  s7: [
+    { q: "You add a second app server in parallel, plugged into the same power strip as the first. What did you miss?", o: ["Nothing; parallel servers are always independent", "A common-mode fault: one power failure takes both down", "The second server makes MTTR longer", "Parallel parts multiply their availabilities"], a: 1, why: "The parallel formula assumes independent failures. A shared power strip, shared code or a shared administrator breaks that assumption." }
+  ],
+  s8: [
+    { q: "Which pairing of mechanism and purpose is right?", o: ["Checksum: masking; voter: detection", "Checksum: detection; replicas with repair on read: masking", "Fail-fast: masking; TMR: detection", "MTTR: detection; MTTF: masking"], a: 1, why: "A checksum notices damage. Extra copies (stored replicas, or computing replicas with a voter) let you still produce the right answer." },
+    { q: "A component has MTTF = 300 hours and MTTR = 6 hours. Two of them in parallel are available about:", o: ["0.980", "0.990", "0.9996", "0.960"], a: 2, why: "One is 300/306 ≈ 0.98039. Both down at once: (1 − 0.98039)² ≈ 0.00038, so the pair is up about 0.99962 of the time." },
+    { q: "The incidence job reads a case-count file whose checksum does not match. Which response follows this module's advice?", o: ["Publish the total and add a footnote", "Use the backup if it verifies, rewrite the primary from it, and log the repair", "Recompute the checksum and continue", "Retry the same read until it works"], a: 1, why: "Detect, then mask, then repair, and make the masked fault visible so someone can look for its cause." }
+  ]
+};
+const CARDS = [
+  ["Fault, error, failure", "Fault: the underlying defect. Error: the wrong value inside once it is activated. Failure: the system breaks its promise, seen from outside."],
+  ["A latent fault", "A defect that is present but not yet activated, such as a bad byte nobody has read. Dangerous because nothing reveals it."],
+  ["Fail-fast", "Stop and report a problem as soon as you detect it, naming the bad input, instead of continuing with bad data."],
+  ["The two uses of redundancy", "Error detection (notice damage) and error masking (still produce the right answer)."],
+  ["Checksum", "A short value computed from data and stored beside it, so a later change to the data can be detected."],
+  ["Repair on read", "When a reader finds a bad replica, it rewrites it from a good one, so faults do not pile up silently."],
+  ["Triple modular redundancy", "Three replicas compute the answer and a voter takes the majority, so one faulty replica is outvoted."],
+  ["Common-mode fault", "One cause that makes several replicas fail together (shared code, data, power or person), defeating voting and parallel redundancy."],
+  ["TMR break-even point", "r = 0.5. Below it, three replicas and a voter are less reliable than one replica."],
+  ["Availability", "MTTF / (MTTF + MTTR): the fraction of time a component is up."],
+  ["Series vs parallel availability", "Series (all needed): multiply. Parallel (any one enough): 1 − product of (1 − a)."]
+];
+
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  exercises: {
+    "ex-failfast": {
+      cases: [
+        "run_case(REPORTS, POP)",
+        "run_case(REPORTS + [{'report_id': 104, 'district_id': 'S-COA', 'disease': 'cholera', 'cases': -4}], POP)",
+        "run_case(REPORTS + [{'report_id': 105, 'district_id': 'N-CEN', 'disease': 'malaria', 'cases': None}], POP)",
+        "run_case(REPORTS + [{'report_id': 104, 'district_id': 'S-COA', 'disease': 'cholera', 'cases': -1}, {'report_id': 105, 'district_id': 'S-HIG', 'disease': 'cholera', 'cases': None}], POP)",
+        "run_case(REPORTS, {'S-COA': 143000, 'N-CEN': 182000, 'S-HIG': 0})",
+        "run_case(REPORTS + [{'report_id': 104, 'district_id': 'S-COA', 'disease': 'cholera', 'cases': 0}], POP)"
+      ],
+      solution: "POP = {\"S-COA\": 143000, \"N-CEN\": 182000, \"S-HIG\": 67000}\nREPORTS = [\n    {\"report_id\": 101, \"district_id\": \"S-COA\", \"disease\": \"cholera\", \"cases\": 109},\n    {\"report_id\": 102, \"district_id\": \"N-CEN\", \"disease\": \"cholera\", \"cases\": 3},\n    {\"report_id\": 103, \"district_id\": \"S-COA\", \"disease\": \"measles\", \"cases\": 2},\n]\n\ndef incidence(reports, pop, disease):\n    cases = {d: 0 for d in pop}\n    for r in reports:\n        if r[\"disease\"] == disease:\n            cases[r[\"district_id\"]] += r[\"cases\"]\n    return {d: round(cases[d] / pop[d] * 100000, 2) for d in pop}\n\ndef checked_incidence(reports, pop, disease):\n    bad = [r[\"report_id\"] for r in reports if r[\"cases\"] is None or r[\"cases\"] < 0]\n    if bad:\n        raise ValueError(\"impossible case counts in report_id(s) \" + str(bad))\n    empty = [d for d in pop if pop[d] <= 0]\n    if empty:\n        raise ValueError(\"population <= 0 in district_id(s) \" + str(empty))\n    return incidence(reports, pop, disease)\n\ndef run_case(reports, pop):\n    try:\n        result = checked_incidence(reports, pop, \"cholera\")\n        print([(d, f\"{result[d]:.2f}\") for d in sorted(result)])\n    except ValueError as e:\n        names = [\"101\", \"102\", \"103\", \"104\", \"105\", \"S-COA\", \"N-CEN\", \"S-HIG\"]\n        print(\"ValueError naming\", [w for w in names if w in str(e)])",
+      hint: ["Build a list: bad = [r['report_id'] for r in reports if ...]. Test for None before comparing with 0.", "if bad: raise ValueError('impossible case counts in report_id(s) ' + str(bad)). Then do the same for districts with pop[d] <= 0, then return incidence(...)."]
+    },
+    "ex-repair": {
+      cases: [
+        "r = [fresh(), fresh()]\nflip(r[0], 40)\nreport(r)",
+        "r = [fresh(), fresh(), fresh()]\nflip(r[1], 44)\nreport(r)",
+        "r = [{}, fresh()]\nreport(r)",
+        "r = [fresh(), fresh()]\nflip(r[0], 3)\nflip(r[1], 41)\nreport(r)",
+        "r = [fresh(), fresh(), fresh()]\nflip(r[0], 3)\nflip(r[2], 30)\nreport(r)",
+        "r = [fresh()]\nreport(r)"
+      ],
+      solution: "class CorruptionError(Exception):\n    pass\n\ndef checksum(text):\n    h = 0\n    for ch in text:\n        h = (h * 31 + ord(ch)) % 1000000007\n    return h\n\ndef save(disk, data):\n    disk[\"data\"] = data\n    disk[\"sum\"] = checksum(data)\n\ndef load(disk):\n    if \"data\" not in disk or \"sum\" not in disk:\n        raise CorruptionError(\"missing\")\n    if checksum(disk[\"data\"]) != disk[\"sum\"]:\n        raise CorruptionError(\"checksum mismatch\")\n    return disk[\"data\"]\n\ndef read_with_repair(replicas):\n    good = None\n    bad = []\n    for disk in replicas:\n        try:\n            data = load(disk)\n        except CorruptionError:\n            bad.append(disk)\n            continue\n        if good is None:\n            good = data\n    if good is None:\n        raise CorruptionError(\"no good replica\")\n    for disk in bad:\n        save(disk, good)\n    return good\n\nFILE = \"week_start,cases\\n2026-03-16,87\\n2026-03-23,109\\n\"\ndef fresh():\n    d = {}\n    save(d, FILE)\n    return d\ndef flip(disk, i):\n    t = disk[\"data\"]\n    disk[\"data\"] = t[:i] + chr(ord(t[i]) ^ 1) + t[i + 1:]\ndef report(replicas):\n    try:\n        data = read_with_repair(replicas)\n        print(\"read\", data and data.split(\"\\n\")[-2], \"| all verify:\", [checksum(d.get(\"data\", \"\")) == d.get(\"sum\") for d in replicas])\n    except CorruptionError:\n        print(\"CorruptionError: no good replica\")",
+      hint: ["Inside the loop: try: data = load(disk) / except CorruptionError: bad.append(disk) and continue. Keep the first good data you see.", "After the loop: if good is None: raise CorruptionError('no good replica'). Then for disk in bad: save(disk, good)."]
+    },
+    "ex-tmr": {
+      cases: ["print(round(tmr_reliability(0.9), 4))", "print(round(tmr_reliability(0.4), 4))", "print(tmr_reliability(0.5))", "print(round(tmr_reliability(0.99), 6))", "print(round(simulate_tmr(0.6, 5000, 1), 3))", "print(round(simulate_tmr(0.95, 4000, 7), 3))"],
+      solution: "import random\n\ndef tmr_reliability(r):\n    all_three = r ** 3\n    exactly_two = 3 * r * r * (1 - r)\n    return all_three + exactly_two\n\ndef simulate_tmr(r, trials=20000, seed=0):\n    random.seed(seed)\n    ok = 0\n    for t in range(trials):\n        right = 0\n        for replica in range(3):\n            if random.random() < r:\n                right += 1\n        if right >= 2:\n            ok += 1\n    return ok / trials",
+      hint: ["exactly_two = 3 * r * r * (1 - r). Three ways to choose the replica that is wrong.", "Inside the trial loop: for replica in range(3): if random.random() < r: right += 1."],
+      limit: 12000
+    },
+    "ex-avail": {
+      cases: ["print(round(parallel([availability(300, 6)] * 2), 5))", "print(round(parallel([0.9, 0.9, 0.9]), 4))", "print(round(parallel([0.5]), 3))", "print(round(series([availability(500, 1), parallel([availability(300, 6)] * 2), parallel([availability(720, 2)] * 2), availability(2000, 4)]), 5))", "print(round(parallel([0.99, 0.0]), 3))"],
+      solution: "def availability(mttf, mttr):\n    return mttf / (mttf + mttr)\n\ndef series(parts):\n    up = 1.0\n    for a in parts:\n        up = up * a\n    return up\n\ndef parallel(parts):\n    down = 1.0\n    for a in parts:\n        down = down * (1 - a)\n    return 1 - down",
+      hint: ["A part with availability a is down with probability 1 - a.", "down = down * (1 - a)"]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Computer System Design, Module 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+/* hero: two threads and one shared counter (always a dark card, like the Turing tape) */
+.race { background: var(--code-bg); color: var(--code-fg); border-radius: 14px; padding: 20px 20px 16px; display: grid; gap: 14px; min-width: 0; }
+.race-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px 12px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.8rem; color: var(--code-muted); }
+.race-top b { color: var(--code-fg); font-weight: 600; }
+.race-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(96px, 0.75fr) minmax(0, 1fr); grid-template-areas: "a shm b"; gap: 12px; }
+@media (max-width: 560px) { .race-stage { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "shm shm" "a b"; } }
+.thr { border: 1.5px solid #3A475C; border-radius: 10px; padding: 10px 0 8px; font-family: var(--mono); font-size: 0.74rem; display: grid; gap: 6px; align-content: start; min-width: 0; transition: border-color .3s; }
+.thr.act { border-color: var(--tok-fn); }
+.thr.wait { border-color: var(--tok-num); }
+.thr h4 { margin: 0; padding: 0 12px; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--code-muted); font-weight: 600; }
+.thr .prog div { padding: 1px 12px; white-space: pre; border-left: 3px solid transparent; transition: background .25s; overflow: hidden; text-overflow: ellipsis; }
+.thr .prog div.cur { background: #24324A; border-left-color: var(--tok-kw); }
+.thr .prog div.past { color: var(--code-muted); }
+.thr .loc { padding: 0 12px; }
+.thr .loc b { color: var(--tok-num); font-weight: 600; }
+.thr .st { padding: 0 12px; color: var(--code-muted); min-height: 1.4em; }
+.thr.wait .st { color: var(--tok-num); }
+.shm { grid-area: shm; border: 1.5px dashed #3A475C; border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; align-content: center; justify-items: center; text-align: center; font-family: var(--mono); font-size: 0.72rem; color: var(--code-muted); }
+.shm .val { font-family: var(--display); font-size: 2.2rem; font-weight: 800; color: var(--code-fg); line-height: 1.1; transition: color .3s; }
+.shm .val.flash { color: var(--tok-kw); }
+.shm .lk { padding: 1px 8px; border-radius: 99px; border: 1px solid #3A475C; }
+.shm .lk.held { border-color: var(--tok-num); color: var(--tok-num); }
+#thr-a { grid-area: a; } #thr-b { grid-area: b; }
+.race-msg { font-family: var(--mono); font-size: 0.82rem; line-height: 1.5; background: #19202D; border-radius: 8px; padding: 8px 10px; min-height: 3.4em; }
+.race-msg.bad { color: var(--tok-kw); } .race-msg.good { color: var(--tok-str); }
+.race-bar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.race-bar > div { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn-ghost.on { border-color: var(--tok-num); color: var(--tok-num); }
+.btn-ghost:disabled { opacity: .4; cursor: default; }
+
+/* interleavings grid */
+.orders { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
+.ord { font: inherit; font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.08em; padding: 6px 4px; border-radius: 8px; border: 1.5px solid var(--rule); background: var(--paper); color: var(--ink); cursor: pointer; display: grid; gap: 2px; justify-items: center; }
+.ord i { font-style: normal; font-weight: 700; }
+.ord i.A { color: var(--s1); } .ord i.B { color: var(--s2); }
+.ord small { font-size: 0.68rem; letter-spacing: 0; color: var(--muted); }
+.ord.ok { border-color: var(--ok); background: var(--ok-soft); }
+.ord.bad { border-color: var(--bad); background: var(--bad-soft); }
+.ord.sel { box-shadow: 0 0 0 2px var(--ink); }
+
+/* bounded buffer */
+.bb { display: grid; gap: 10px; }
+.bb-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.who { font-family: var(--mono); font-size: 0.76rem; padding: 6px 10px; border-radius: 8px; border: 1.5px solid var(--rule); background: var(--paper); display: grid; gap: 2px; flex: 1 1 0; min-width: 0; max-width: 220px; text-align: center; transition: border-color .2s, background .2s; }
+.who small { color: var(--muted); font-size: 0.7rem; }
+.who.wait { border-color: var(--s4); }
+.who.wait small { color: var(--ink); }
+.who.drop { border-color: var(--bad); background: var(--bad-soft); }
+.who.busy { border-color: var(--ok); }
+.slots { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; max-width: 420px; width: 100%; margin: 0 auto; }
+.slot { aspect-ratio: 1; border-radius: 6px; border: 1.5px dashed var(--rule); display: grid; place-items: center; font-family: var(--mono); font-size: 0.6rem; font-weight: 600; transition: background .2s, border-color .2s; }
+.slot.POS { background: var(--accent-soft); border: 1.5px solid var(--accent); color: var(--accent); }
+.slot.NEG { background: var(--sheet); border: 1.5px solid var(--muted); color: var(--muted); }
+.slot.Q { background: var(--hl); border: 1.5px solid var(--s4); color: var(--ink); }
+.flow { text-align: center; font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
+.stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); justify-content: center; }
+.stats b { color: var(--ink); }
+.stats b.bad { color: var(--bad); }
+.field input[type=range] { width: 110px; padding: 0; accent-color: var(--accent); }
+
+/* if versus while */
+.iw { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 640px) { .iw { grid-template-columns: 1fr; } }
+.cap { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+.cap .slot { width: 46px; font-size: 0.72rem; }
+.cap .slot.over { border: 1.5px solid var(--bad); background: var(--bad-soft); color: var(--bad); }
+.tlist { display: grid; gap: 4px; }
+.callout code { overflow-wrap: anywhere; }
+</style>
+</head>
+<body data-lesson="m05">
+<div class="shell">
+  <aside class="rail" aria-label="Lesson progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 5</div>
+      <h1><code style="font-size:0.8em;background:none;padding:0">count += 1</code> is three steps, and another thread can <em>slip in</em> between them.</h1>
+      <p class="lede">Virtualization lets many activities share one computer as if each had its own. Threads share memory, so two consumers counting positive lab results can both read 41 and both write 42. You are the scheduler below: choose who runs next.</p>
+
+      <div class="race" aria-label="Two threads incrementing a shared count of positive results">
+        <div class="race-top"><span>Two consumer threads each count one positive measles IgM result</span><span>lock <b id="r-lock-lbl">off</b> · positives <b id="r-top">41</b></span></div>
+        <div class="race-stage">
+          <div class="thr" id="thr-a"><h4>Thread A · lab_1</h4><div class="prog" id="prog-a"></div><div class="loc">cur = <b id="cur-a">–</b></div><div class="st" id="st-a">ready</div></div>
+          <div class="shm"><span>shared memory: positives</span><span class="val" id="r-val">41</span><span class="lk" id="r-lk">no lock</span></div>
+          <div class="thr" id="thr-b"><h4>Thread B · lab_2</h4><div class="prog" id="prog-b"></div><div class="loc">cur = <b id="cur-b">–</b></div><div class="st" id="st-b">ready</div></div>
+        </div>
+        <div class="race-msg" id="r-msg" aria-live="polite">You are the scheduler. Run A or B one step at a time, or let it play.</div>
+        <div class="race-bar">
+          <div><button class="btn-ghost" id="r-a" type="button">Run A</button><button class="btn-ghost" id="r-b" type="button">Run B</button><button class="btn-ghost" id="r-reset" type="button">Reset</button></div>
+          <div><button class="btn-ghost" id="r-toggle" type="button">Lock: off</button><button class="btn-ghost" id="r-play" type="button">Pause</button></div>
+        </div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>What virtualization gives each module, why a read-modify-write races, how a lock makes it before-or-after, and how a bounded buffer coordinates producers and consumers.</div>
+        <div><b>You will build</b>A positive-result counter that never loses an update, and a bounded buffer whose producers wait instead of dropping results, with a timeout.</div>
+        <div><b>How it works</b>Python in the browser has no threads, so every thread here is a generator and every scheduler is a loop you can read. Step, predict, run, then fix the code.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="Virtual computers">
+      <div class="sec-head"><span class="sec-num">01</span><h2>One computer, many virtual ones</h2></div>
+      <p>Module 4 enforced modularity by putting the client and the service in separate programs that talk only by messages. A real computer for every module would be expensive. <b>Virtualization</b> gives each module the <em>illusion</em> of its own computer while they share one physical machine. The book virtualizes the three fundamental abstractions from Chapter 2:</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Real thing</th><th>Virtual version</th><th>What it gives each module</th></tr></thead>
+        <tbody>
+          <tr><td>processor (interpreter)</td><td><b>thread</b></td><td>its own processor, which the scheduler shares out</td></tr>
+          <tr><td>memory</td><td><b>virtual memory</b> (address spaces)</td><td>its own memory, which others cannot touch</td></tr>
+          <tr><td>communication link</td><td><b>bounded buffer</b></td><td>its own message channel to another module</td></tr>
+        </tbody>
+      </table></div>
+      <div class="two">
+        <div><span class="eyebrow">Process</span><h3>A thread plus its own address space</h3><p>Two processes cannot corrupt each other's memory, so the modularity is enforced. Sharing data means sending messages.</p></div>
+        <div><span class="eyebrow">Threads in one process</span><h3>Many threads, one address space</h3><p>Cheap and convenient: they all see the same variables. All the protection is gone, and coordination is your job.</p></div>
+      </div>
+      <p>This module stays inside one process, the risky case. The SurveilLite lab pipeline has producer threads reading four labs' result files and consumer threads validating results and counting positives, all sharing one counter.</p>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2" data-short="Interleavings">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Threads as interleavings</h2></div>
+      <p>The lab uses Python's <code>threading</code> module, which the browser's Python does not have. We lose nothing by simulating it, and gain something: you see every choice the scheduler makes. A thread here is a <b>generator</b>. Each <code>next()</code> runs it to its next <code>yield</code>, one step. A <b>schedule</b> is the order in which the scheduler picks threads, written as a string like <code>"ABABAB"</code>.</p>
+      <p>Counting a positive looks like one step, <code>count += 1</code>, but it is three: read the count into a local variable, add one, write it back. Predict what the interleaved schedule leaves in the counter.</p>
+      <div class="cell" data-predict="interleaved: 42">
+        <div class="predict"><label for="p-s2">Predict the last line:</label><input id="p-s2" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s2" spellcheck="false" aria-label="Python code"># A thread, simulated: a generator that does one step per next()
+counter = {"positives": 41}
+
+def consumer(who):
+    current = counter["positives"]  # read
+    yield who + " reads " + str(current)
+    current = current + 1  # add
+    yield who + " adds 1, holds " + str(current)
+    counter["positives"] = current  # write
+    yield who + " writes " + str(current)
+
+def run(schedule, show=True):
+    counter["positives"] = 41
+    threads = {"A": consumer("A"), "B": consumer("B")}
+    for name in schedule:                       # the scheduler's choices
+        step = next(threads[name])
+        if show:
+            print("   ", step)
+    return counter["positives"]
+
+print("A then B:", run("AAABBB"))
+print("interleaved:", run("ABABAB"))</textarea></div>
+      </div>
+      <p>Two threads of three steps each can be interleaved in 20 different orders. Before you look, guess how many of them count both positives. Then tap an order to see its trace, or reveal them all.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span><div class="controls"><button class="btn" id="ord-all" type="button">Reveal all 20</button><button class="btn alt" id="ord-reset" type="button">Hide again</button></div></div>
+        <div class="orders" id="orders"></div>
+        <div class="scroll-x"><table class="data" id="ord-table"><thead><tr><th>Step</th><th>Thread</th><th>Does</th><th>A cur</th><th>B cur</th><th>Count</th></tr></thead><tbody></tbody></table></div>
+        <p class="note" id="ord-note">Tap any order.</p>
+      </div>
+
+      <p>The cell below checks the count by brute force, trying every order with <code>itertools.combinations</code> to choose where A's three steps go.</p>
+      <div class="cell" data-predict="18 of 20 orders lose an update">
+        <div class="predict"><label for="p-s2b">Predict the last line:</label><input id="p-s2b" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s2b" spellcheck="false" aria-label="Python code">from itertools import combinations
+
+counter = {"positives": 41}
+
+def consumer(name):
+    current = counter["positives"]
+    yield
+    current = current + 1
+    yield
+    counter["positives"] = current
+    yield
+
+def run(schedule):
+    counter["positives"] = 41
+    threads = {"A": consumer("A"), "B": consumer("B")}
+    for name in schedule:
+        next(threads[name])
+    return counter["positives"]
+
+safe = []
+lost = 0
+for a_slots in combinations(range(6), 3):        # where A's three steps go
+    schedule = "".join(["A" if i in a_slots else "B" for i in range(6)])
+    if run(schedule) == 43:
+        safe.append(schedule)
+    else:
+        lost += 1
+print("orders that count both positives:", safe)
+print(lost, "of 20 orders lose an update")</textarea></div>
+      </div>
+      <div class="callout">Only the two orders that run one thread entirely before the other are safe. Every order that splits a read from its write loses an update.</div>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3" data-short="Race conditions">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Race conditions</h2></div>
+      <p>A <b>race condition</b> is a bug where the result depends on the timing of the threads. It is wrong <em>sometimes</em>, which is worse than always. A surveillance count that is slightly low on some runs is the kind of error nobody notices until an outbreak is missed.</p>
+      <p>The lab's four result files hold 341 positives: 87, 98, 70 and 86. Here four consumer threads count them under a random scheduler. <code>SWITCH = 0.5</code> plays the part of the lab's <code>time.sleep(0)</code> between read and write, which hands the processor away on purpose so the race shows up on every run. Will the counter ever report <em>more</em> than 341?</p>
+      <div class="cell" data-predict="ever more than 341? False">
+        <div class="predict"><label for="p-s3">Predict the last line:</label><input id="p-s3" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s3" spellcheck="false" aria-label="Python code">import random
+
+POSITIVES = [87, 98, 70, 86]    # positives in lab_1.csv to lab_4.csv: 341 in all
+SWITCH = 0.5                    # chance the scheduler switches thread after a step
+
+counter = {"value": 0}
+
+def consumer(n):
+    for i in range(n):
+        current = counter["value"]      # read
+        yield                           # the scheduler may switch here
+        counter["value"] = current + 1  # write
+        yield
+
+def run(seed):
+    random.seed(seed)
+    counter["value"] = 0
+    threads = [consumer(n) for n in POSITIVES]
+    running = random.choice(threads)
+    while threads:
+        try:
+            next(running)
+        except StopIteration:
+            threads.remove(running)
+            running = None
+        if threads and (running is None or random.random() &lt; SWITCH):
+            running = random.choice(threads)
+    return counter["value"]
+
+results = []
+for seed in [1, 2, 3]:
+    counted = run(seed)
+    results.append(counted)
+    print(f"run {seed}: counted {counted} positives, {341 - counted} lost updates")
+print("ever more than 341?", max(results) &gt; 341)</textarea></div>
+      </div>
+      <p>The lab's real threads lost 185 to 193 updates per run; this simulation loses a similar share. The error only ever goes down: a lost update overwrites someone else's increment, and nothing in read-add-write can add an extra one.</p>
+      <p>Now set <code>SWITCH = 0.01</code>, a scheduler that rarely switches mid-update, like a real one without the pause. Run it: one run loses 50 positives and two are exactly right. That is the dangerous version. Python's global interpreter lock does not save you either: it makes one bytecode run at a time, not your three steps.</p>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4" data-short="Locks">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Locks: before or after, never during</h2></div>
+      <p>The fix is a <b>lock</b>. A thread acquires it before the read and releases it after the write; any other thread that wants it waits. Then the three steps of one update happen entirely <em>before</em> or entirely <em>after</em> another thread's, never interleaved. In the lab the whole fix is one line:</p>
+      <div class="mini-code"><div>with self.lock:          # threading.Lock()</div><div>    current = self.value</div><div>    time.sleep(0)</div><div>    self.value = current + 1</div></div>
+      <p>The book builds locks from an atomic hardware instruction that tests and sets a memory cell in one indivisible step. Here <code>try_acquire</code> plays that instruction: the simulated scheduler never switches inside it. Turn the lock on in the animation at the top and try to make Thread B slip in. Chapter 9 returns to <b>before-or-after atomicity</b> in depth.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: the structure is given, you fill the gaps.</span></div>
+        <p>This is the lab's <code>SafeCounter</code> exercise. Fill gap 1 so each update first waits for the lock, yielding on every failed try, and gap 2 so it releases the lock after the write. Keep the read, the pause and the write as given. Every seed should count all 341.</p>
+        <div class="cell" id="ex-safe">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-safe" spellcheck="false" aria-label="Python code">import random
+
+class Lock:
+    """A simulated lock. try_acquire is one atomic step, as the hardware's is."""
+    def __init__(self):
+        self.holder = None
+
+    def try_acquire(self, who):
+        if self.holder is None:
+            self.holder = who
+            return True
+        return False
+
+    def release(self):
+        self.holder = None
+
+def run(positives, seed, switch=0.5):
+    """Run one consumer thread per lab under a random scheduler. Returns the count."""
+    random.seed(seed)
+    counter = {"value": 0}
+    lock = Lock()
+    threads = [consumer(i, n, counter, lock) for i, n in enumerate(positives)]
+    running = random.choice(threads)
+    for step in range(100000):
+        if not threads:
+            return counter["value"]
+        try:
+            next(running)
+        except StopIteration:
+            threads.remove(running)
+            running = None
+        if threads and (running is None or random.random() &lt; switch):
+            running = random.choice(threads)
+    return "stuck: a thread waited forever"
+
+def consumer(who, n, counter, lock):
+    for i in range(n):
+        # 1. wait until try_acquire(who) succeeds, yielding on each failed try
+
+        current = counter["value"]       # read
+        yield                            # the scheduler may switch here
+        counter["value"] = current + 1   # write
+        # 2. release the lock
+
+        yield
+
+for seed in [1, 2, 3]:
+    print("seed", seed, "counted", run([87, 98, 70, 86], seed), "of 341")
+</textarea></div>
+        </div>
+      </div>
+      <p class="note"><b>Notice:</b> a thread that forgets to release the lock leaves every other thread waiting forever. The scheduler above reports that as <code>stuck</code>, the simulated version of a hung program.</p>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="Bounded buffer">
+      <div class="sec-head"><span class="sec-num">05</span><h2>The bounded buffer</h2></div>
+      <p>A lock keeps threads from interfering. Threads also need to wait <em>for each other</em>: a consumer cannot validate a result that no producer has delivered yet. The book calls this <b>sequence coordination</b>. Lab files arrive faster than consumers can validate them, or slower, so producers and consumers share a buffer that holds at most <i>N</i> results, a <b>bounded buffer</b>, with two rules:</p>
+      <ul>
+        <li>a producer that finds the buffer <b>full</b> must wait until a consumer takes something;</li>
+        <li>a consumer that finds it <b>empty</b> must wait until a producer adds something.</li>
+      </ul>
+      <p>Play with the speeds. Then switch the full buffer from <b>wait</b> to <b>drop</b>, the way the lab's first draft used <code>put_nowait</code>, and watch positives go missing.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls"><button class="btn alt" id="bb-mode" type="button">When full: wait</button><button class="btn alt" id="bb-play" type="button">Pause</button></div>
+        </div>
+        <div class="controls">
+          <label class="field" for="bb-p">producers <input id="bb-p" type="range" min="1" max="10" value="7"></label>
+          <label class="field" for="bb-c">consumers <input id="bb-c" type="range" min="1" max="10" value="4"></label>
+        </div>
+        <div class="bb">
+          <div class="bb-row"><div class="who" id="bb-p0">lab_1.csv<small>ready</small></div><div class="who" id="bb-p1">lab_2.csv<small>ready</small></div></div>
+          <div class="flow">put() ↓ waits if full</div>
+          <div class="slots" id="bb-slots"></div>
+          <div class="flow">get() ↓ waits if empty</div>
+          <div class="bb-row"><div class="who" id="bb-c0">consumer 1<small>ready</small></div><div class="who" id="bb-c1">consumer 2<small>ready</small></div></div>
+          <div class="stats" id="bb-stats"></div>
+        </div>
+      </div>
+      <p>The same pipeline in code: four labs of 50 rows, two consumers, a buffer of 8. <code>put</code> and <code>get</code> are generators too, so waiting is a <code>yield</code> inside a <code>while</code> loop. The sentinel <code>DONE</code>, one per consumer, is how the producers say "no more results". Predict the last line, then set <code>DROP_WHEN_FULL = True</code> and run again.</p>
+      <div class="cell" data-predict="True">
+        <div class="predict"><label for="p-s5">Predict the last line:</label><input id="p-s5" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s5" spellcheck="false" aria-label="Python code">import random
+
+DONE = None                 # sentinel: "no more results", one per consumer
+
+CAPACITY = 8
+DROP_WHEN_FULL = False      # True: like put_nowait, throw the result away
+
+class BoundedBuffer:
+    def __init__(self, capacity):
+        self.items = []
+        self.capacity = capacity
+        self.dropped = 0
+        self.producer_waits = 0
+        self.consumer_waits = 0
+
+    def put(self, item):                         # a generator: yield = wait a turn
+        while len(self.items) &gt;= self.capacity:  # full
+            if DROP_WHEN_FULL and item is not DONE:
+                self.dropped += 1
+                return
+            self.producer_waits += 1
+            yield
+        self.items.append(item)
+
+    def get(self, out):
+        while not self.items:                    # empty
+            self.consumer_waits += 1
+            yield
+        out.append(self.items.pop(0))
+
+def producer(buf, rows):
+    for row in rows:
+        for _ in buf.put(row):
+            yield
+        yield
+
+def consumer(buf, kept):
+    got = []
+    while True:
+        for _ in buf.get(got):
+            yield
+        row = got.pop()
+        if row is DONE:
+            return
+        if row != "???":                         # validation: reject garbage
+            kept.append(row)
+        yield
+
+random.seed(5)
+labs = [[random.choice(["POS", "NEG", "NEG", "NEG", "NEG", "???"]) for i in range(50)] for lab in range(4)]
+valid = sum([len([r for r in rows if r != "???"]) for rows in labs])
+
+buf = BoundedBuffer(CAPACITY)
+kept = []
+producers = [producer(buf, rows) for rows in labs]
+consumers = [consumer(buf, kept) for c in range(2)]
+threads = producers + consumers
+fullest = 0
+while threads:
+    t = random.choice(threads)
+    try:
+        next(t)
+    except StopIteration:
+        threads.remove(t)
+        if t in producers:
+            producers.remove(t)
+            if not producers:                    # all files read: one DONE per consumer
+                threads.append(producer(buf, [DONE, DONE]))
+    fullest = max(fullest, len(buf.items))
+
+print("rows sent: 200  dropped:", buf.dropped, " valid rows kept:", len(kept), "of", valid)
+print("fullest the buffer got:", fullest, " producer waits:", buf.producer_waits,
+      " consumer waits:", buf.consumer_waits)
+print(len(kept) == valid)</textarea></div>
+      </div>
+      <p>A small buffer changes the timing, never the totals. A full buffer slows the producers down instead of losing results. That pushback is called <b>backpressure</b>, the same idea as the client backing off in Module 4.</p>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6" data-short="Wait and notify">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Wait and notify: <code>while</code>, not <code>if</code></h2></div>
+      <p>Waiting by spinning in a loop wastes the processor. Instead, a real thread <b>waits</b> on a <b>condition variable</b>, which releases the lock while it sleeps, and the other side <b>notifies</b> it when the state changes. The lab's <code>BoundedBuffer</code> uses one lock and two condition variables, <code>not_full</code> for producers and <code>not_empty</code> for consumers. Python's <code>queue.Queue</code> is built exactly the same way: use it in real code, and build it once by hand so you know what it does.</p>
+      <p>Being notified means "the state changed", not "the state is now what you need". Between the notify and the moment the woken thread gets the lock back, another thread can get there first. Step through both versions.</p>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="controls"><button class="btn alt" id="iw-mode" type="button">Using: if</button><button class="btn" id="iw-step" type="button">Next step</button><button class="btn alt" id="iw-reset" type="button">Start over</button></div>
+        </div>
+        <div class="iw">
+          <div class="mini-code" id="iw-code"></div>
+          <div class="vars">
+            <div class="cap" id="iw-cap"></div>
+            <div class="tlist" id="iw-threads"></div>
+          </div>
+        </div>
+        <div class="cond" id="iw-note">Press Next step to begin.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">From the lab's <code>TimedBuffer</code> exercise.</span></div>
+        <p>This buffer's <code>put</code> drops a result whenever the buffer is full, so the demo gets stuck: the consumer waits for ten results and only eight ever arrive. Rewrite <code>put</code> to wait while the buffer is full, yielding once per turn waited, with a <code>while</code>. Add a timeout: with <code>timeout=None</code> wait as long as it takes; otherwise, once it has waited <code>timeout</code> turns and the buffer is still full, append <code>False</code> to <code>self.results</code> and return without storing the item. On success append <code>True</code>. Never drop an item silently.</p>
+        <div class="cell" id="ex-buffer">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-buffer" spellcheck="false" aria-label="Python code">import random
+
+class TimedBuffer:
+    def __init__(self, capacity):
+        self.items = []
+        self.capacity = capacity
+        self.results = []          # what each put reported: True (stored) or False (timed out)
+
+    def put(self, item, timeout=None):
+        # Wait while the buffer is full, yielding once per turn waited.
+        # timeout: the most turns to wait (None = as long as it takes).
+        # On timeout record False and return, leaving the buffer unchanged.
+        if len(self.items) &gt;= self.capacity:
+            self.results.append(False)     # drops the result at once: fix this
+            return
+        self.items.append(item)
+        self.results.append(True)
+        yield
+
+    def get(self, out):
+        while not self.items:
+            yield
+        out.append(self.items.pop(0))
+
+def producer(buf, items, timeout=None):
+    for x in items:
+        for _ in buf.put(x, timeout):
+            yield
+        yield
+
+def consumer(buf, n, out):
+    for i in range(n):
+        for _ in buf.get(out):
+            yield
+        yield
+
+def run(buf, threads, seed=1, max_steps=5000):
+    """A random scheduler. Returns the most items the buffer ever held."""
+    random.seed(seed)
+    fullest = 0
+    for step in range(max_steps):
+        if not threads:
+            return fullest
+        t = random.choice(threads)
+        try:
+            next(t)
+        except StopIteration:
+            threads.remove(t)
+        fullest = max(fullest, len(buf.items))
+    print("stuck: some thread is still waiting")
+    return fullest
+
+buf = TimedBuffer(2)
+out = []
+fullest = run(buf, [producer(buf, range(10)), consumer(buf, 10, out)])
+print("consumer got:", out)
+print("fullest:", fullest, " timed out:", buf.results.count(False))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="Processes">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Processes: no sharing by accident</h2></div>
+      <p>The lab's last exercise replaces threads with processes, using <code>ProcessPoolExecutor</code>. Each process has its own address space, the virtual memory row of the table in section 1. A counter created in the parent is <em>copied</em> into each child; the children increment their copies, and the parent's stays at 0. Results must travel back as messages, here return values, much like the client and service in Module 4. The browser has no processes, so the cell copies the parent's memory by hand. Predict the last line.</p>
+      <div class="cell" data-predict="341">
+        <div class="predict"><label for="p-s7">Predict the last line:</label><input id="p-s7" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s7" spellcheck="false" aria-label="Python code">POSITIVES = {"lab_1.csv": 87, "lab_2.csv": 98, "lab_3.csv": 70, "lab_4.csv": 86}
+
+def count_positives_in_file(path):
+    return POSITIVES[path]                 # stands in for reading the CSV
+
+counter = {"value": 0}                     # lives in the parent's memory
+
+def child_process(path, memory):
+    # A process starts with a COPY of the parent's memory and works on that.
+    memory["counter"]["value"] += count_positives_in_file(path)
+    return count_positives_in_file(path)   # the only thing sent back: a message
+
+replies = []
+for path in POSITIVES:
+    copy_of_parent = {"counter": dict(counter)}
+    replies.append(child_process(path, copy_of_parent))
+
+print("replies from the children:", replies)
+print("parent's counter after the children ran:", counter["value"])
+print(sum(replies))</textarea></div>
+      </div>
+      <p>Nothing is shared, so there is nothing to race on and no lock is needed. Sharing on purpose needs <code>multiprocessing.Value</code> or a <code>Manager</code>, which brings locks back.</p>
+      <div class="callout"><b>Run the full lab.</b> The repository's <code>lab_pipeline.py</code> uses real <code>threading</code> threads, a hand-built <code>BoundedBuffer</code> from one lock and two <code>Condition</code>s, then <code>queue.Queue</code>. Run <code>python lessons/05_virtualization/lab_pipeline.py</code>, then <code>pytest lessons/05_virtualization</code> to check your exercises. See <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/05_virtualization" target="_blank" rel="noopener">lessons/05_virtualization on GitHub</a>.</div>
+      <div class="quiz" data-quiz="s7"></div>
+    </section>
+
+    <!-- 8 -->
+    <section class="lesson" id="s8" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">08</span><h2>Recall and review</h2></div>
+      <p>Reading something again feels productive but fades fast. Pulling it out of memory is what makes it last. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix ideas from every section. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s8"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through the flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Up next · Module 6</span>
+        <h3>Performance</h3>
+        <p>Now that work flows through threads and buffers, how fast does it flow? You will find the bottleneck in the surveillance pipeline, then try batching, caching and concurrency, and use Little's law to connect queue length, throughput and waiting time.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module that follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009), Chapter 5. Not affiliated with the authors or MIT. All data is synthetic.</span>
+      <span>Course repository: <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">github.com/Rwunganira/computer_system_design</a>. Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript.</span>
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc, highlight } = CT;
+const reduced = CT.reduced;
+
+/* ---------- Hero: you are the scheduler ---------- */
+const PROG = { off: [["read", "cur = count"], ["add", "cur = cur + 1"], ["write", "count = cur"]],
+               on: [["acq", "lock.acquire()"], ["read", "cur = count"], ["add", "cur = cur + 1"], ["write", "count = cur"], ["rel", "lock.release()"]] };
+const R = { lock: false, playing: !reduced, timer: null, hold: 0, turn: 0 };
+function rReset() {
+  R.count = 41; R.holder = null; R.hold = 0; R.turn = 0; R.flash = false;
+  R.t = { A: { pc: 0, cur: null, wait: false }, B: { pc: 0, cur: null, wait: false } };
+  R.msg = R.lock ? "Lock on. Each thread must acquire the lock before it reads. Try to make B slip in." : "You are the scheduler. Run A or B one step at a time, or let it play.";
+  R.cls = "";
+  rDraw();
+}
+const prog = () => PROG[R.lock ? "on" : "off"];
+const done = n => R.t[n].pc >= prog().length;
+function rStep(n) {
+  const th = R.t[n], other = n === "A" ? "B" : "A";
+  if (done(n)) return;
+  const [op] = prog()[th.pc];
+  R.flash = false; th.wait = false;
+  if (op === "acq") {
+    if (R.holder && R.holder !== n) { th.wait = true; R.msg = `${n} tries to acquire the lock, but ${R.holder} holds it. ${n} waits.`; R.cls = ""; rDraw(); return; }
+    R.holder = n; th.pc++; R.msg = `${n} acquires the lock. Until it releases, ${other} cannot start its update.`;
+  } else if (op === "read") { th.cur = R.count; th.pc++; R.msg = `${n} reads positives into its own variable: cur = ${th.cur}.`; }
+  else if (op === "add") { th.cur++; th.pc++; R.msg = `${n} adds 1 to its private copy: cur = ${th.cur}. Shared memory still says ${R.count}.`; }
+  else if (op === "write") {
+    const before = R.count; R.count = th.cur; th.pc++; R.flash = true;
+    R.msg = before === th.cur ? `${n} writes ${th.cur}, which is what was already there. ${other}'s update has just been overwritten.` : `${n} writes ${th.cur} to shared memory.`;
+  } else if (op === "rel") { R.holder = null; th.pc++; R.msg = `${n} releases the lock.`; }
+  R.cls = "";
+  if (done("A") && done("B")) {
+    if (R.count === 43) { R.msg += " Both positives counted: 41 became 43."; R.cls = "good"; }
+    else { R.msg += ` Only ${R.count}: one positive lost. Both threads read 41 before either wrote.`; R.cls = "bad"; }
+  }
+  rDraw();
+}
+function rDraw() {
+  ["A", "B"].forEach(n => {
+    const th = R.t[n], el = $("#thr-" + n.toLowerCase());
+    $("#prog-" + n.toLowerCase()).innerHTML = prog().map(([, line], i) => `<div class="${i === th.pc && !done(n) ? "cur" : i < th.pc ? "past" : ""}">${esc(line)}</div>`).join("");
+    $("#cur-" + n.toLowerCase()).textContent = th.cur == null ? "–" : th.cur;
+    $("#st-" + n.toLowerCase()).textContent = done(n) ? "done" : th.wait ? "waiting for lock" : th.pc ? "paused mid-update" : "ready";
+    el.classList.toggle("wait", th.wait);
+    el.classList.toggle("act", !th.wait && th.pc > 0 && !done(n));
+    $("#r-" + n.toLowerCase()).disabled = done(n);
+  });
+  $("#r-val").textContent = R.count; $("#r-top").textContent = R.count;
+  $("#r-val").classList.toggle("flash", R.flash);
+  const lk = $("#r-lk"); lk.textContent = !R.lock ? "no lock" : R.holder ? "lock held by " + R.holder : "lock free"; lk.classList.toggle("held", !!R.holder);
+  $("#r-lock-lbl").textContent = R.lock ? "on" : "off";
+  const t = $("#r-toggle"); t.textContent = "Lock: " + (R.lock ? "on" : "off"); t.classList.toggle("on", R.lock);
+  const m = $("#r-msg"); m.textContent = R.msg; m.className = "race-msg " + R.cls;
+}
+function rTick() {
+  if (done("A") && done("B")) { if (++R.hold < 4) return; R.lock = !R.lock; rReset(); return; }
+  // The worst schedule: strictly alternate, so every read is split from its write.
+  let n = R.turn % 2 ? "B" : "A"; R.turn++;
+  if (done(n)) n = n === "A" ? "B" : "A";
+  rStep(n);
+}
+function rLoop() { clearInterval(R.timer); if (R.playing) R.timer = setInterval(rTick, 1100); $("#r-play").textContent = R.playing ? "Pause" : "Play"; }
+const manual = () => { R.playing = false; rLoop(); };
+$("#r-a").addEventListener("click", () => { manual(); rStep("A"); });
+$("#r-b").addEventListener("click", () => { manual(); rStep("B"); });
+$("#r-reset").addEventListener("click", () => { manual(); rReset(); });
+$("#r-toggle").addEventListener("click", () => { manual(); R.lock = !R.lock; rReset(); });
+$("#r-play").addEventListener("click", () => { R.playing = !R.playing; if (R.playing && done("A") && done("B")) rReset(); rLoop(); });
+rReset(); rLoop();
+
+/* ---------- All 20 interleavings ---------- */
+const ORDERS = [];
+(function gen(s, a, b) { if (a === 3 && b === 3) { ORDERS.push(s); return; } if (a < 3) gen(s + "A", a + 1, b); if (b < 3) gen(s + "B", a, b + 1); })("", 0, 0);
+function simulate(order) {
+  let count = 41; const cur = { A: null, B: null }, pc = { A: 0, B: 0 }, rows = [];
+  const ops = ["read", "add", "write"];
+  [...order].forEach((n, i) => {
+    const op = ops[pc[n]++];
+    if (op === "read") cur[n] = count; else if (op === "add") cur[n]++; else count = cur[n];
+    rows.push([i + 1, n, op, cur.A, cur.B, count]);
+  });
+  return { rows, count };
+}
+const revealed = new Set(); let selOrd = null;
+function ordDraw() {
+  $("#orders").innerHTML = ORDERS.map(o => { const r = simulate(o).count, show = revealed.has(o);
+    return `<button class="ord${show ? (r === 43 ? " ok" : " bad") : ""}${o === selOrd ? " sel" : ""}" type="button" data-o="${o}"><span>${[...o].map(c => `<i class="${c}">${c}</i>`).join("")}</span><small>${show ? "positives " + r : "?"}</small></button>`; }).join("");
+  $$(".ord").forEach(b => b.addEventListener("click", () => { revealed.add(b.dataset.o); selOrd = b.dataset.o; ordDraw(); }));
+  const tb = $("#ord-table tbody");
+  if (!selOrd) { tb.innerHTML = ""; $("#ord-note").textContent = "Tap any order."; }
+  else {
+    const s = simulate(selOrd);
+    tb.innerHTML = s.rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3] == null ? "–" : r[3]}</td><td>${r[4] == null ? "–" : r[4]}</td><td>${r[5]}</td></tr>`).join("");
+    $("#ord-note").innerHTML = s.count === 43 ? `<b>${selOrd}</b> counts both positives: one thread finished before the other read.` : `<b>${selOrd}</b> loses an update: the second write overwrites the first with the same value, 42.`;
+  }
+  const n = revealed.size, bad = [...revealed].filter(o => simulate(o).count !== 43).length;
+  $("#ord-all").textContent = n === 20 ? `${bad} of 20 lose an update` : "Reveal all 20";
+}
+$("#ord-all").addEventListener("click", () => { ORDERS.forEach(o => revealed.add(o)); ordDraw(); });
+$("#ord-reset").addEventListener("click", () => { revealed.clear(); selOrd = null; ordDraw(); });
+ordDraw();
+
+/* ---------- Bounded buffer animation ---------- */
+const BB = { cap: 8, items: [], drop: false, playing: !reduced, timer: null, sent: 0, sentPos: 0, counted: 0, rejected: 0, validated: 0, dropped: 0, droppedPos: 0, pw: 0, cw: 0 };
+function bbRow() { const r = Math.random(); return r < 0.15 ? "POS" : r < 0.95 ? "NEG" : "???"; }
+function bbTick() {
+  const pr = +$("#bb-p").value / 10, cr = +$("#bb-c").value / 10;
+  [0, 1].forEach(i => {
+    const el = $("#bb-p" + i), sm = $("small", el); el.className = "who";
+    if (Math.random() >= pr) { sm.textContent = "reading file"; return; }
+    if (BB.items.length >= BB.cap) {
+      if (BB.drop) { const row = bbRow(); BB.sent++; BB.dropped++; if (row === "POS") { BB.sentPos++; BB.droppedPos++; } el.classList.add("drop"); sm.textContent = "full: dropped " + row; }
+      else { BB.pw++; el.classList.add("wait"); sm.textContent = "full: waiting (not_full)"; }
+    } else { const row = bbRow(); BB.items.push(row); BB.sent++; if (row === "POS") BB.sentPos++; el.classList.add("busy"); sm.textContent = "put " + row; }
+  });
+  [0, 1].forEach(i => {
+    const el = $("#bb-c" + i), sm = $("small", el); el.className = "who";
+    if (Math.random() >= cr) { sm.textContent = "validating"; return; }
+    if (!BB.items.length) { BB.cw++; el.classList.add("wait"); sm.textContent = "empty: waiting (not_empty)"; return; }
+    const row = BB.items.shift(); el.classList.add("busy"); sm.textContent = "got " + row;
+    if (row === "???") BB.rejected++; else { BB.validated++; if (row === "POS") BB.counted++; }
+  });
+  bbDraw();
+}
+function bbDraw() {
+  $("#bb-slots").innerHTML = Array.from({ length: BB.cap }, (_, i) => { const r = BB.items[i]; return `<div class="slot ${r ? (r === "???" ? "Q" : r) : ""}">${r || ""}</div>`; }).join("");
+  const inBuf = BB.items.filter(r => r === "POS").length;
+  $("#bb-stats").innerHTML = `<span>sent <b>${BB.sent}</b></span><span>positives sent <b>${BB.sentPos}</b></span><span>counted <b>${BB.counted}</b> + <b>${inBuf}</b> in buffer</span><span>dropped <b class="${BB.dropped ? "bad" : ""}">${BB.dropped}</b></span><span>producer waits <b>${BB.pw}</b></span><span>consumer waits <b>${BB.cw}</b></span>`;
+  $("#bb-mode").textContent = "When full: " + (BB.drop ? "drop" : "wait");
+}
+function bbLoop() { clearInterval(BB.timer); if (BB.playing) BB.timer = setInterval(bbTick, 450); $("#bb-play").textContent = BB.playing ? "Pause" : "Play"; }
+$("#bb-play").addEventListener("click", () => { BB.playing = !BB.playing; bbLoop(); });
+$("#bb-mode").addEventListener("click", () => { BB.drop = !BB.drop; Object.assign(BB, { items: [], sent: 0, sentPos: 0, counted: 0, rejected: 0, validated: 0, dropped: 0, droppedPos: 0, pw: 0, cw: 0 }); bbDraw(); if (!BB.playing) bbTick(); });
+$("#bb-p").addEventListener("input", () => { if (!BB.playing) bbTick(); });
+$("#bb-c").addEventListener("input", () => { if (!BB.playing) bbTick(); });
+bbDraw(); bbLoop();
+
+/* ---------- if versus while ---------- */
+const IW_CODE = cond => ["def put(self, item):", "    with self.lock:", `        ${cond} len(self.items) >= self.capacity:`, "            self.not_full.wait()", "        self.items.append(item)", "        self.not_empty.notify()"];
+const IW_STEPS = {
+  if: [
+    { line: -1, buf: ["r1"], th: { P1: "about to put r2", P2: "not started", C: "not started" }, note: "Capacity 1, and the buffer already holds r1. Producer P1 wants to put r2." },
+    { line: 3, buf: ["r1"], th: { P1: "waiting on not_full", P2: "not started", C: "not started" }, note: "P1 finds the buffer full and waits on not_full. wait() releases the lock while P1 sleeps." },
+    { line: -1, buf: [], th: { P1: "woken, needs the lock back", P2: "not started", C: "took r1, notified not_full" }, note: "Consumer C takes r1 and notifies not_full. P1 is woken, but it cannot run until it gets the lock back." },
+    { line: -1, buf: ["r3"], th: { P1: "woken, needs the lock back", P2: "put r3", C: "validating r1" }, note: "Producer P2 gets the lock first, finds room, and puts r3. The buffer is full again." },
+    { line: 4, buf: ["r3", "r2"], th: { P1: "put r2 without re-checking", P2: "done", C: "validating r1" }, note: "P1 finally gets the lock and continues after wait(). With if, it does not look again: it appends r2. Two items in a buffer of capacity 1. In a fixed-size ring buffer this overwrites r3, and a lab result is gone.", bad: true }
+  ],
+  while: [
+    { line: -1, buf: ["r1"], th: { P1: "about to put r2", P2: "not started", C: "not started" }, note: "Capacity 1, and the buffer already holds r1. Producer P1 wants to put r2." },
+    { line: 3, buf: ["r1"], th: { P1: "waiting on not_full", P2: "not started", C: "not started" }, note: "P1 finds the buffer full and waits on not_full. wait() releases the lock while P1 sleeps." },
+    { line: -1, buf: [], th: { P1: "woken, needs the lock back", P2: "not started", C: "took r1, notified not_full" }, note: "Consumer C takes r1 and notifies not_full. P1 is woken, but it cannot run until it gets the lock back." },
+    { line: -1, buf: ["r3"], th: { P1: "woken, needs the lock back", P2: "put r3", C: "validating r1" }, note: "Producer P2 gets the lock first, finds room, and puts r3. The buffer is full again." },
+    { line: 3, buf: ["r3"], th: { P1: "re-checked: full, waiting again", P2: "done", C: "validating r1" }, note: "P1 gets the lock and loops back to the while test. The buffer is full, so it waits again. Nothing is overwritten." },
+    { line: 4, buf: ["r2"], th: { P1: "put r2", P2: "done", C: "took r3, notified not_full" }, note: "C takes r3 and notifies. P1 re-checks, finds room, and appends r2. Every result arrives, in a buffer that never exceeds its capacity.", good: true }
+  ]
+};
+let iwMode = "if", iwAt = 0;
+function iwDraw() {
+  const st = IW_STEPS[iwMode][iwAt];
+  $("#iw-code").innerHTML = IW_CODE(iwMode).map((l, i) => `<div class="${i === st.line ? "cur" : ""}">${highlight(l).trimEnd()}</div>`).join("");
+  $("#iw-cap").innerHTML = `<span>buffer</span>` + [0, 1].map(i => { const r = st.buf[i]; return `<div class="slot ${r ? (i >= 1 ? "over" : "NEG") : ""}">${r || (i >= 1 ? "" : "")}</div>`; }).join("") + `<span>${st.buf.length > 1 ? "over capacity" : "capacity 1"}</span>`;
+  $$("#iw-cap .slot")[1].style.borderStyle = st.buf.length > 1 ? "solid" : "dotted";
+  $("#iw-threads").innerHTML = Object.entries(st.th).map(([k, v]) => `<div class="var-row"><span>${k}</span><b>${esc(v)}</b></div>`).join("");
+  const note = $("#iw-note"); note.textContent = st.note;
+  note.style.background = st.bad ? "var(--bad-soft)" : st.good ? "var(--ok-soft)" : "";
+  $("#iw-step").disabled = iwAt >= IW_STEPS[iwMode].length - 1;
+  $("#iw-step").textContent = iwAt === 0 ? "Next step" : `Step ${iwAt} of ${IW_STEPS[iwMode].length - 1}`;
+  $("#iw-mode").textContent = "Using: " + iwMode;
+}
+$("#iw-step").addEventListener("click", () => { iwAt++; iwDraw(); });
+$("#iw-reset").addEventListener("click", () => { iwAt = 0; iwDraw(); });
+$("#iw-mode").addEventListener("click", () => { iwMode = iwMode === "if" ? "while" : "if"; iwAt = 0; iwDraw(); });
+iwDraw();
+
+const QUIZ = {
+  s1: [
+    { q: "Which virtual version gives each module the illusion of its own processor?", o: ["Virtual memory", "A thread", "A bounded buffer", "A lock"], a: 1, why: "A thread is a virtual processor; the scheduler shares the real one among them. Virtual memory virtualizes memory, and the bounded buffer virtualizes a communication link." },
+    { q: "Why is modularity between two processes enforced, but between two threads of one process only soft?", o: ["Processes run faster", "Each process has its own address space, so one cannot write the other's memory; threads share one", "Threads cannot crash", "Processes always use locks"], a: 1, why: "Separate address spaces are the enforcement. Threads in one process see the same variables, so any of them can corrupt shared data." }
+  ],
+  s2: [
+    { q: "A and B each do read, add, write on a counter that starts at 41. Under schedule <code>AABBAB</code>, what is the final count?", o: ["43", "42", "41", "44"], a: 1, why: "A reads 41 and adds; B reads 41 too and adds; A writes 42; B writes 42. B's read came before A's write, so one update is lost." },
+    { q: "Why does the simulation model a thread as a generator?", o: ["Generators are faster than threads", "Each yield marks a point where the scheduler may switch to another thread, so every interleaving is visible and repeatable", "Python threads are generators internally", "Generators cannot have race conditions"], a: 1, why: "A real scheduler can switch between any two steps. The yields make those switch points explicit, so a schedule string decides exactly what happens." }
+  ],
+  s3: [
+    { q: "The unlocked counter runs on files holding 341 positives. Which result is impossible?", o: ["148", "341", "339", "350"], a: 3, why: "A lost update overwrites another thread's increment, so the count can only fall short. Nothing in read-add-write adds an extra one." },
+    { q: "You remove the pause between read and write and the lost updates seem to disappear. Is the counter now safe for counting measles positives?", o: ["Yes, the race is gone", "No: the race is still there; switches mid-update are now rare, so the count is wrong only occasionally", "Yes, because of the global interpreter lock", "Only on a single-core machine"], a: 1, why: "The pause only made the switch land between read and write on every run. Without it the bug hides, which is worse because nobody notices." }
+  ],
+  s4: [
+    { q: "With the lock on, A has acquired it and read 41. The scheduler picks B. What does B do?", o: ["Reads 41 and continues", "Tries to acquire the lock, fails, and waits", "Writes 42", "Releases A's lock"], a: 1, why: "B's update starts with acquiring the lock. While A holds it, B can only wait, so B's read will see A's write." },
+    { q: "What does it mean that the lock makes the three steps <b>before-or-after</b>?", o: ["They run faster", "Another thread's update happens entirely before or entirely after them, never in the middle", "They run in alphabetical order of thread name", "The threads take turns one step at a time"], a: 1, why: "That is exactly the property the race lacked: no other update can land between this update's read and its write." }
+  ],
+  s5: [
+    { q: "The buffer holds 8 results and the files hold 2,000. What does the small buffer change?", o: ["The totals: some results are lost", "Only the timing: producers wait while it is full", "Nothing at all", "The number of positives in the files"], a: 1, why: "A producer that finds the buffer full waits instead of dropping. That is backpressure: slower, never wrong." },
+    { q: "Why does each consumer need its own <code>DONE</code> sentinel?", o: ["To count positives", "Each consumer stops after taking one DONE; with fewer, some consumers would wait on an empty buffer forever", "DONE releases the lock", "To make the buffer bigger"], a: 1, why: "A consumer that takes DONE exits its loop. Two consumers need two, or one of them never learns there is no more work." }
+  ],
+  s6: [
+    { q: "What goes wrong if <code>put</code> uses <code>if</code> instead of <code>while</code> around <code>not_full.wait()</code>?", o: ["Nothing, they are equivalent", "A woken producer appends without re-checking, even if another producer filled the slot first, so the buffer exceeds its capacity", "The producer never wakes up", "The consumer gets items in the wrong order"], a: 1, why: "Being notified only means the state changed. Another thread can get the lock first, so the woken thread must test the condition again." },
+    { q: "Why does a condition variable's <code>wait()</code> release the lock while the thread sleeps?", o: ["To save memory", "So the thread that will change the state (here a consumer) can acquire the lock and do it", "Because locks expire", "It does not release it"], a: 1, why: "If the waiting producer kept the lock, no consumer could ever take an item, and both would wait forever." }
+  ],
+  s7: [
+    { q: "Each child process calls <code>increment()</code> on a counter created in the parent. What does the parent's counter show afterwards?", o: ["341", "0, because each child changed its own copy", "A random number below 341", "An error"], a: 1, why: "A process gets a copy of the parent's memory. Results come back only as messages, such as the return values the pool sends to the parent." }
+  ],
+  s8: [
+    { q: "Which tool fixes which problem?", o: ["A lock fixes waiting for a result; a bounded buffer fixes lost updates", "A lock prevents lost updates; a bounded buffer with wait and notify coordinates who waits for whom", "Both fix the same problem", "Neither is needed with the global interpreter lock"], a: 1, why: "The lock gives before-or-after atomicity for the counter. The buffer gives sequence coordination between producers and consumers." },
+    { q: "Two consumer threads append validated rows to a shared Python list with <code>stored.append(row)</code>. The lab leaves this unlocked. Why is the valid-row count right even in the racy runs?", o: ["Lists are copied per thread", "list.append is a single atomic operation in CPython, unlike the three steps of count += 1", "Valid rows are never lost by luck", "append uses a hidden bounded buffer"], a: 1, why: "The race needs a gap between a read and a write. append does its update in one indivisible step, so there is no gap to slip into." },
+    { q: "Producers back off when the buffer is full. Which Module 4 idea is this most like?", o: ["Idempotency keys", "A client backing off when the service is overloaded", "The stub", "At-most-once semantics"], a: 1, why: "Both are backpressure: the side that is too fast slows down instead of overwhelming, or losing work at, the side that is too slow." }
+  ]
+};
+const CARDS = [
+  ["Virtualization", "Giving each module the illusion of its own processor, memory or communication link while they share one computer."],
+  ["Thread", "An independent sequence of execution, a virtual processor, that shares memory with other threads in the same program."],
+  ["Process", "Roughly a thread plus its own address space. Other processes cannot touch its memory."],
+  ["Why <code>count += 1</code> can lose updates", "It is read, add, write. A thread switch between the read and the write lets another thread's update be overwritten."],
+  ["Race condition", "A bug where the result depends on the unpredictable timing of concurrent threads. Wrong sometimes, which is worse than always."],
+  ["Lock", "Lets only one thread at a time run the code that touches shared data, making the update before-or-after."],
+  ["Before-or-after atomicity", "Concurrent actions have the same effect as if they ran one after another."],
+  ["Bounded buffer", "A fixed-size queue between producers and consumers: producers wait when full, consumers wait when empty."],
+  ["Sequence coordination", "Making one thread wait until another has done something, such as putting an item in a buffer."],
+  ["Condition variable: wait and notify", "wait() sleeps and releases the lock; notify() wakes a waiter when the state changes."],
+  ["<code>while</code>, not <code>if</code>, around <code>wait()</code>", "A woken thread must re-check the condition, because another thread may have got there first."],
+  ["Backpressure", "A full buffer slows the producers down instead of losing results."]
+];
+
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  exercises: {
+    "ex-safe": {
+      cases: [
+        "print(run([87, 98, 70, 86], 1))",
+        "print(run([87, 98, 70, 86], 7))",
+        "print(run([5, 5], 3, switch=0.9))",
+        "print(run([40, 40, 40, 40, 40, 40], 11, switch=1.0))",
+        "print(run([341], 2))"
+      ],
+      solution: "import random\n\nclass Lock:\n    \"\"\"A simulated lock. try_acquire is one atomic step, as the hardware's is.\"\"\"\n    def __init__(self):\n        self.holder = None\n\n    def try_acquire(self, who):\n        if self.holder is None:\n            self.holder = who\n            return True\n        return False\n\n    def release(self):\n        self.holder = None\n\ndef run(positives, seed, switch=0.5):\n    \"\"\"Run one consumer thread per lab under a random scheduler. Returns the count.\"\"\"\n    random.seed(seed)\n    counter = {\"value\": 0}\n    lock = Lock()\n    threads = [consumer(i, n, counter, lock) for i, n in enumerate(positives)]\n    running = random.choice(threads)\n    for step in range(100000):\n        if not threads:\n            return counter[\"value\"]\n        try:\n            next(running)\n        except StopIteration:\n            threads.remove(running)\n            running = None\n        if threads and (running is None or random.random() < switch):\n            running = random.choice(threads)\n    return \"stuck: a thread waited forever\"\n\ndef consumer(who, n, counter, lock):\n    for i in range(n):\n        while not lock.try_acquire(who):\n            yield                        # wait: let another thread run\n        current = counter[\"value\"]       # read\n        yield                            # the scheduler may switch here\n        counter[\"value\"] = current + 1   # write\n        lock.release()\n        yield",
+      hint: ["Gap 1 is a loop: while not lock.try_acquire(who): yield. Each failed try gives the processor to another thread.", "Gap 2 is lock.release(), after the write and before the final yield. Without it every other thread waits forever."]
+    },
+    "ex-buffer": {
+      cases: [
+        "buf = TimedBuffer(2)\nout = []\nprint(run(buf, [producer(buf, range(10)), consumer(buf, 10, out)]), out, buf.results.count(False))",
+        "buf = TimedBuffer(3)\nout = []\nf = run(buf, [producer(buf, range(20)), producer(buf, range(100, 120)), consumer(buf, 25, out), consumer(buf, 15, out)], seed=4)\nprint(f <= 3, len(out), sorted(out) == sorted(list(range(20)) + list(range(100, 120))))",
+        "buf = TimedBuffer(2)\nrun(buf, [producer(buf, range(5), 3)])\nprint(buf.results, buf.items)",
+        "buf = TimedBuffer(1)\nout = []\nrun(buf, [producer(buf, ['a', 'b', 'c'], 50), consumer(buf, 3, out)], seed=9)\nprint(out, buf.results)",
+        "buf = TimedBuffer(2)\nrun(buf, [producer(buf, range(5))], max_steps=200)\nprint(buf.items, buf.results)"
+      ],
+      solution: "import random\n\nclass TimedBuffer:\n    def __init__(self, capacity):\n        self.items = []\n        self.capacity = capacity\n        self.results = []          # what each put reported: True (stored) or False (timed out)\n\n    def put(self, item, timeout=None):\n        waited = 0\n        while len(self.items) >= self.capacity:\n            if timeout is not None and waited >= timeout:\n                self.results.append(False)\n                return\n            waited += 1\n            yield\n        self.items.append(item)\n        self.results.append(True)\n\n    def get(self, out):\n        while not self.items:\n            yield\n        out.append(self.items.pop(0))\n\ndef producer(buf, items, timeout=None):\n    for x in items:\n        for _ in buf.put(x, timeout):\n            yield\n        yield\n\ndef consumer(buf, n, out):\n    for i in range(n):\n        for _ in buf.get(out):\n            yield\n        yield\n\ndef run(buf, threads, seed=1, max_steps=5000):\n    \"\"\"A random scheduler. Returns the most items the buffer ever held.\"\"\"\n    random.seed(seed)\n    fullest = 0\n    for step in range(max_steps):\n        if not threads:\n            return fullest\n        t = random.choice(threads)\n        try:\n            next(t)\n        except StopIteration:\n            threads.remove(t)\n        fullest = max(fullest, len(buf.items))\n    print(\"stuck: some thread is still waiting\")\n    return fullest",
+      hint: ["Replace the if with: waited = 0, then while len(self.items) >= self.capacity: ... waited += 1; yield.", "Inside the while, before yielding: if timeout is not None and waited >= timeout: append False to self.results and return. After the loop, append the item and True."]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 - `accept(message, seen)` counts each (clinic, sequence number) once, so a retried or out-of-order report is neither doubled nor dropped.
 - `read_verified(replica_paths)` returns only data whose SHA-256 checksum matches, repairs bad replicas, and raises an error when none is intact, because in surveillance **a missing number is better than a wrong one**.
 - `authorize(user, action, district_id)` gives **least privilege** with fail-safe defaults: clinics submit only for themselves, officers read only their district, and everything else is denied and audited.
-- With `NaiveParts` SurveilLite reports 419 cholera cases in Coastal instead of 140, a threefold outbreak that never happened.
+- With `NaiveParts` SurveilLite reports 459 cholera cases in Coastal instead of 140, a threefold outbreak that never happened.
 
 ## The picture
 

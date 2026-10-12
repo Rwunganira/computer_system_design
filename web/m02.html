@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Elements of Computer Systems, Module 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="course.css">
+<style>
+.itree { width: 100%; height: auto; display: block; max-width: 520px; margin: 0 auto; }
+.itree .edge { stroke: var(--code-muted); stroke-width: 1.5; opacity: .55; }
+.itree .edge.skip { stroke-dasharray: 4 4; opacity: .3; }
+.itree rect { fill: var(--code-bg); stroke: var(--code-muted); stroke-width: 1.5; transition: stroke .2s, fill .2s; }
+.itree text { font-family: var(--mono); font-size: 15px; font-weight: 600; fill: var(--code-fg); text-anchor: middle; dominant-baseline: central; }
+.itree text.res { font-size: 12px; font-weight: 600; }
+.itree g.cur rect { stroke: var(--tok-num); stroke-width: 3; }
+.itree g.t rect { stroke: var(--tok-str); }
+.itree g.t text.res { fill: var(--tok-str); }
+.itree g.f rect { stroke: var(--tok-kw); }
+.itree g.f text.res { fill: var(--tok-kw); }
+.itree g.skip { opacity: .3; }
+.itree g.skip rect { stroke-dasharray: 4 3; }
+.rec-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-family: var(--mono); font-size: 0.8rem; color: var(--code-muted); }
+.rec-row .kv { border: 1px solid var(--code-muted); border-radius: 6px; padding: 2px 8px; color: var(--code-fg); }
+.rec-row .kv.on { border-color: var(--tok-num); color: var(--tok-num); }
+.ilog { font-family: var(--mono); font-size: 0.82rem; color: var(--code-fg); min-height: 2.8em; line-height: 1.45; }
+.ilog b { color: var(--tok-num); font-weight: 600; }
+.ptree { width: 100%; height: auto; display: block; }
+.ptree .edge { stroke: var(--rule); stroke-width: 2; }
+.ptree rect { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
+.ptree g.op rect { fill: var(--accent-soft); stroke: var(--accent); }
+.ptree text { font-family: var(--mono); font-size: 14px; font-weight: 600; fill: var(--ink); text-anchor: middle; dominant-baseline: central; }
+.ptree g.op text { fill: var(--accent); }
+.field input.rule-in { font: inherit; font-family: var(--mono); font-size: 0.9rem; color: var(--ink); background: var(--paper); border: 1.5px solid var(--rule); border-radius: 6px; padding: 7px 10px; width: 100%; min-width: 0; }
+.chipbar { display: flex; flex-wrap: wrap; gap: 6px; }
+.chipbar button { font: inherit; font-family: var(--mono); font-size: 0.78rem; background: var(--paper); color: var(--ink); border: 1.5px solid var(--rule); border-radius: 99px; padding: 3px 10px; cursor: pointer; }
+.chipbar button:hover { border-color: var(--ink); }
+.stat { font-family: var(--mono); font-size: 0.9rem; }
+.stat b { font-family: var(--display); font-size: 1.4rem; color: var(--accent); }
+.lu-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 600px) { .lu-grid { grid-template-columns: 1fr; } }
+.lu-box { border: 1.5px solid var(--rule); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; align-content: start; background: var(--paper); transition: border-color .2s; }
+.lu-box h4 { margin: 0; font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.lu-box.on { border-color: var(--accent); }
+.lu-box.store { background: var(--sheet); }
+.doses { display: flex; flex-wrap: wrap; gap: 4px; min-height: 26px; }
+.dose { font-family: var(--mono); font-size: 0.78rem; padding: 2px 8px; border-radius: 6px; background: var(--sheet); border: 1.5px solid var(--rule); }
+.dose.new { border-color: var(--ok); background: var(--ok-soft); }
+.dose.lost { border-color: var(--bad); background: var(--bad-soft); text-decoration: line-through; }
+.ver { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.mode { display: inline-flex; border: 1.5px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.mode button { font: inherit; font-size: 0.85rem; background: transparent; color: var(--muted); border: 0; padding: 6px 12px; cursor: pointer; }
+.mode button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+details.src { background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 10px 14px; }
+details.src summary { cursor: pointer; font-family: var(--mono); font-size: 0.85rem; color: var(--muted); }
+details.src pre { margin: 10px 0 0; font-family: var(--mono); font-size: 0.8rem; background: var(--code-bg); color: var(--code-fg); padding: 12px 14px; border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sort-item p { margin: 0; font-weight: 700; }
+</style>
+</head>
+<body data-lesson="m02">
+<div class="shell">
+  <aside class="rail" aria-label="Module progress"></aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Computer System Design · Module 2</div>
+      <h1>Every system is built from three parts: a <em>memory</em>, an <em>interpreter</em> and a link.</h1>
+      <p class="lede">A case definition written as text, stepped through by a small program, is an interpreter in miniature. Watch it fetch each node of the rule, decode what kind it is, and execute it against one patient after another.</p>
+
+      <div class="tape-card" aria-label="A case-definition interpreter evaluating a rule against patient records">
+        <div class="tape-top"><span>Rule: <b>fever AND (rash OR cough) AND age &lt; 15</b></span><span>cases <b id="hx-cases">0</b> of <b id="hx-seen">0</b> records</span></div>
+        <div class="rec-row" id="hx-rec"></div>
+        <svg class="itree" id="hx-tree" viewBox="0 0 420 270" role="img" aria-label="Parse tree of the rule; the current node is highlighted"></svg>
+        <div class="ilog" id="hx-log" aria-live="polite"></div>
+        <div class="tape-log">
+          <div class="prims">
+            <span class="prim" data-p="fetch">fetch</span><span class="prim" data-p="decode">decode</span><span class="prim" data-p="exec">execute</span><span class="prim" data-p="next">next record</span>
+          </div>
+          <div style="display:flex;gap:6px"><button class="btn-ghost" id="hx-step" type="button">Step</button><button class="btn-ghost" id="hx-play" type="button">Pause</button></div>
+        </div>
+      </div>
+
+      <div class="organizer" aria-label="What this module covers">
+        <div><b>You will learn</b>The three abstractions (memory, interpreter, communication link), read/write coherence, the lost update, and how an interpreter fetches, decodes and executes.</div>
+        <div><b>You will build</b>A version-checked dose update that never loses a clinic's write, a <code>NOT</code> operator for the case-definition language, and an operator that remembers earlier records.</div>
+        <div><b>How it works</b>Step through two clinics racing on one record, explore parse trees, predict what the interpreter prints, then extend it yourself.</div>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section class="lesson" id="s1" data-short="Three abstractions">
+      <div class="sec-head"><span class="sec-num">01</span><h2>Three abstractions</h2></div>
+      <p>Saltzer and Kaashoek argue that almost any computer system can be described with just three kinds of part. Each hides a great deal of mechanism behind a very small interface.</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Abstraction</th><th>Interface</th><th>In SurveilLite and VaxRecords</th></tr></thead>
+        <tbody>
+          <tr><td><b>Memory</b></td><td><code>READ(name)</code>, <code>WRITE(name, value)</code></td><td>a SQLite table, a CSV file, a Python dict, a dose record</td></tr>
+          <tr><td><b>Interpreter</b></td><td>an instruction reference, a repertoire, an environment</td><td>the CPU, the Python interpreter, Flask's request loop, a case-definition evaluator</td></tr>
+          <tr><td><b>Communication link</b></td><td><code>SEND(link, message)</code>, <code>RECEIVE(link)</code></td><td>HTTP between dashboard and API, an SMS from a rural clinic</td></tr>
+        </tbody>
+      </table></div>
+      <p>The value of an abstraction is that you can swap what is behind it. A "memory" might be RAM, a disk, or a table on another continent; the code that calls <code>READ</code> should not have to care. It will care about speed and about failure, and that is what most of the book is about.</p>
+      <div class="callout">Memory remembers, interpreters act, links carry messages between places that share no memory. Name the part and you know which questions to ask about it.</div>
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Sort each part of the two health systems into its abstraction.</span></div>
+        <div class="sorter" id="sorter"></div>
+      </div>
+      <div class="quiz" data-quiz="s1"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="lesson" id="s2" data-short="Memory and coherence">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Memory and read/write coherence</h2></div>
+      <p>The simplest promise a memory makes is <b>read/write coherence</b>: a <code>READ</code> of a name returns the value of the most recent <code>WRITE</code> to that name. A Python dict keeps this promise, so it makes a perfectly good model of a memory. Here SurveilLite's weekly counts are stored under names like <code>N-RIV/week1/measles</code>.</p>
+      <div class="cell" data-predict="5">
+        <div class="predict"><label for="p-s2">Predict the last line:</label><input id="p-s2" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s2" spellcheck="false" aria-label="Python code">memory = {}
+
+def WRITE(name, value):
+    memory[name] = value
+
+def READ(name):
+    return memory[name]
+
+WRITE("N-RIV/week1/measles", 3)
+WRITE("S-COA/week1/cholera", 2)
+WRITE("N-RIV/week1/measles", 5)   # a late report corrects the count
+print(READ("S-COA/week1/cholera"))
+print(READ("N-RIV/week1/measles"))</textarea></div>
+      </div>
+      <p>With one user and one copy, coherence is easy. It gets hard in three situations, and the rest of the course keeps returning to them:</p>
+      <ul>
+        <li><b>Two writers do read, modify, write without coordination.</b> Every individual write is coherent, yet an update disappears. That is the next section.</li>
+        <li><b>There are several copies</b>, such as a cache or a replica on an offline tablet. Now "most recent" needs a definition. Module 10 returns to this.</li>
+        <li><b>A write is not atomic.</b> A write of a large record might stop half way through (Module 9).</li>
+      </ul>
+      <div class="quiz" data-quiz="s2"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="lesson" id="s3" data-short="The lost update">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Why the last write does not always win</h2></div>
+      <p>Clinic A and Clinic B both see the same child, <code>P000042</code>, on the same morning. Each reads the child's dose list, appends the dose it just gave, and writes the list back. Step through it and watch the store.</p>
+      <div class="panel" id="lu">
+        <div class="panel-head"><span class="tag worked">Worked example</span>
+          <div class="mode" role="group" aria-label="Coordination mode"><button type="button" data-m="none" aria-pressed="true">No coordination</button><button type="button" data-m="ver" aria-pressed="false">Version check</button></div>
+        </div>
+        <div class="mini-code" id="lu-code"></div>
+        <div class="lu-grid">
+          <div class="lu-box" id="lu-a"><h4>Clinic A's copy</h4><div class="doses"></div><div class="ver"></div></div>
+          <div class="lu-box store" id="lu-s"><h4>The store: P000042</h4><div class="doses"></div><div class="ver"></div></div>
+          <div class="lu-box" id="lu-b"><h4>Clinic B's copy</h4><div class="doses"></div><div class="ver"></div></div>
+        </div>
+        <div class="cond" id="lu-note" aria-live="polite"></div>
+        <div class="controls"><button class="btn" id="lu-step" type="button">Next step</button><button class="btn alt" id="lu-reset" type="button">Start over</button></div>
+      </div>
+      <p>Each write did exactly what a memory promises. "The last write wins" is true of the memory and wrong for the epidemiologist, because the last write was based on a <b>stale read</b>. This is a <b>lost update</b>, and nothing crashed: the child simply has no record of DTP1.</p>
+      <p>The property we actually want is what the book calls <b>before-or-after atomicity</b>: one clinic's update should happen entirely before or entirely after the other's. A cheap way to get it is a <b>version check</b>. The store keeps a version number for each name; <code>write_if(name, value, version)</code> writes only if the version is still the one you read, and otherwise refuses so you can read again and retry. Below is the same interleaving in code. Predict what is left in the store.</p>
+      <div class="cell" data-predict="['BCG', 'MCV1']">
+        <div class="predict"><label for="p-s3">Predict the last line:</label><input id="p-s3" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s3" spellcheck="false" aria-label="Python code">class RecordStore:
+    """A memory with READ and WRITE, plus a version number per name."""
+    def __init__(self):
+        self.cells = {}
+    def read(self, name):
+        value, version = self.cells.get(name, ([], 0))
+        return list(value), version
+    def write(self, name, value):
+        _, version = self.cells.get(name, ([], 0))
+        self.cells[name] = (list(value), version + 1)
+    def write_if(self, name, value, expected_version):
+        if self.cells.get(name, ([], 0))[1] != expected_version:
+            return False
+        self.write(name, value)
+        return True
+
+store = RecordStore()
+store.write("P000042", ["BCG"])
+doses_a, _ = store.read("P000042")           # A reads
+doses_b, _ = store.read("P000042")           # B reads the same old value
+store.write("P000042", doses_a + ["DTP1"])   # A writes
+store.write("P000042", doses_b + ["MCV1"])   # B writes, based on a stale read
+print("version", store.read("P000042")[1])
+print(store.read("P000042")[0])</textarea></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Faded example: the loop is written, you fill the two blanks.</span></div>
+        <p>Finish <code>coordinated_update</code> so it never loses another clinic's dose. Read, append, then <code>write_if</code> with the version you read. If <code>write_if</code> returns <code>False</code>, someone wrote in between, so loop round and try again. The checker uses <code>BusyStore</code>, which lets another clinic sneak in a write just before your first few attempts.</p>
+        <div class="cell" id="ex-coord">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-coord" spellcheck="false" aria-label="Python code">class RecordStore:
+    def __init__(self):
+        self.cells = {}
+    def read(self, name):
+        value, version = self.cells.get(name, ([], 0))
+        return list(value), version
+    def write(self, name, value):
+        _, version = self.cells.get(name, ([], 0))
+        self.cells[name] = (list(value), version + 1)
+    def write_if(self, name, value, expected_version):
+        if self.cells.get(name, ([], 0))[1] != expected_version:
+            return False
+        self.write(name, value)
+        return True
+
+class BusyStore(RecordStore):
+    """Another clinic writes an OPV dose just before each of your first few write_if calls."""
+    def __init__(self, interrupts):
+        RecordStore.__init__(self)
+        self.interrupts = interrupts
+        self.sneaked = 0
+    def write_if(self, name, value, expected_version):
+        if self.interrupts > 0:
+            self.interrupts -= 1
+            self.sneaked += 1
+            doses, _ = self.read(name)
+            self.write(name, doses + ["OPV" + str(self.sneaked)])
+        return RecordStore.write_if(self, name, value, expected_version)
+
+def coordinated_update(store, person_id, dose, max_tries=10):
+    for attempt in range(max_tries):
+        doses, version = ___                 # 1. read
+        doses.append(dose)                   # 2. modify your own copy
+        if ___:                              # 3. write only if nobody wrote since you read
+            return doses
+        # someone wrote in between: loop round, read again, retry
+    raise RuntimeError("could not update " + person_id + " after " + str(max_tries) + " tries")
+
+store = BusyStore(1)
+store.write("P000042", ["BCG"])
+print(coordinated_update(store, "P000042", "DTP1"))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s3"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="lesson" id="s4" data-short="Interpreters">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Interpreters: fetch, decode, execute</h2></div>
+      <p>An <b>interpreter</b> is a loop that never stops. It <b>fetches</b> the next instruction, <b>decodes</b> it to find out what kind of instruction it is, <b>executes</b> it, possibly changing its environment, and repeats. The book describes every interpreter with three parts:</p>
+      <div class="scroll-x"><table class="data">
+        <thead><tr><th>Part</th><th>A processor</th><th>SurveilLite's case-definition interpreter</th></tr></thead>
+        <tbody>
+          <tr><td><b>Instruction reference</b>: where the next instruction is</td><td>the program counter</td><td>the node of the tree being evaluated, and the record being tested</td></tr>
+          <tr><td><b>Repertoire</b>: the instructions it knows</td><td>add, load, store, branch</td><td><code>and</code>, <code>or</code>, <code>var</code>, <code>cmp</code></td></tr>
+          <tr><td><b>Environment</b>: the state it acts on</td><td>registers and memory</td><td>the current patient record</td></tr>
+        </tbody>
+      </table></div>
+      <p>Any time you write rules <b>as data</b> and a program that follows them, you have built an interpreter. Case definitions fit naturally. A WHO-style definition such as <code>fever AND (rash OR cough) AND age &lt; 15</code> changes when an outbreak investigation refines it. Hard-coded as a Python <code>if</code>, every change needs a developer and a deployment. As text that SurveilLite interprets, an epidemiologist can change it, and the system can store, compare and audit its versions.</p>
+      <p>The interpreter is built in three steps: <b>tokenize</b> the text, <b>parse</b> the tokens into a tree, and <b>evaluate</b> the tree against each record. The lab's tokenizer uses a regular expression; this one walks the characters by hand, which is itself a small fetch and decode loop. How many tokens will the rule produce?</p>
+      <div class="cell" data-predict="11">
+        <div class="predict"><label for="p-s4">Predict the last line:</label><input id="p-s4" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s4" spellcheck="false" aria-label="Python code">KEYWORDS = {"AND", "OR", "NOT", "WITHIN", "DAYS", "OF"}
+
+def tokenize(text):
+    """Split a rule into (kind, value) tokens: num, name, keyword, cmp or paren."""
+    tokens, i = [], 0
+    while i &lt; len(text):
+        ch = text[i]                              # fetch one character
+        if ch == " ":                             # decode it, then act
+            i += 1
+        elif ch.isdigit():
+            j = i
+            while j &lt; len(text) and text[j].isdigit():
+                j += 1
+            tokens.append(("num", int(text[i:j])))
+            i = j
+        elif ch.isalpha() or ch == "_":
+            j = i
+            while j &lt; len(text) and (text[j].isalnum() or text[j] == "_"):
+                j += 1
+            word = text[i:j]
+            if word.upper() in KEYWORDS:
+                tokens.append(("keyword", word.upper()))
+            else:
+                tokens.append(("name", word))
+            i = j
+        elif text[i:i + 2] in ("&lt;=", "&gt;=", "==", "!="):
+            tokens.append(("cmp", text[i:i + 2]))
+            i += 2
+        elif ch in "&lt;&gt;":
+            tokens.append(("cmp", ch))
+            i += 1
+        elif ch in "()":
+            tokens.append(("paren", ch))
+            i += 1
+        else:
+            raise SyntaxError("unexpected character " + repr(ch))
+    return tokens
+
+tokens = tokenize("fever AND (rash OR cough) AND age &lt; 15")
+for t in tokens:
+    print(t)
+print(len(tokens))</textarea></div>
+      </div>
+      <p class="note"><b>Notice:</b> the tokenizer already treats <code>NOT</code> as a keyword, but nothing after it knows what to do with one yet. You will fix that in section 6.</p>
+      <div class="quiz" data-quiz="s4"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="lesson" id="s5" data-short="Parsing">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Parsing: why AND binds tighter than OR</h2></div>
+      <p>Tokens are a flat list. The interpreter needs a <b>tree</b>, so it knows what to combine with what. The parser follows a three-line grammar: a rule is <code>and</code>-groups joined by <code>OR</code>; an <code>and</code>-group is atoms joined by <code>AND</code>; an atom is a parenthesised rule, a comparison like <code>age &lt; 15</code>, or a bare name like <code>fever</code>. Because <code>OR</code> sits at the top, <code>AND</code> groups first.</p>
+      <p>Each node of the tree is a tuple whose first item says what kind of node it is: <code>("and", left, right)</code>, <code>("or", left, right)</code>, <code>("var", name)</code> or <code>("cmp", op, name, number)</code>. Type a rule below and watch the tree change. The count runs the rule over 2,000 synthetic patient records generated in this page (a different random draw from the Python cells, so the counts differ a little).</p>
+      <div class="panel" id="px">
+        <div class="panel-head"><span class="tag worked">Worked example</span><span class="note">Try the presets, then edit the rule.</span></div>
+        <div class="chipbar" id="px-pre"></div>
+        <label class="field" for="px-in" style="display:grid;gap:4px">rule<input class="rule-in" id="px-in" autocomplete="off" spellcheck="false" value="fever AND (rash OR cough) AND age &lt; 15"></label>
+        <div class="scroll-x"><svg class="ptree" id="px-svg" viewBox="0 0 420 200" role="img" aria-label="Parse tree of the rule"></svg></div>
+        <div class="stat" id="px-stat" aria-live="polite"></div>
+      </div>
+      <p>The parentheses change the tree, and the tree is what the interpreter executes. <code>fever AND rash OR cough</code> means <code>(fever AND rash) OR cough</code>, so it counts every patient with a cough, fever or not. That is rarely what the epidemiologist who wrote it meant. Here is the parser in Python. It imports <code>tokenize</code> from the previous section, which this page has saved as a module called <code>casedef</code>.</p>
+      <div class="cell" data-predict="or">
+        <div class="predict"><label for="p-s5">What kind is the root node of the second tree?</label><input id="p-s5" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s5" spellcheck="false" aria-label="Python code">from casedef import tokenize
+
+class Parser:
+    #   or_expr  := and_expr (OR and_expr)*
+    #   and_expr := atom (AND atom)*
+    #   atom     := '(' or_expr ')' | name cmp num | name
+    def __init__(self, text):
+        self.tokens = tokenize(text)
+        self.i = 0
+
+    def peek(self):
+        if self.i &lt; len(self.tokens):
+            return self.tokens[self.i]
+        return (None, None)
+
+    def take(self, kind, value=None):
+        tok = self.peek()
+        if tok[0] != kind or (value is not None and tok[1] != value):
+            raise SyntaxError("expected " + str(value or kind) + ", got " + repr(tok[1] or "end of rule"))
+        self.i += 1
+        return tok[1]
+
+    def parse(self):
+        tree = self.parse_or()
+        if self.i != len(self.tokens):
+            raise SyntaxError("unexpected " + repr(self.peek()[1]))
+        return tree
+
+    def parse_or(self):
+        node = self.parse_and()
+        while self.peek() == ("keyword", "OR"):
+            self.take("keyword", "OR")
+            node = ("or", node, self.parse_and())
+        return node
+
+    def parse_and(self):
+        node = self.parse_atom()
+        while self.peek() == ("keyword", "AND"):
+            self.take("keyword", "AND")
+            node = ("and", node, self.parse_atom())
+        return node
+
+    def parse_atom(self):
+        if self.peek() == ("paren", "("):
+            self.take("paren", "(")
+            node = self.parse_or()
+            self.take("paren", ")")
+            return node
+        name = self.take("name")
+        if self.peek()[0] == "cmp":
+            op = self.take("cmp")
+            return ("cmp", op, name, self.take("num"))
+        return ("var", name)
+
+print(Parser("fever AND (rash OR cough) AND age &lt; 15").parse())
+try:
+    Parser("fever AND (rash OR").parse()
+except SyntaxError as err:
+    print("rejected before touching any data:", err)
+tree = Parser("fever AND rash OR cough").parse()
+print(tree)
+print(tree[0])</textarea></div>
+      </div>
+      <p>A malformed rule is rejected by the parser, before it touches a single record. In a surveillance system that is what you want: an error you see today beats a wrong count you discover next month.</p>
+      <details class="src"><summary>Show the module casedef that later cells import</summary><pre id="casedef-show"></pre></details>
+      <div class="quiz" data-quiz="s5"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="lesson" id="s6" data-short="Evaluating the tree">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Evaluating the tree</h2></div>
+      <p>The evaluator is the interpreter loop from the hero, written out. <code>evaluate</code> <b>fetches</b> a node, <b>decodes</b> its kind by looking at <code>node[0]</code>, and <b>executes</b> the matching <code>eval_</code> method. <code>getattr(self, "eval_" + kind)</code> is the decode step: it turns the string <code>"and"</code> into the method <code>eval_and</code>. Python's <code>and</code> and <code>or</code> stop early, so the interpreter skips any node whose answer cannot change the result. How many nodes does it execute for this record?</p>
+      <div class="cell" data-predict="nodes executed: 6">
+        <div class="predict"><label for="p-s6">Predict the last line:</label><input id="p-s6" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s6" spellcheck="false" aria-label="Python code">from casedef import parse, CMP
+
+class RecordInterpreter:
+    """Evaluates a tree against one record (a dict) at a time."""
+    def __init__(self):
+        self.executed = 0
+
+    def evaluate(self, node, record):
+        kind = node[0]                                         # fetch the node
+        result = getattr(self, "eval_" + kind)(node, record)   # decode, execute
+        self.executed += 1
+        detail = node[1:] if kind in ("var", "cmp") else ""
+        print("    exec", kind.ljust(4), detail, "->", result)
+        return result
+
+    def eval_and(self, node, record):
+        return self.evaluate(node[1], record) and self.evaluate(node[2], record)
+
+    def eval_or(self, node, record):
+        return self.evaluate(node[1], record) or self.evaluate(node[2], record)
+
+    def eval_var(self, node, record):
+        return bool(record[node[1]])
+
+    def eval_cmp(self, node, record):
+        _, op, name, value = node
+        return CMP[op](record[name], value)
+
+tree = parse("fever AND (rash OR cough) AND age &lt; 15")
+record = {"person_id": "P000143", "age": 6, "fever": True, "rash": True, "cough": True}
+interp = RecordInterpreter()
+print("=>", interp.evaluate(tree, record))
+print("nodes executed:", interp.executed)</textarea></div>
+      </div>
+      <p><code>cough</code> is never evaluated: once <code>rash</code> is <code>True</code>, the <code>OR</code> is settled. Execution order is a property of the interpreter, not of the rule.</p>
+
+      <h3>One abstraction, two implementations</h3>
+      <p>The lab runs the <em>same tree</em> on a second interpreter, <code>FrameInterpreter</code>, which executes each node over a whole pandas column at once instead of one record at a time. The browser has no pandas, so the cell below does the same thing with plain lists: each node returns a list of answers, one per record. The meaning of the rule is fixed by the interface; the implementation is free to change. On a laptop the lab's two interpreters find the same 502 cases in 20,000 records, the column one roughly 100 times faster (0.001 s against 0.09 s).</p>
+      <div class="cell" data-predict="Same answer from both implementations: True">
+        <div class="predict"><label for="p-s6b">Predict the last line:</label><input id="p-s6b" autocomplete="off" placeholder="your guess"></div>
+        <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-s6b" spellcheck="false" aria-label="Python code">from casedef import parse, CMP, RecordInterpreter, line_list
+
+class ColumnInterpreter:
+    """Same tree, different machine: every node returns one answer per record."""
+    def evaluate(self, node, cols):
+        return getattr(self, "eval_" + node[0])(node, cols)
+
+    def eval_and(self, node, cols):
+        a, b = self.evaluate(node[1], cols), self.evaluate(node[2], cols)
+        return [x and y for x, y in zip(a, b)]
+
+    def eval_or(self, node, cols):
+        a, b = self.evaluate(node[1], cols), self.evaluate(node[2], cols)
+        return [x or y for x, y in zip(a, b)]
+
+    def eval_var(self, node, cols):
+        return [bool(v) for v in cols[node[1]]]
+
+    def eval_cmp(self, node, cols):
+        _, op, name, value = node
+        return [CMP[op](v, value) for v in cols[name]]
+
+records = line_list(2000)
+cols = {key: [r[key] for r in records] for key in records[0]}   # rows turned into columns
+
+for rule in ["fever AND rash", "fever AND rash AND age &lt; 5", "fever AND rash OR cough",
+             "fever AND (rash OR cough) AND age &lt; 15"]:
+    tree = parse(rule)
+    by_row = RecordInterpreter().run(tree, records)
+    by_col = ColumnInterpreter().evaluate(tree, cols)
+    print(rule.ljust(40), sum(by_row), "cases")
+print("Same answer from both implementations:", by_row == by_col)</textarea></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Exercise 1 of the lab, in one cell.</span></div>
+        <p>Add a <code>NOT</code> operator. In <code>parse_atom</code>, if the next token is the keyword <code>NOT</code>, take it and return <code>("not", atom)</code>, where <code>atom</code> comes from calling <code>parse_atom</code> again, so <code>NOT NOT x</code> works and <code>NOT fever AND rash</code> means <code>(NOT fever) AND rash</code>. Then add <code>eval_not</code> to the interpreter. The tokenizer here is a shorter one that splits on spaces.</p>
+        <div class="cell" id="ex-not">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-not" spellcheck="false" aria-label="Python code">def tokenize(text):
+    tokens = []
+    for word in text.replace("(", " ( ").replace(")", " ) ").split():
+        if word.isdigit():
+            tokens.append(("num", int(word)))
+        elif word in ("(", ")"):
+            tokens.append(("paren", word))
+        elif word in ("&lt;", "&lt;=", "&gt;", "&gt;=", "==", "!="):
+            tokens.append(("cmp", word))
+        elif word.upper() in ("AND", "OR", "NOT"):
+            tokens.append(("keyword", word.upper()))
+        else:
+            tokens.append(("name", word))
+    return tokens
+
+class Parser:
+    def __init__(self, text):
+        self.tokens = tokenize(text)
+        self.i = 0
+    def peek(self):
+        if self.i &lt; len(self.tokens):
+            return self.tokens[self.i]
+        return (None, None)
+    def take(self, kind, value=None):
+        tok = self.peek()
+        if tok[0] != kind or (value is not None and tok[1] != value):
+            raise SyntaxError("expected " + str(value or kind) + ", got " + repr(tok[1]))
+        self.i += 1
+        return tok[1]
+    def parse(self):
+        tree = self.parse_or()
+        if self.i != len(self.tokens):
+            raise SyntaxError("unexpected " + repr(self.peek()[1]))
+        return tree
+    def parse_or(self):
+        node = self.parse_and()
+        while self.peek() == ("keyword", "OR"):
+            self.take("keyword", "OR")
+            node = ("or", node, self.parse_and())
+        return node
+    def parse_and(self):
+        node = self.parse_atom()
+        while self.peek() == ("keyword", "AND"):
+            self.take("keyword", "AND")
+            node = ("and", node, self.parse_atom())
+        return node
+    def parse_atom(self):
+        # TODO: handle the keyword NOT here
+        if self.peek() == ("paren", "("):
+            self.take("paren", "(")
+            node = self.parse_or()
+            self.take("paren", ")")
+            return node
+        name = self.take("name")
+        if self.peek()[0] == "cmp":
+            op = self.take("cmp")
+            return ("cmp", op, name, self.take("num"))
+        return ("var", name)
+
+CMP = {"&lt;": lambda a, b: a &lt; b, "&lt;=": lambda a, b: a &lt;= b, "&gt;": lambda a, b: a &gt; b,
+       "&gt;=": lambda a, b: a &gt;= b, "==": lambda a, b: a == b, "!=": lambda a, b: a != b}
+
+class Interpreter:
+    def evaluate(self, node, record):
+        return getattr(self, "eval_" + node[0])(node, record)
+    def eval_and(self, node, record):
+        return self.evaluate(node[1], record) and self.evaluate(node[2], record)
+    def eval_or(self, node, record):
+        return self.evaluate(node[1], record) or self.evaluate(node[2], record)
+    def eval_var(self, node, record):
+        return bool(record[node[1]])
+    def eval_cmp(self, node, record):
+        return CMP[node[1]](record[node[2]], node[3])
+    # TODO: add eval_not
+
+record = {"fever": True, "rash": False, "cough": True, "age": 6}
+tree = Parser("fever AND NOT rash").parse()
+print(tree)
+print(Interpreter().evaluate(tree, record))
+</textarea></div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="s6"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="lesson" id="s7" data-short="State and links">
+      <div class="sec-head"><span class="sec-num">07</span><h2>An interpreter that remembers, and links</h2></div>
+      <p>Every instruction so far can be answered from the current record alone. Some cannot. Consider <code>rash WITHIN 14 DAYS OF onset</code>: true for a visit when the rash is present and the visit is 0 to 14 days after that patient's <b>onset</b>, the first visit the interpreter saw for them. The answer for one record depends on earlier records, so the interpreter must <b>keep state</b> between steps, as a processor keeps values in registers.</p>
+      <p>The lab parses the words <code>WITHIN 14 DAYS OF onset</code> into the node <code>("within", ("var", "rash"), 14, "onset")</code> and uses real <code>datetime.date</code> values. Here the tree is written out for you and each visit carries a plain day number, so you can focus on the state. <code>run</code> calls the hook <code>before_each</code> before each record; that is where the interpreter gets to remember.</p>
+      <div class="panel">
+        <div class="panel-head"><span class="tag try">You try</span><span class="note">Exercise 2 of the lab.</span></div>
+        <p>Complete <code>before_each</code> so it records each person's onset day the first time it sees them, and <code>eval_within</code> so it returns <code>True</code> only when <code>0 &lt;= elapsed &lt;= days</code> and the child node is true. Raise <code>ValueError</code> if the reference name is anything but <code>"onset"</code>. For the visits below the answer is <code>[False, True, True, False, True, False]</code>.</p>
+        <div class="cell" id="ex-within">
+          <div class="ed"><pre class="hl"></pre><textarea class="src" id="code-ex-within" spellcheck="false" aria-label="Python code">class Interpreter:
+    def __init__(self):
+        self.onset = {}   # person_id -&gt; day of the first record seen for that person
+
+    def evaluate(self, node, record):
+        return getattr(self, "eval_" + node[0])(node, record)
+
+    def eval_var(self, node, record):
+        return bool(record[node[1]])
+
+    def before_each(self, record):
+        # TODO: remember this person's onset day if it is the first record for them
+        pass
+
+    def eval_within(self, node, record):
+        _, child, days, ref = node
+        # TODO: raise ValueError unless ref is "onset"
+        # TODO: elapsed = days since this person's onset; True only if
+        #       0 &lt;= elapsed &lt;= days and the child node is True
+        return False
+
+    def run(self, tree, records):
+        results = []
+        for record in records:
+            self.before_each(record)
+            results.append(self.evaluate(tree, record))
+        return results
+
+visits = [
+    {"person_id": "P000143", "day": 3,  "rash": False},
+    {"person_id": "P000143", "day": 10, "rash": True},
+    {"person_id": "P000318", "day": 12, "rash": True},
+    {"person_id": "P000143", "day": 20, "rash": True},
+    {"person_id": "P000318", "day": 26, "rash": True},
+    {"person_id": "P000318", "day": 27, "rash": True},
+]
+rule = ("within", ("var", "rash"), 14, "onset")
+print(Interpreter().run(rule, visits))
+</textarea></div>
+        </div>
+      </div>
+      <p>Notice that onset means the first record the interpreter <em>saw</em>, not the earliest date. Feed it records out of order and the answers change. That is a design decision, and a real system would have to state it in the case definition's documentation.</p>
+
+      <h3>Communication links</h3>
+      <p>The third abstraction moves messages between places that do not share memory: <code>SEND(link, message)</code> and <code>RECEIVE(link)</code>. Unlike a memory, a link can <b>lose, delay, duplicate and reorder</b> what you give it. An SMS from a rural clinic can arrive twice, or after the next week's report, or never. This module only names the abstraction; Module 4 (clients and services) and Module 7 (networks) build on it.</p>
+      <div class="callout"><b>Run the full lab.</b> The repository version uses a regular-expression tokenizer, real dates, and a pandas <code>FrameInterpreter</code> timed against the record interpreter on 20,000 records. Clone the course and run <code>pytest lessons/02_elements</code>. Source: <a href="https://github.com/Rwunganira/computer_system_design/tree/main/lessons/02_elements">lessons/02_elements on GitHub</a>.</div>
+      <div class="quiz" data-quiz="s7"></div>
+    </section>
+
+    <!-- 8 -->
+    <section class="lesson" id="s8" data-short="Recall and review">
+      <div class="sec-head"><span class="sec-num">08</span><h2>Recall and review</h2></div>
+      <p>Reading something again feels productive but fades fast. Pulling it out of memory is what makes it last. Say each answer aloud before you flip the card. Cards you mark <b>Again</b> come back at the end of the deck.</p>
+      <div class="deck-host"></div>
+
+      <h3>Mixed check</h3>
+      <p>These questions mix ideas from every section. Interleaving topics is harder than practising one at a time, and that difficulty is what builds durable skill.</p>
+      <div class="quiz" data-quiz="s8"></div>
+
+      <h3>When to come back</h3>
+      <p>Spacing your reviews out makes each one count more. Run through the flashcards again on these days:</p>
+      <div class="schedule" id="schedule"></div>
+
+      <div class="next">
+        <span class="eyebrow">Up next · Module 3</span>
+        <h3>Naming</h3>
+        <p>"P-0042" means one child at Clinic A and another at Clinic B, and two districts are both called "Central". You will resolve path names through contexts, watch an overloaded name merge two children, and fix it with a level of indirection.</p>
+      </div>
+    </section>
+
+    <footer>
+      <span>An independent study module that pairs the book's ideas with runnable examples in two synthetic health systems, SurveilLite and VaxRecords.</span>
+      <span>Follows Saltzer and Kaashoek, <i>Principles of Computer System Design: An Introduction</i> (2009), Chapter 2. Course repository: <a href="https://github.com/Rwunganira/computer_system_design" target="_blank" rel="noopener">github.com/Rwunganira/computer_system_design</a>. Code runs in your browser with Skulpt, a Python 3 interpreter written in JavaScript. Not affiliated with the authors or MIT. All data is synthetic.</span>
+    </footer>
+  </main>
+</div>
+<script type="text/plain" id="casedef-src">"""casedef: the case-definition language from this page, saved so later cells can import it."""
+import random
+
+KEYWORDS = {"AND", "OR", "NOT", "WITHIN", "DAYS", "OF"}
+
+def tokenize(text):
+    tokens, i = [], 0
+    while i < len(text):
+        ch = text[i]
+        if ch == " ":
+            i += 1
+        elif ch.isdigit():
+            j = i
+            while j < len(text) and text[j].isdigit():
+                j += 1
+            tokens.append(("num", int(text[i:j])))
+            i = j
+        elif ch.isalpha() or ch == "_":
+            j = i
+            while j < len(text) and (text[j].isalnum() or text[j] == "_"):
+                j += 1
+            word = text[i:j]
+            if word.upper() in KEYWORDS:
+                tokens.append(("keyword", word.upper()))
+            else:
+                tokens.append(("name", word))
+            i = j
+        elif text[i:i + 2] in ("<=", ">=", "==", "!="):
+            tokens.append(("cmp", text[i:i + 2]))
+            i += 2
+        elif ch in "<>":
+            tokens.append(("cmp", ch))
+            i += 1
+        elif ch in "()":
+            tokens.append(("paren", ch))
+            i += 1
+        else:
+            raise SyntaxError("unexpected character " + repr(ch))
+    return tokens
+
+class Parser:
+    def __init__(self, text):
+        self.tokens = tokenize(text)
+        self.i = 0
+    def peek(self):
+        if self.i < len(self.tokens):
+            return self.tokens[self.i]
+        return (None, None)
+    def take(self, kind, value=None):
+        tok = self.peek()
+        if tok[0] != kind or (value is not None and tok[1] != value):
+            raise SyntaxError("expected " + str(value or kind) + ", got " + repr(tok[1] or "end of rule"))
+        self.i += 1
+        return tok[1]
+    def parse(self):
+        tree = self.parse_or()
+        if self.i != len(self.tokens):
+            raise SyntaxError("unexpected " + repr(self.peek()[1]))
+        return tree
+    def parse_or(self):
+        node = self.parse_and()
+        while self.peek() == ("keyword", "OR"):
+            self.take("keyword", "OR")
+            node = ("or", node, self.parse_and())
+        return node
+    def parse_and(self):
+        node = self.parse_atom()
+        while self.peek() == ("keyword", "AND"):
+            self.take("keyword", "AND")
+            node = ("and", node, self.parse_atom())
+        return node
+    def parse_atom(self):
+        if self.peek() == ("paren", "("):
+            self.take("paren", "(")
+            node = self.parse_or()
+            self.take("paren", ")")
+            return node
+        name = self.take("name")
+        if self.peek()[0] == "cmp":
+            op = self.take("cmp")
+            return ("cmp", op, name, self.take("num"))
+        return ("var", name)
+
+def parse(text):
+    return Parser(text).parse()
+
+CMP = {"<": lambda a, b: a < b, "<=": lambda a, b: a <= b, ">": lambda a, b: a > b,
+       ">=": lambda a, b: a >= b, "==": lambda a, b: a == b, "!=": lambda a, b: a != b}
+
+class RecordInterpreter:
+    def evaluate(self, node, record):
+        return getattr(self, "eval_" + node[0])(node, record)
+    def eval_and(self, node, record):
+        return self.evaluate(node[1], record) and self.evaluate(node[2], record)
+    def eval_or(self, node, record):
+        return self.evaluate(node[1], record) or self.evaluate(node[2], record)
+    def eval_var(self, node, record):
+        return bool(record[node[1]])
+    def eval_cmp(self, node, record):
+        _, op, name, value = node
+        return CMP[op](record[name], value)
+    def before_each(self, record):
+        pass
+    def run(self, tree, records):
+        results = []
+        for record in records:
+            self.before_each(record)
+            results.append(self.evaluate(tree, record))
+        return results
+
+def line_list(n=2000, seed=3):
+    """Synthetic patient records with symptoms."""
+    random.seed(seed)
+    return [{"person_id": "P" + str(i).zfill(6), "age": random.randrange(60),
+             "fever": random.random() < 0.3, "rash": random.random() < 0.1,
+             "cough": random.random() < 0.25} for i in range(1, n + 1)]
+</script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script src="course.js"></script>
+<script>
+(() => {
+"use strict";
+const { $, $$, esc, highlight } = CT;
+const reduced = CT.reduced;
+
+/* ---------- the casedef module, importable from every cell ---------- */
+const CASEDEF = $("#casedef-src").textContent;
+if (typeof Sk !== "undefined" && Sk.builtinFiles) Sk.builtinFiles.files["src/lib/casedef.py"] = CASEDEF;
+$("#casedef-show").innerHTML = highlight(CASEDEF.trim()).trimEnd();
+
+/* ---------- a JavaScript twin of the case-definition language ---------- */
+const KW = new Set(["AND", "OR", "NOT", "WITHIN", "DAYS", "OF"]);
+function tokenize(text) {
+  const toks = []; let i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (ch === " ") { i++; continue; }
+    let m;
+    if ((m = /^\d+/.exec(text.slice(i)))) { toks.push(["num", +m[0]]); i += m[0].length; }
+    else if ((m = /^[A-Za-z_]\w*/.exec(text.slice(i)))) { const w = m[0]; toks.push(KW.has(w.toUpperCase()) ? ["keyword", w.toUpperCase()] : ["name", w]); i += w.length; }
+    else if ((m = /^(<=|>=|==|!=|<|>)/.exec(text.slice(i)))) { toks.push(["cmp", m[0]]); i += m[0].length; }
+    else if (ch === "(" || ch === ")") { toks.push(["paren", ch]); i++; }
+    else throw new Error("unexpected character '" + ch + "'");
+  }
+  return toks;
+}
+function parse(text) {
+  const t = tokenize(text); let i = 0;
+  const peek = () => t[i] || [null, null];
+  const is = (k, v) => peek()[0] === k && peek()[1] === v;
+  const take = (k, v) => { const tok = peek(); if (tok[0] !== k || (v != null && tok[1] !== v)) throw new Error("expected " + (v || k) + ", got '" + (tok[1] == null ? "end of rule" : tok[1]) + "'"); i++; return tok[1]; };
+  const pOr = () => { let n = pAnd(); while (is("keyword", "OR")) { take("keyword", "OR"); n = ["or", n, pAnd()]; } return n; };
+  const pAnd = () => { let n = pAtom(); while (is("keyword", "AND")) { take("keyword", "AND"); n = ["and", n, pAtom()]; } return n; };
+  const pAtom = () => {
+    if (is("paren", "(")) { take("paren", "("); const n = pOr(); take("paren", ")"); return n; }
+    const name = take("name");
+    if (peek()[0] === "cmp") { const op = take("cmp"); return ["cmp", op, name, take("num")]; }
+    return ["var", name];
+  };
+  const tree = pOr();
+  if (i !== t.length) throw new Error("unexpected '" + peek()[1] + "'");
+  return tree;
+}
+const CMPJ = { "<": (a, b) => a < b, "<=": (a, b) => a <= b, ">": (a, b) => a > b, ">=": (a, b) => a >= b, "==": (a, b) => a === b, "!=": (a, b) => a !== b };
+function evalJ(n, r) {
+  if (n[0] === "and") return evalJ(n[1], r) && evalJ(n[2], r);
+  if (n[0] === "or") return evalJ(n[1], r) || evalJ(n[2], r);
+  if (n[0] === "var") { if (!(n[1] in r)) throw new Error("no field named '" + n[1] + "' (try fever, rash, cough, age)"); return !!r[n[1]]; }
+  if (!(n[2] in r)) throw new Error("no field named '" + n[2] + "'");
+  return CMPJ[n[1]](r[n[2]], n[3]);
+}
+const label = n => n[0] === "and" ? "AND" : n[0] === "or" ? "OR" : n[0] === "var" ? n[1] : `${n[2]} ${n[1]} ${n[3]}`;
+function layout(tree) {
+  const nodes = [], edges = []; let leaf = 0;
+  (function walk(n, d) {
+    const node = { n, d, id: nodes.length }; nodes.push(node);
+    const kids = n[0] === "and" || n[0] === "or" ? [n[1], n[2]] : [];
+    if (!kids.length) node.x = leaf++;
+    else { node.kids = kids.map(k => walk(k, d + 1)); node.x = (node.kids[0].x + node.kids[node.kids.length - 1].x) / 2; node.kids.forEach(k => edges.push([node, k])); }
+    return node;
+  })(tree, 0);
+  return { nodes, edges, leaves: leaf, depth: Math.max(...nodes.map(n => n.d)) };
+}
+function treeSVG(L, W, dy, extra) {
+  const pad = 8, sx = x => pad + (x + 0.5) * (W - 2 * pad) / L.leaves, sy = d => 26 + d * dy;
+  let h = L.edges.map(([a, b]) => `<line class="edge" data-to="${b.id}" x1="${sx(a.x)}" y1="${sy(a.d)}" x2="${sx(b.x)}" y2="${sy(b.d)}"/>`).join("");
+  h += L.nodes.map(nd => {
+    const lb = label(nd.n), w = Math.max(50, lb.length * 9.5 + 18), op = nd.n[0] === "and" || nd.n[0] === "or";
+    return `<g data-id="${nd.id}" class="${op ? "op" : ""}"><rect x="${sx(nd.x) - w / 2}" y="${sy(nd.d) - 15}" width="${w}" height="30" rx="7"/><text x="${sx(nd.x)}" y="${sy(nd.d)}">${esc(lb)}</text>${extra ? `<text class="res" x="${sx(nd.x)}" y="${sy(nd.d) + 26}"></text>` : ""}</g>`;
+  }).join("");
+  return { html: h, height: sy(L.depth) + (extra ? 44 : 24) };
+}
+
+/* ---------- hero: the interpreter stepping through records ---------- */
+const RULE = "fever AND (rash OR cough) AND age < 15";
+const HT = layout(parse(RULE));
+const hsvg = $("#hx-tree");
+const built = treeSVG(HT, 380, 72, true);
+hsvg.setAttribute("viewBox", `0 0 380 ${built.height}`);
+hsvg.innerHTML = built.html;
+const RECS = [
+  { person_id: "P000143", age: 6, fever: true, rash: true, cough: true },
+  { person_id: "P000201", age: 9, fever: false, rash: false, cough: true },
+  { person_id: "P000318", age: 4, fever: true, rash: false, cough: true },
+  { person_id: "P000412", age: 22, fever: true, rash: false, cough: true },
+  { person_id: "P000507", age: 11, fever: true, rash: false, cough: false }
+];
+const sub = nd => [nd.id].concat(...(nd.kids || []).map(sub));
+function events(rec) {
+  const ev = [];
+  (function go(nd) {
+    ev.push({ ph: "fetch", id: nd.id }); ev.push({ ph: "decode", id: nd.id });
+    const n = nd.n; let v;
+    if (n[0] === "and" || n[0] === "or") {
+      const a = go(nd.kids[0]);
+      if (n[0] === "and" ? !a : a) { ev.push({ ph: "skip", ids: sub(nd.kids[1]), id: nd.id, why: n[0] === "and" ? "left side is False, so AND is already False" : "left side is True, so OR is already True" }); v = a; }
+      else v = go(nd.kids[1]);
+    } else v = evalJ(n, rec);
+    ev.push({ ph: "exec", id: nd.id, v });
+    return v;
+  })(HT.nodes[0]);
+  ev.push({ ph: "next", v: ev[ev.length - 1].v });
+  return ev;
+}
+const hx = { r: 0, k: -1, ev: events(RECS[0]), cases: 0, seen: 0, timer: null, playing: !reduced };
+function hxRender() {
+  const rec = RECS[hx.r], cur = hx.ev[hx.k] || null;
+  const res = {}, skip = new Set();
+  for (let j = 0; j <= hx.k; j++) { const e = hx.ev[j]; if (e.ph === "exec") res[e.id] = e.v; if (e.ph === "skip") e.ids.forEach(x => skip.add(x)); }
+  const touched = cur && cur.id != null ? HT.nodes[cur.id].n : null;
+  $("#hx-rec").innerHTML = `<span>record</span><span class="kv">${rec.person_id}</span>` + ["fever", "rash", "cough", "age"].map(f => `<span class="kv${touched && (touched[1] === f || touched[2] === f) && (cur.ph === "exec") ? " on" : ""}">${f} = ${rec[f] === true ? "True" : rec[f] === false ? "False" : rec[f]}</span>`).join("");
+  $$("g[data-id]", hsvg).forEach(g => {
+    const id = +g.dataset.id, cls = [];
+    if (cur && cur.id === id && cur.ph !== "skip") cls.push("cur");
+    if (id in res) cls.push(res[id] ? "t" : "f");
+    if (skip.has(id)) cls.push("skip");
+    g.setAttribute("class", cls.join(" "));
+    $("text.res", g).textContent = id in res ? String(res[id] ? "True" : "False") : skip.has(id) ? "skipped" : "";
+  });
+  $$("line.edge", hsvg).forEach(l => l.classList.toggle("skip", skip.has(+l.dataset.to)));
+  let msg = "Press Step, or let it play.", on = [];
+  if (cur) {
+    const n = cur.id != null ? HT.nodes[cur.id].n : null, lb = n ? label(n) : "";
+    if (cur.ph === "fetch") { msg = `<b>fetch</b> the next node: ${esc(lb)}`; on = ["fetch"]; }
+    else if (cur.ph === "decode") { msg = `<b>decode</b> its kind, "${n[0]}", so run eval_${n[0]}`; on = ["decode"]; }
+    else if (cur.ph === "skip") { msg = `<b>skip</b> the right side: ${cur.why}`; on = ["exec"]; }
+    else if (cur.ph === "exec") { msg = n[0] === "var" ? `<b>execute</b> var: record["${n[1]}"] is ${cur.v ? "True" : "False"}` : n[0] === "cmp" ? `<b>execute</b> cmp: ${rec[n[2]]} ${n[1]} ${n[3]} is ${cur.v ? "True" : "False"}` : `<b>execute</b> ${lb}: combine the children, ${cur.v ? "True" : "False"}`; on = ["exec"]; }
+    else if (cur.ph === "next") { msg = `${rec.person_id} ${cur.v ? "<b>is a case</b>" : "is not a case"}. Fetch the next record.`; on = ["next"]; }
+  }
+  $("#hx-log").innerHTML = msg;
+  $$(".tape-card .prim").forEach(p => p.classList.toggle("on", on.includes(p.dataset.p)));
+  $("#hx-cases").textContent = hx.cases; $("#hx-seen").textContent = hx.seen;
+}
+function hxStep() {
+  if (hx.k >= hx.ev.length - 1) {
+    hx.r = (hx.r + 1) % RECS.length;
+    if (hx.r === 0) { hx.cases = 0; hx.seen = 0; }
+    hx.ev = events(RECS[hx.r]); hx.k = -1;
+  }
+  hx.k++;
+  const e = hx.ev[hx.k];
+  if (e.ph === "next") { hx.seen++; if (e.v) hx.cases++; }
+  hxRender();
+}
+function hxLoop() { clearInterval(hx.timer); if (hx.playing) hx.timer = setInterval(hxStep, 900); $("#hx-play").textContent = hx.playing ? "Pause" : "Play"; }
+$("#hx-step").addEventListener("click", () => { hx.playing = false; hxLoop(); hxStep(); });
+$("#hx-play").addEventListener("click", () => { hx.playing = !hx.playing; hxLoop(); });
+hxRender(); hxLoop();
+
+/* ---------- sorter ---------- */
+const sortItems = [
+  { t: "The SQLite table that holds VaxRecords' doses", ans: 0, why: "It stores values under names (keys) and gives them back: READ and WRITE." },
+  { t: "An SMS carrying a clinic's weekly counts to the district", ans: 2, why: "It moves a message between places that share no memory, and it can be lost, delayed or duplicated." },
+  { t: "Flask's request loop", ans: 1, why: "It repeatedly takes the next request, decides which handler it is for, and runs it: fetch, decode, execute." },
+  { t: "SurveilLite's case-definition evaluator", ans: 1, why: "Rules are data, and a program follows them node by node. That is an interpreter." },
+  { t: "A Python dict holding this week's counts", ans: 0, why: "d[name] = value is WRITE and d[name] is READ." },
+  { t: "HTTP between the dashboard and the VaxRecords API", ans: 2, why: "Two programs that share no memory, exchanging messages: SEND and RECEIVE." }
+];
+const kinds = ["Memory", "Interpreter", "Communication link"];
+$("#sorter").innerHTML = sortItems.map((it, i) => `<div class="sort-item" data-i="${i}"><p>${esc(it.t)}</p><div class="opts">${kinds.map((k, j) => `<button class="opt" type="button" data-j="${j}">${k}</button>`).join("")}</div></div>`).join("");
+$$(".sort-item").forEach(el => {
+  const it = sortItems[+el.dataset.i];
+  $$(".opt", el).forEach(b => b.addEventListener("click", () => {
+    const ok = +b.dataset.j === it.ans;
+    b.classList.add(ok ? "right" : "wrong");
+    let w = $(".why", el); if (!w) { w = document.createElement("div"); el.appendChild(w); }
+    w.className = "why " + (ok ? "ok" : "no"); w.textContent = (ok ? "Right. " : "Not quite. ") + it.why;
+    if (ok) $$(".opt", el).forEach(x => x.disabled = true);
+  }));
+});
+
+/* ---------- lost update step-through ---------- */
+const LU = {
+  none: {
+    code: ["a, va = store.read(pid)      # Clinic A", "b, vb = store.read(pid)      # Clinic B", "store.write(pid, a + ['DTP1'])", "store.write(pid, b + ['MCV1'])"],
+    steps: [
+      { line: -1, s: ["BCG"], v: 1, a: null, b: null, note: "The store holds one dose for P000042, at version 1. Both clinics are about to record a dose." },
+      { line: 0, s: ["BCG"], v: 1, a: { d: ["BCG"], v: 1 }, b: null, on: "a", note: "Clinic A reads: it now has its own copy, [BCG], version 1." },
+      { line: 1, s: ["BCG"], v: 1, a: { d: ["BCG"], v: 1 }, b: { d: ["BCG"], v: 1 }, on: "b", note: "Clinic B reads the same value. Neither knows about the other." },
+      { line: 2, s: ["BCG", "DTP1"], v: 2, a: { d: ["BCG", "DTP1"], v: 1, n: "DTP1" }, b: { d: ["BCG"], v: 1 }, on: "s", sn: "DTP1", note: "Clinic A appends DTP1 and writes. A READ now returns [BCG, DTP1]: coherent." },
+      { line: 3, s: ["BCG", "MCV1"], v: 3, a: { d: ["BCG", "DTP1"], v: 1 }, b: { d: ["BCG", "MCV1"], v: 1, n: "MCV1" }, on: "s", sn: "MCV1", lost: "DTP1", note: "Clinic B writes its list, built from a stale read. Also coherent, and DTP1 is gone. Nobody saw an error." }
+    ]
+  },
+  ver: {
+    code: ["a, va = store.read(pid)      # Clinic A", "b, vb = store.read(pid)      # Clinic B", "store.write_if(pid, a + ['DTP1'], va)", "store.write_if(pid, b + ['MCV1'], vb)", "b, vb = store.read(pid)      # B retries", "store.write_if(pid, b + ['MCV1'], vb)"],
+    steps: [
+      { line: -1, s: ["BCG"], v: 1, a: null, b: null, note: "Same start: [BCG] at version 1. This time each write says which version it was based on." },
+      { line: 0, s: ["BCG"], v: 1, a: { d: ["BCG"], v: 1 }, b: null, on: "a", note: "Clinic A reads [BCG] and remembers version 1." },
+      { line: 1, s: ["BCG"], v: 1, a: { d: ["BCG"], v: 1 }, b: { d: ["BCG"], v: 1 }, on: "b", note: "Clinic B reads [BCG] and also remembers version 1." },
+      { line: 2, s: ["BCG", "DTP1"], v: 2, a: { d: ["BCG", "DTP1"], v: 1, n: "DTP1" }, b: { d: ["BCG"], v: 1 }, on: "s", sn: "DTP1", note: "A's write_if says 'only if still version 1'. It is, so the write happens and the version becomes 2." },
+      { line: 3, s: ["BCG", "DTP1"], v: 2, a: { d: ["BCG", "DTP1"], v: 1 }, b: { d: ["BCG", "MCV1"], v: 1, n: "MCV1" }, on: "b", refused: true, note: "B's write_if says 'only if still version 1'. The store is at version 2, so it refuses and returns False. Nothing is lost." },
+      { line: 4, s: ["BCG", "DTP1"], v: 2, a: { d: ["BCG", "DTP1"], v: 1 }, b: { d: ["BCG", "DTP1"], v: 2 }, on: "b", note: "B reads again: [BCG, DTP1] at version 2." },
+      { line: 5, s: ["BCG", "DTP1", "MCV1"], v: 3, a: { d: ["BCG", "DTP1"], v: 1 }, b: { d: ["BCG", "DTP1", "MCV1"], v: 2, n: "MCV1" }, on: "s", sn: "MCV1", note: "B appends MCV1 and write_if succeeds at version 2. Both doses survive: B's update happened entirely after A's." }
+    ]
+  }
+};
+let luMode = "none", luAt = 0;
+function doseChips(list, fresh, lost) { return (list || []).map(d => `<span class="dose${d === fresh ? " new" : ""}">${d}</span>`).join("") + (lost ? `<span class="dose lost">${lost}</span>` : ""); }
+function luRender() {
+  const M = LU[luMode], st = M.steps[luAt];
+  $("#lu-code").innerHTML = M.code.map((l, i) => `<div class="${i === st.line ? "cur" : i < st.line ? "past" : ""}">${highlight(l).trimEnd()}</div>`).join("");
+  const box = (id, c, extra) => { const el = $(id); $(".doses", el).innerHTML = c ? doseChips(c.d, c.n) : '<span class="ver">not read yet</span>'; el.lastElementChild.textContent = extra || (c ? "read at version " + c.v : ""); };
+  box("#lu-a", st.a); box("#lu-b", st.b, st.refused ? "write_if refused: version is now 2" : "");
+  $("#lu-s .doses").innerHTML = doseChips(st.s, st.sn, st.lost);
+  $("#lu-s .ver").textContent = "version " + st.v;
+  ["a", "b", "s"].forEach(k => $("#lu-" + k).classList.toggle("on", st.on === k));
+  $("#lu-note").textContent = st.note;
+  $("#lu-step").disabled = luAt >= M.steps.length - 1;
+}
+$$("#lu .mode button").forEach(b => b.addEventListener("click", () => { luMode = b.dataset.m; luAt = 0; $$("#lu .mode button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); luRender(); }));
+$("#lu-step").addEventListener("click", () => { luAt++; luRender(); });
+$("#lu-reset").addEventListener("click", () => { luAt = 0; luRender(); });
+luRender();
+
+/* ---------- parse-tree explorer ---------- */
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const rnd = mulberry32(3);
+const LINE = Array.from({ length: 2000 }, () => ({ age: Math.floor(rnd() * 60), fever: rnd() < 0.3, rash: rnd() < 0.1, cough: rnd() < 0.25 }));
+const PRESETS = ["fever AND (rash OR cough) AND age < 15", "fever AND rash OR cough", "fever AND (rash OR cough)", "fever AND rash AND age < 5", "NOT fever", "fever AND (rash OR"];
+$("#px-pre").innerHTML = PRESETS.map(p => `<button type="button">${esc(p)}</button>`).join("");
+$$("#px-pre button").forEach((b, i) => b.addEventListener("click", () => { $("#px-in").value = PRESETS[i]; pxRender(); }));
+function pxRender() {
+  const text = $("#px-in").value, svg = $("#px-svg");
+  try {
+    const tree = parse(text), L = layout(tree);
+    const W = Math.max(420, L.leaves * 120), t = treeSVG(L, W, 62, false);
+    svg.setAttribute("viewBox", `0 0 ${W} ${t.height}`); svg.style.minWidth = L.leaves > 4 ? (L.leaves * 80) + "px" : "";
+    svg.innerHTML = t.html;
+    const n = LINE.filter(r => evalJ(tree, r)).length;
+    $("#px-stat").innerHTML = `<b>${n.toLocaleString("en-US")}</b> cases of 2,000 records`;
+  } catch (e) {
+    svg.setAttribute("viewBox", "0 0 420 60"); svg.style.minWidth = "";
+    svg.innerHTML = `<text x="210" y="30" style="fill:var(--bad)">no tree</text>`;
+    $("#px-stat").innerHTML = `<span style="color:var(--bad)">SyntaxError: ${esc(e.message)}</span>. A malformed rule never reaches the data.`;
+  }
+}
+$("#px-in").addEventListener("input", pxRender);
+pxRender();
+
+/* ---------- quizzes and cards ---------- */
+const QUIZ = {
+  s1: [
+    { q: "An offline tablet at a vaccination post queues dose records and uploads them when it finds signal. Which abstraction is the upload path?", o: ["A memory, because the records are stored", "An interpreter, because the tablet runs code", "A communication link, because it moves messages between places that share no memory", "None: it is just a sync feature"], a: 2, why: "The queue on the tablet is a memory, but the path from tablet to server is a link. That is why uploads can arrive late, twice, or never." },
+    { q: "Why does the book bother to describe a SQLite table, a CSV file and a Python dict with the same <code>READ</code>/<code>WRITE</code> interface?", o: ["Because they are equally fast", "So code written against the interface works whichever implementation is behind it", "Because they all store data on disk", "Because SQL is a kind of interpreter"], a: 1, why: "The abstraction lets you swap the implementation. Speed and failure behaviour still differ, which is what the rest of the book studies." }
+  ],
+  s2: [
+    { q: "Read/write coherence promises that a <code>READ</code> returns…", o: ["the first value ever written to that name", "the value of the most recent <code>WRITE</code> to that name", "the value most clinics agree on", "a value that is correct for the epidemiologist"], a: 1, why: "Coherence is about recency only. As the next section shows, a coherent memory can still hold a value that is wrong for the application." },
+    { q: "Which situation makes \"most recent write\" hard to even define?", o: ["One clinic writing twice in a row", "Several copies of the record, such as a server and an offline tablet", "Reading a name that was never written", "Writing a value that is a list"], a: 1, why: "With several copies, two writes can happen at different places with no single order. Module 10 is about choosing a definition." }
+  ],
+  s3: [
+    { q: "In the uncoordinated run, which write broke read/write coherence?", o: ["Clinic A's write", "Clinic B's write", "Both", "Neither: each read returned the most recent write, yet DTP1 was lost"], a: 3, why: "Every operation kept the memory's promise. The bug is in the read, modify, write sequence: B's write was based on a stale read. That needs before-or-after atomicity, not better coherence." },
+    { q: "With the version check, what does Clinic B do when <code>write_if</code> returns <code>False</code>?", o: ["Gives up and reports an error to the nurse", "Writes anyway with plain <code>write</code>", "Reads again, appends its dose to the fresh list, and retries <code>write_if</code>", "Waits for Clinic A to delete its dose"], a: 2, why: "A refused write_if means someone wrote since you read. Re-reading picks up their change, so your retry includes both doses." }
+  ],
+  s4: [
+    { q: "In the case-definition interpreter, what plays the role of the <b>repertoire</b>?", o: ["The patient record", "The node kinds it knows how to execute: and, or, var, cmp", "The text of the rule", "Python's <code>getattr</code>"], a: 1, why: "The repertoire is the set of instructions the interpreter understands. A rule using anything outside it, like NOT before Exercise 1, cannot run." },
+    { q: "Why is a case definition stored as text that SurveilLite interprets, instead of a Python <code>if</code>?", o: ["Interpreting text is faster than running Python", "An epidemiologist can change, store, compare and audit versions of the rule without a deployment", "Python cannot express AND and OR", "Text takes less memory"], a: 1, why: "Rules as data move the change from the developer's release cycle to the person who owns the definition, and give you a history of every version." }
+  ],
+  s5: [
+    { q: "What tree does the parser build for <code>cough OR fever AND rash</code>?", o: ["<code>('and', ('or', cough, fever), rash)</code>", "<code>('or', cough, ('and', fever, rash))</code>", "<code>('or', ('or', cough, fever), rash)</code>", "A SyntaxError, because the rule is ambiguous"], a: 1, why: "AND binds tighter than OR wherever it appears, so fever AND rash is grouped first, then OR'd with cough." },
+    { q: "Before Exercise 1, what does <code>parse(\"NOT fever\")</code> do?", o: ["Returns a tree that means fever", "Returns a tree that means NOT fever", "Raises SyntaxError, because the parser expects a name and gets the keyword NOT", "Returns an empty tree"], a: 2, why: "The tokenizer knows NOT is a keyword, so parse_atom sees a keyword where it needs a name and refuses. An error is far better than a silently wrong count." }
+  ],
+  s6: [
+    { q: "For a record with <code>fever = False</code>, how many nodes does the record interpreter execute on <code>fever AND (rash OR cough) AND age &lt; 15</code>?", o: ["7, every node", "3", "1", "2"], a: 1, why: "It executes fever (False), then the inner AND (False, without evaluating its right side), then the root AND (False, without evaluating age &lt; 15). Three nodes. Try it in the hero with record P000201." },
+    { q: "The column interpreter evaluates both sides of every AND, even when the left side is all False. Why do the two interpreters still agree?", o: ["They do not; the counts differ slightly", "Because evaluating a side that is not needed cannot change an AND or OR result, it only costs time", "Because the column interpreter sorts the records first", "Because Python caches the results"], a: 1, why: "Short-circuiting is an optimisation, not part of the meaning. The tree fixes the answer; the implementation decides how much work to do." }
+  ],
+  s7: [
+    { q: "Why does <code>rash WITHIN 14 DAYS OF onset</code> need <code>before_each</code>, when <code>age &lt; 15</code> does not?", o: ["Because dates are slower to compare than numbers", "Because its answer for one record depends on the first record seen for that person, so the interpreter must remember it", "Because WITHIN is a keyword", "Because the parser cannot handle numbers after WITHIN"], a: 1, why: "age &lt; 15 depends only on the current record. WITHIN depends on earlier records, so the interpreter keeps state between steps, like a processor's registers." },
+    { q: "Which can a communication link do that a memory, by its promise, does not?", o: ["Return the most recent value", "Lose, delay, duplicate or reorder what you give it", "Store values under names", "Execute instructions"], a: 1, why: "SEND and RECEIVE make no promise of exactly once, in order. Modules 4 and 7 build reliable behaviour on top of that." }
+  ],
+  s8: [
+    { q: "Two nurses edit the same child's record in VaxRecords from different tablets. One dose disappears. Which fix addresses the cause?", o: ["Use a faster database", "Make every write check the version it was based on, and retry on refusal", "Parse the record more carefully", "Send each write twice"], a: 1, why: "This is a lost update from read, modify, write. A version check gives before-or-after atomicity: each update lands entirely after the other." },
+    { q: "An epidemiologist writes <code>rash OR cough AND fever</code> intending \"(rash OR cough) with fever\". What does SurveilLite count?", o: ["Exactly what she intended", "Every patient with a rash, fever or not, plus coughing patients who have fever", "Only patients with all three symptoms", "Nothing: it is a syntax error"], a: 1, why: "AND groups first: rash OR (cough AND fever). The fix is parentheses, and showing the parsed tree back to the author before it runs." },
+    { q: "Which of these is an interpreter in the book's sense?", o: ["A CSV file of weekly counts", "A loop that takes each queued SMS, decides which report type it is, and runs the matching handler", "The cellular network carrying the SMS", "A dict mapping clinic IDs to names"], a: 1, why: "Fetch the next message, decode its type, execute the handler, repeat. The CSV and the dict are memories; the cellular network is a link." }
+  ]
+};
+const CARDS = [
+  ["The three fundamental abstractions", "Memory, interpreter, communication link."],
+  ["The memory interface", "<code>READ(name)</code> and <code>WRITE(name, value)</code>."],
+  ["Read/write coherence", "A read returns the value of the most recent write to that name."],
+  ["Lost update", "Two writers each read, modify and write back; the second write is based on a stale read and erases the first."],
+  ["Before-or-after atomicity", "Concurrent actions have the same effect as if one ran entirely before the other."],
+  ["How a version check prevents a lost update", "<code>write_if(name, value, version)</code> refuses if anyone wrote since you read; you read again and retry."],
+  ["The interpreter loop", "Fetch the next instruction, decode it, execute it, repeat."],
+  ["An interpreter's three parts", "Instruction reference, repertoire, environment."],
+  ["The case-definition pipeline", "Tokenize the text, parse tokens into a tree, evaluate the tree against each record."],
+  ["<code>fever AND rash OR cough</code> means…", "<code>(fever AND rash) OR cough</code>: AND binds tighter than OR."],
+  ["One abstraction, two implementations", "The record and column interpreters run the same tree and agree on every answer, at very different speeds."],
+  ["The communication link interface", "<code>SEND(link, message)</code> and <code>RECEIVE(link)</code>. A link can lose, delay, duplicate and reorder."]
+];
+
+/* ---------- exercises ---------- */
+const coordStarter = $("#code-ex-coord").value;
+const coordSolution = coordStarter
+  .replace("doses, version = ___                 # 1. read", "doses, version = store.read(person_id)   # 1. read")
+  .replace("if ___:                              # 3. write only if nobody wrote since you read", "if store.write_if(person_id, doses, version):   # 3. write only if unchanged");
+const notStarter = $("#code-ex-not").value;
+const notSolution = notStarter
+  .replace("        # TODO: handle the keyword NOT here\n", "        if self.peek() == (\"keyword\", \"NOT\"):\n            self.take(\"keyword\", \"NOT\")\n            return (\"not\", self.parse_atom())\n")
+  .replace("    # TODO: add eval_not\n", "    def eval_not(self, node, record):\n        return not self.evaluate(node[1], record)\n");
+const withinStarter = $("#code-ex-within").value;
+const withinSolution = withinStarter
+  .replace("        # TODO: remember this person's onset day if it is the first record for them\n        pass\n", "        if record[\"person_id\"] not in self.onset:\n            self.onset[record[\"person_id\"]] = record[\"day\"]\n")
+  .replace(/        # TODO: raise ValueError unless ref is "onset"\n[\s\S]*?        return False\n/, "        if ref != \"onset\":\n            raise ValueError(\"unknown reference \" + ref)\n        elapsed = record[\"day\"] - self.onset[record[\"person_id\"]]\n        return 0 <= elapsed <= days and self.evaluate(child, record)\n");
+CT.lesson({
+  quiz: QUIZ,
+  cards: CARDS,
+  exercises: {
+    "ex-coord": {
+      cases: [
+        'store = BusyStore(0)\nstore.write("P000042", ["BCG"])\nprint(coordinated_update(store, "P000042", "DTP1"))',
+        'store = BusyStore(1)\nstore.write("P000042", ["BCG"])\nprint(coordinated_update(store, "P000042", "DTP1"))\nprint(store.read("P000042"))',
+        'store = BusyStore(3)\nstore.write("P000042", ["BCG"])\ncoordinated_update(store, "P000042", "MCV1")\nprint(store.read("P000042"))',
+        'store = BusyStore(0)\nprint(coordinated_update(store, "P000007", "BCG"))',
+        'store = BusyStore(5)\ntry:\n    coordinated_update(store, "P000042", "MCV1", max_tries=3)\n    print("updated")\nexcept RuntimeError:\n    print("gave up after 3 tries")\nprint(store.read("P000042"))'
+      ],
+      solution: coordSolution,
+      hint: ["Blank 1 is a call to store.read(person_id), which returns a (list, version) pair.", "Blank 2 is store.write_if(person_id, doses, version). It returns True when the write happened."]
+    },
+    "ex-not": {
+      cases: [
+        'print(Parser("NOT fever").parse())',
+        'print(Parser("NOT fever AND rash").parse())',
+        'print(Parser("NOT NOT cough").parse())',
+        'print(Parser("fever AND rash OR cough").parse())',
+        'r = {"fever": True, "rash": False, "cough": True, "age": 6}\nprint(Interpreter().evaluate(Parser("fever AND NOT (rash OR age < 5)").parse(), r))',
+        'print([Interpreter().evaluate(Parser("NOT cough").parse(), {"cough": c}) for c in [True, False]])'
+      ],
+      solution: notSolution,
+      hint: ["At the top of parse_atom: if self.peek() == (\"keyword\", \"NOT\"), call self.take(\"keyword\", \"NOT\") and return (\"not\", self.parse_atom()).", "eval_not(self, node, record) returns not self.evaluate(node[1], record)."]
+    },
+    "ex-within": {
+      cases: [
+        'print(Interpreter().run(rule, visits))',
+        'v = [{"person_id": "P1", "day": 0, "rash": True}, {"person_id": "P1", "day": 14, "rash": True}, {"person_id": "P1", "day": 15, "rash": True}]\nprint(Interpreter().run(rule, v))',
+        'v = [{"person_id": "P1", "day": 30, "rash": False}, {"person_id": "P2", "day": 31, "rash": True}, {"person_id": "P1", "day": 32, "rash": True}]\nprint(Interpreter().run(("within", ("var", "rash"), 1, "onset"), v))',
+        'v = [{"person_id": "P1", "day": 10, "rash": True}, {"person_id": "P1", "day": 4, "rash": True}]\nprint(Interpreter().run(rule, v))',
+        'it = Interpreter()\nit.run(rule, visits)\nprint(sorted(it.onset.items()))',
+        'try:\n    Interpreter().run(("within", ("var", "rash"), 14, "birth"), visits)\n    print("accepted")\nexcept ValueError:\n    print("refused")'
+      ],
+      solution: withinSolution,
+      hint: ["before_each: if record[\"person_id\"] is not yet a key in self.onset, store record[\"day\"] under it.", "eval_within: elapsed = record[\"day\"] - self.onset[record[\"person_id\"]]; return 0 <= elapsed <= days and self.evaluate(child, record)."]
+    }
+  }
+});
+})();
+</script>
+</body>
+</html>

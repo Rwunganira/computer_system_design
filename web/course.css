@@ -299,3 +299,6 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--rule);
 .viz text { font-family: var(--mono); font-size: 12px; fill: var(--muted); }
 .kbd { font-family: var(--mono); font-size: 0.8em; padding: 1px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--sheet); }
 .big-q { font-family: var(--display); font-size: var(--step-2); font-weight: 700; line-height: 1.25; max-width: 30ch; }
+
+/* Long paths in callouts wrap at phone width. */
+.callout code { overflow-wrap: anywhere; }
